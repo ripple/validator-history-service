@@ -1,0 +1,234 @@
+import { Request, Response } from 'express'
+
+import { query } from '../../../shared/database'
+
+interface NodeResponse {
+  node_public_key: string
+  networks?: string
+  lat?: number
+  long?: number
+  complete_ledgers?: string
+  complete_shards?: string
+  version?: string
+  ip?: string
+  port?: number
+  uptime?: number
+  country_code?: number
+  country?: string
+  region?: string
+  region_code?: number
+  city?: string
+  postal_code?: number
+  timezone?: string
+  server_state?: string
+  io_latency_ms?: number
+  load_factor_server?: number
+}
+
+interface Cache {
+  nodes: NodeResponse[]
+  time: number
+}
+
+const cache: Cache = {
+  nodes: [],
+  time: Date.now(),
+}
+
+/**
+ * Handwave-y function that removes null values.
+ *
+ * @param node - NodeResponse object with null values.
+ * @returns NodeResponse without null values.
+ */
+function removeNull(node: NodeResponse): NodeResponse {
+  return Object.fromEntries(
+    Object.entries(node).filter(([_u, value]) => value !== null),
+  ) as NodeResponse
+}
+
+/**
+ * Finds Validator with public_key in database.
+ *
+ * @param public_key - Signing key for validator.
+ * @returns Validator or undefined if not found.
+ */
+async function findInDatabase(
+  public_key: string,
+): Promise<NodeResponse | undefined> {
+  const result = await query('crawls')
+    .select([
+      'crawls.public_key as node_public_key',
+      'crawls.networks',
+      'crawls.complete_ledgers',
+      'crawls.complete_shards',
+      'crawls.ip',
+      'crawls.port',
+      'crawls.uptime',
+      'crawls.version',
+      'crawls.server_state',
+      'crawls.io_latency_ms',
+      'crawls.load_factor_server',
+      'location.lat',
+      'location.long',
+      'location.country_code',
+      'location.country',
+      'location.region',
+      'location.region_code',
+      'location.city',
+      'location.postal_code',
+      'location.timezone',
+    ])
+    .fullOuterJoin('location', 'crawls.public_key', 'location.public_key')
+    .where({ public_key })
+    .limit(1)
+
+  const node = result.shift()
+  if (node === undefined) {
+    return undefined
+  }
+
+  return removeNull(node)
+}
+
+/**
+ * Reads nodes from database.
+ *
+ * @returns Locations of nodes crawled in the last 10 minutes.
+ */
+async function getNodes(): Promise<NodeResponse[]> {
+  const now = new Date()
+  const hourAgo = new Date()
+  hourAgo.setHours(now.getHours() - 1)
+
+  return query('crawls')
+    .select([
+      'crawls.public_key as node_public_key',
+      'crawls.networks',
+      'crawls.complete_ledgers',
+      'crawls.complete_shards',
+      'crawls.ip',
+      'crawls.port',
+      'crawls.uptime',
+      'crawls.version',
+      'crawls.port',
+      'crawls.uptime',
+      'crawls.version',
+      'crawls.server_state',
+      'crawls.io_latency_ms',
+      'crawls.load_factor_server',
+      'inbound_count',
+      'outbound_count',
+      'location.lat',
+      'location.long',
+      'location.country_code',
+      'location.country',
+      'location.region',
+      'location.region_code',
+      'location.city',
+      'location.postal_code',
+      'location.timezone',
+    ])
+    .fullOuterJoin('location', 'crawls.public_key', 'location.public_key')
+    .where('crawls.start', '>', hourAgo)
+    .then((nodes: NodeResponse[]) => nodes.map((node) => removeNull(node)))
+}
+
+/**
+ * Updates cached Nodes.
+ *
+ * @returns Void.
+ */
+async function cacheNodes(): Promise<void> {
+  try {
+    cache.nodes = await getNodes()
+    cache.time = Date.now()
+  } catch (err) {
+    console.log(err.toString())
+  }
+}
+
+void cacheNodes()
+
+/**
+ * Handles Nodes request.
+ *
+ * @param req - Express request.
+ * @param res - Express response.
+ */
+export async function handleNode(req: Request, res: Response): Promise<void> {
+  try {
+    if (Date.now() - cache.time > 60 * 1000) {
+      await cacheNodes()
+    }
+
+    const public_key = req.params.publicKey
+    let node: NodeResponse | undefined = cache.nodes.find(
+      (resp: NodeResponse) => resp.node_public_key === public_key,
+    )
+
+    if (node === undefined) {
+      node = await findInDatabase(public_key)
+    }
+
+    if (node === undefined) {
+      res.send({ result: 'error', message: 'node not found' })
+    }
+
+    res.send({
+      ...node,
+      result: 'success',
+    })
+  } catch {
+    res.send({ result: 'error', message: 'internal error' })
+  }
+}
+
+/**
+ * Handles Nodes request.
+ *
+ * @param _u - Unused express request.
+ * @param res - Express response.
+ */
+export async function handleNodes(_u: Request, res: Response): Promise<void> {
+  try {
+    if (Date.now() - cache.time > 60 * 1000) {
+      await cacheNodes()
+    }
+
+    res.send({
+      result: 'success',
+      count: cache.nodes.length,
+      nodes: cache.nodes,
+    })
+  } catch {
+    res.send({ result: 'error', message: 'internal error' })
+  }
+}
+
+/**
+ * Handles Topology request.
+ *
+ * @param _u - Unused express request.
+ * @param res - Express response.
+ */
+export async function handleTopology(
+  _u: Request,
+  res: Response,
+): Promise<void> {
+  try {
+    if (Date.now() - cache.time > 60 * 1000) {
+      await cacheNodes()
+    }
+
+    res.send({
+      result: 'success',
+      node_count: cache.nodes.length,
+      link_count: 0,
+      nodes: cache.nodes,
+      links: [],
+    })
+  } catch {
+    res.send({ result: 'error', message: 'internal error' })
+  }
+}

@@ -1,0 +1,37 @@
+import chains from '../../src/connection-manager/chains'
+import { destroy, query, setupTable } from '../../src/shared/database'
+
+import singleValidations from './fixtures/single-validations.json'
+
+jest.useFakeTimers()
+
+describe('Single Validations', () => {
+  beforeAll(async () => {
+    await setupTable()
+  })
+
+  afterAll(async () => {
+    await destroy()
+  })
+
+  beforeEach(async () => {
+    await query('crawls').delete('*')
+  })
+
+  test('Ignores single validations', async () => {
+    for (const validation of singleValidations) {
+      chains.updateLedgers(validation)
+    }
+
+    const time = Date.now() + 11000
+
+    // Mock date.now
+    Date.now = (): number => time
+    const constructed: Array<{
+      ledgers: Set<string>
+      validators: Set<string>
+    }> = chains.calculateChainsFromLedgers()
+
+    expect(constructed).toEqual([])
+  })
+})

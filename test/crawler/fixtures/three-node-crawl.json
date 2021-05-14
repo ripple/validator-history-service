@@ -1,0 +1,80 @@
+{
+  "peers": {
+    "1.1.1.1": {
+      "overlay": {
+        "active": [
+          {
+            "ip": "1.1.1.13",
+            "port": 51235,
+            "public_key": "n9Kt2gdtxsYV6h4SAfHkRFUMU8gB6rDQ3MktiB3MMEDS9s9obu9b",
+            "complete_ledgers": "9-29"
+          },
+          {
+            "ip": "2.2.2.23",
+            "port": 51235,
+            "public_key": "n9LgkNWaPfRnxLKAgnSCMHRCyHBZsSdGBdRmyaYEArL3SBoq1EqK",
+            "complete_ledgers": "10-20"
+          }
+        ]
+      },
+      "server": {
+        "pubkey_node" : "n9Mh83gUuY4hBXVD9geWHsyVwz5h32rjauLWQCZJVTEbCb5TYs21",
+        "server_state": "connected",
+        "io_latency_ms": "1",
+        "load_factor_server": "1",
+        "uptime": "1",
+        "version": "1.6.0"
+      }
+    },
+    "1.1.1.13": {
+      "overlay": {
+        "active": [
+          {
+            "ip": "2.2.2.23",
+            "port": 51235,
+            "public_key": "n9LgkNWaPfRnxLKAgnSCMHRCyHBZsSdGBdRmyaYEArL3SBoq1EqK",
+            "complete_ledgers": "10-20"
+          }
+        ]
+      },
+      "server": {
+        "pubkey_node" : "n9Kt2gdtxsYV6h4SAfHkRFUMU8gB6rDQ3MktiB3MMEDS9s9obu9b",
+        "server_state": "connected",
+        "io_latency_ms": "1",
+        "load_factor_server": "1",
+        "uptime": "1",
+        "version": "1.6.0"
+      }
+    },
+    "2.2.2.23": {
+      "overlay": {
+        "active": []
+      },
+      "server": {
+        "pubkey_node" : "n9LgkNWaPfRnxLKAgnSCMHRCyHBZsSdGBdRmyaYEArL3SBoq1EqK",
+        "server_state": "connected",
+        "io_latency_ms": "1",
+        "load_factor_server": "1",
+        "uptime": "1",
+        "version": "1.6.0"
+      }
+    }
+  },
+  "result": [
+    {
+      "public_key" : "n9Mh83gUuY4hBXVD9geWHsyVwz5h32rjauLWQCZJVTEbCb5TYs21",
+      "ip": null,
+      "port": null
+    },
+    {
+      "public_key": "n9Kt2gdtxsYV6h4SAfHkRFUMU8gB6rDQ3MktiB3MMEDS9s9obu9b",
+      "ip": "1.1.1.13",
+      "port": 51235
+    },
+    {
+      "public_key": "n9LgkNWaPfRnxLKAgnSCMHRCyHBZsSdGBdRmyaYEArL3SBoq1EqK",
+      "ip": "2.2.2.23",
+      "port": 51235
+    }
+  ]
+}
