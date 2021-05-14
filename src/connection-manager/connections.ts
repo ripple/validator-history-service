@@ -122,9 +122,14 @@ async function findConnection(node: WsNode): Promise<void> {
  */
 async function createConnections(): Promise<void> {
   console.log('Finding Connections...')
+  const tenMinutesAgo = new Date()
+  tenMinutesAgo.setMinutes(tenMinutesAgo.getMinutes() - 10)
+  
   const nodes = await query('crawls')
     .select(['ip', 'ws_url'])
     .whereNotNull('ip')
+    .andWhere('start', '>', tenMinutesAgo)
+
   const promises: Array<Promise<void>> = []
   nodes.forEach((node: WsNode) => {
     promises.push(findConnection(node))

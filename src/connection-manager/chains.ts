@@ -187,23 +187,23 @@ class Chains {
       | undefined = this.chains
       .filter((chain) => overlaps(chain.validators, validators))
       .shift()
-
-    if (chainWithThisValidator !== undefined) {
-      const skipped = ledger.ledger_index - chainWithThisValidator.current
-      if (skipped > 1 && skipped < 10) {
-        chainWithThisValidator.incomplete = true
-        addLedgerToChain(ledger, chainWithThisValidator)
-      }
-      return
-    }
-
+    
     const chainWithLedger:
       | Chain
       | undefined = this.chains.find((chain: Chain) =>
       chain.ledgers.has(ledger.ledger_hash),
     )
 
-    if (chainWithLedger !== undefined) {
+    if (chainWithThisValidator !== undefined) {
+      const skipped = ledger.ledger_index - chainWithThisValidator.current
+      console.log(`Possibly skipped ${skipped} ledgers`)
+      if (skipped > 1 && skipped < 20) {
+        chainWithThisValidator.incomplete = true
+        addLedgerToChain(ledger, chainWithThisValidator)
+      }
+    }
+
+    if (chainWithThisValidator !== undefined || chainWithLedger !== undefined) {
       return
     }
 
