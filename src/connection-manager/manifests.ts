@@ -142,9 +142,10 @@ async function updateValidatorDomainsFromManifests(): Promise<void> {
  *
  * @returns A promise that resolves to void once unl column is updated for all applicable validators.
  */
-async function updateUnls(): Promise<void> {
+export async function updateUnls(): Promise<void> {
   try {
     const lists = await getLists()
+    console.log(lists)
     console.log('Updating validator unls...')
     for (const [name, list] of Object.entries(lists)) {
       // Get latest signing keys from manifests table
@@ -164,13 +165,19 @@ async function updateUnls(): Promise<void> {
             return idx.signing_key
           })
         })
-
+      
       // eslint-disable-next-line max-depth -- necessary depth
       if (name === 'vl_main') {
         // eslint-disable-next-line no-await-in-loop -- necessary await
         await query('validators')
           .whereIn('signing_key', keys)
           .update({ unl: config.vl_main })
+          
+        // eslint-disable-next-line no-await-in-loop -- necessary await
+        await query('validators')
+          .whereNotIn('signing_key',keys)
+          .where('unl','=',config.vl_main)
+          .update({unl: null})
       }
       // eslint-disable-next-line max-depth -- necessary depth
       if (name === 'vl_test') {
@@ -178,6 +185,10 @@ async function updateUnls(): Promise<void> {
         await query('validators')
           .whereIn('signing_key', keys)
           .update({ unl: config.vl_test })
+        await query('validators')
+          .whereNotIn('signing_key',keys)
+          .where('unl','=',config.vl_test)
+          .update({unl: null})
       }
       // eslint-disable-next-line max-depth -- necessary depth
       if (name === 'vl_dev') {
@@ -185,6 +196,10 @@ async function updateUnls(): Promise<void> {
         await query('validators')
           .whereIn('signing_key', keys)
           .update({ unl: config.vl_dev })
+        await query('validators')
+          .whereNotIn('signing_key',keys)
+          .where('unl','=',config.vl_dev)
+          .update({unl: null})
       }
     }
     console.log('Finished updating validator unls')

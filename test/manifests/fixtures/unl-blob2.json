@@ -1,0 +1,10 @@
+{
+  "sequence": 51,
+  "expiration": 691372800,
+  "validators": [
+    {
+      "validation_public_key": "ED061ECB51B5BD62665F5D1A5DB1A62AF84464BED77E7728235A7A551D4535E717",
+      "manifest": "JAAAAAJxIe0GHstRtb1iZl9dGl2xpir4RGS+1353KCNaelUdRTXnF3MhAnnBskJljdeFFKWmCiBvowwYo+43BZKgWKgPqj5cRPCXdkcwRQIhAKRiLXevJ61ukhZtikvCuKgGRnV8H08eM/PEvJNEdl04AiBi/Bk68VVefR1GtgI4YezRQVsxnEiN/LmWSNmQYKQRIHASQAt8hKfxkqPMeBOTh2x2hjrkAa7leTenBtf9DxuhwlgsB9N/xxTfpzMQkjUYoYiyXkXZyh1NVsNLDKUmOdWZLAM="
+    }
+  ]
+}
