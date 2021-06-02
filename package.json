@@ -9,7 +9,7 @@
     "startCrawlerDev": "ts-node-dev --transpile-only ./src/crawler/index.ts",
     "startApiDev": "ts-node-dev --transpile-only ./src/api/index.ts",
     "startConnectionsDev": "ts-node-dev --transpile-only ./src/connection-manager/index.ts",
-    "test": "jest"
+    "test": "jest --setupFiles dotenv/config"
   },
   "files": [
     "build/**/*"
