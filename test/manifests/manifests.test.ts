@@ -84,7 +84,6 @@ describe('manifest ingest', () => {
     })
   })
 
-
   test('updateManifestsFromRippled', async () => {
     jest.setTimeout(10000)
     nock(`${config.rippled_rpc_admin_server}`)

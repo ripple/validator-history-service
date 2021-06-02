@@ -171,7 +171,6 @@ export async function updateUnls(): Promise<void> {
         await query('validators')
           .whereIn('signing_key', keys)
           .update({ unl: config.vl_main })
-          
         // eslint-disable-next-line no-await-in-loop -- necessary await
         await query('validators')
           .whereNotIn('signing_key',keys)
