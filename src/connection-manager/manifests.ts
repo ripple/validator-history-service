@@ -145,7 +145,6 @@ async function updateValidatorDomainsFromManifests(): Promise<void> {
 export async function updateUnls(): Promise<void> {
   try {
     const lists = await getLists()
-    console.log(lists)
     console.log('Updating validator unls...')
     for (const [name, list] of Object.entries(lists)) {
       // Get latest signing keys from manifests table
