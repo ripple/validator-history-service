@@ -270,22 +270,36 @@ async function handleRevocations(
   manifest: DatabaseManifest,
 ): Promise<DatabaseManifest> {
   // Mark all older manifests as revoked
-  query('manifests')
+  const revokedSigningKeys = await query('manifests')
     .where({ master_key: manifest.master_key })
     .andWhere('seq', '<', manifest.seq)
-    .update({ revoked: true })
+    .update({ revoked: true },['manifests.signing_key'])
     .catch((err) => console.log(err))
-
+  
+  const revokedSigningKeysArray = revokedSigningKeys
+    ? revokedSigningKeys.map((obj) => {
+        return obj.signing_key;
+      })
+    : [];
+  
   // If there exists a newer manifest, mark this manifest as revoked
   const newer = await query('manifests')
     .where({ master_key: manifest.master_key })
     .andWhere('seq', '>', manifest.seq)
     .catch((err) => console.log(err))
+
   const updated = { revoked: false, ...manifest }
+
   if (newer.length !== 0) {
     updated.revoked = true
-    return updated
+    revokedSigningKeysArray.push(manifest.signing_key)
   }
+
+  // updates revocations in validators table 
+  await query('validators')
+    .whereIn(['signing_key'],revokedSigningKeysArray)
+    .update({revoked:true})
+
   return updated
 }
 

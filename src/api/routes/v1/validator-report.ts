@@ -49,10 +49,10 @@ function formatResponse(response: DatabaseResponse): ScoreResponse {
 }
 
 /**
- * Reads nodes from database.
+ * Gets all daily score reports for a validator
  *
- * @param master_key - Master_key of validator.
- * @returns Locations of nodes crawled in the last 10 minutes.
+ * @param master_key - Master key of validator.
+ * @returns A promise that resolves to an array of ScoreResponse 
  */
 async function getReports(master_key: string): Promise<ScoreResponse[]> {
   return query('daily_agreement')
@@ -68,6 +68,7 @@ async function getReports(master_key: string): Promise<ScoreResponse[]> {
       'validators.master_key',
     )
     .where('validators.master_key', '=', master_key)
+    .andWhere('validators.revoked','=','false')
     .then((resp: DatabaseResponse[]) => resp.map(formatResponse))
 }
 
@@ -84,7 +85,6 @@ export default async function handleValidatorReport(
 ): Promise<void> {
   try {
     const master_key = req.params.publicKey
-
     const scores: ScoreResponse[] = await getReports(master_key)
 
     const response = {

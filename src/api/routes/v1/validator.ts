@@ -96,8 +96,7 @@ async function getValidators(): Promise<ValidatorResponse[]> {
       'master_key',
       'revoked',
     ])
-    .whereNotNull('signing_key')
-    .orWhereNotNull('master_key')
+    .where('revoked','=','false')
     .orderBy(['master_key', 'signing_key'])
     .then((res: dbResponse[]) => res.map(formatResponse))
 }
