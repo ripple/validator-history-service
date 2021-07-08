@@ -5,12 +5,10 @@ import handleValidatorManifest from './manifests'
 import { handleNode, handleNodes, handleTopology } from './nodes'
 import { handleValidator, handleValidators } from './validator'
 import handleValidatorReport from './validator-report'
+import handleHealth from './health'
 
 const api = createRouter()
-api.use('/health', (_u: Request, res: Response) => {
-  res.status(200).send('success')
-})
-
+api.use('/health', handleHealth)
 api.use('/network/validator_reports', handleDailyScores)
 api.use('/network/topology/nodes/:publicKey', handleNode)
 api.use('/network/topology/nodes', handleNodes)

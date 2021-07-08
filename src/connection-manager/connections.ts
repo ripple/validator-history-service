@@ -42,7 +42,7 @@ async function setHandlers(ip: string, ws: WebSocket): Promise<void> {
         resolve()
         return
       }
-      void saveNodeWsUrl(ws.url)
+      void saveNodeWsUrl(ws.url, true)
       connections.set(ip, ws)
       subscribe(ws)
       resolve()
@@ -65,6 +65,7 @@ async function setHandlers(ip: string, ws: WebSocket): Promise<void> {
       if (connections.get(ip)?.url === ws.url) {
         connections.delete(ip)
       }
+      void saveNodeWsUrl(ws.url, false)
       ws.terminate()
       resolve()
     })
@@ -72,6 +73,7 @@ async function setHandlers(ip: string, ws: WebSocket): Promise<void> {
       if (connections.get(ip)?.url === ws.url) {
         connections.delete(ip)
       }
+      void saveNodeWsUrl(ws.url, false)
       ws.terminate()
       resolve()
     })

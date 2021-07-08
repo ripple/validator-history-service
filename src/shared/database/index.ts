@@ -72,6 +72,7 @@ async function setupCrawlsTable(): Promise<void> {
       table.string('ip')
       table.integer('port')
       table.string('ws_url')
+      table.boolean('connected')
       table.string('networks')
       table.string('type')
       table.integer('uptime')
@@ -243,7 +244,7 @@ export async function saveNode(node: Node): Promise<void> {
  * @param url - Websocket URL of a rippled node.
  * @returns Void.
  */
-export async function saveNodeWsUrl(url: string): Promise<void> {
+export async function saveNodeWsUrl(url: string, connected: boolean): Promise<void> {
   const ip_match = IP_REGEX.exec(url)
   if (ip_match) {
     query('crawls')
@@ -252,6 +253,7 @@ export async function saveNodeWsUrl(url: string): Promise<void> {
       })
       .update({
         ws_url: url,
+        connected
       })
       .catch((err) => console.log(err))
   } else {
