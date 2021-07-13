@@ -1,4 +1,4 @@
-import { Router as createRouter, Request, Response } from 'express'
+import { Router as createRouter } from 'express'
 
 import handleDailyScores from './daily-report'
 import handleValidatorManifest from './manifests'
