@@ -4,7 +4,9 @@ import { query, saveNodeWsUrl } from '../shared/database'
 
 import agreement from './agreement'
 import { handleManifest } from './manifests'
+import logger from '../shared/utils/logger'
 
+const log = logger({name:'connections'})
 const ports = [443, 80, 6005, 6006, 51233, 51234]
 const protocols = ['wss://', 'ws://']
 const connections: Map<string, WebSocket> = new Map()
@@ -121,7 +123,7 @@ async function findConnection(node: WsNode): Promise<void> {
  * @returns A promise that resolves to void once all possible connections have been created.
  */
 async function createConnections(): Promise<void> {
-  console.log('Finding Connections...')
+  log.info('Finding Connections...')
   const tenMinutesAgo = new Date()
   tenMinutesAgo.setMinutes(tenMinutesAgo.getMinutes() - 10)
   

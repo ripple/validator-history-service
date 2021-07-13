@@ -1,11 +1,12 @@
 import 'dotenv/config'
 import express, { Request, Response } from 'express'
-
+import logger from '../shared/utils/logger'
 import config from '../shared/utils/config'
 
 import routes from './routes/v1'
 import handleInfo from './routes/v1/info'
 
+const log = logger({name:'api'})
 const PORT: number = config.port ? Number(config.port) : 3000
 const ADDR: string = config.addr ?? '0.0.0.0'
 
@@ -18,4 +19,4 @@ app.use('*', (_u: Request, res: Response) => {
 })
 
 app.listen(PORT, ADDR)
-console.log(`Listening at ${ADDR}:${PORT}`)
+log.info(`Listening at ${ADDR}:${PORT}`)
