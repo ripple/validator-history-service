@@ -14,6 +14,9 @@ import {
 } from '../types'
 import { getLists, overlaps } from '../utils'
 import config from '../utils/config'
+import logger from '../utils/logger'
+
+const log = logger({name:'database'})
 
 let lists:
   | undefined
@@ -27,7 +30,7 @@ getLists()
   .then((ret) => {
     lists = ret
   })
-  .catch((err) => console.log(err))
+  .catch((err:Error) => log.error(err.message))
 let knexDb: undefined | knex
 
 /**
@@ -234,7 +237,7 @@ export async function saveNode(node: Node): Promise<void> {
     .insert(node)
     .onConflict('public_key')
     .merge()
-    .catch((err) => console.log(err))
+    .catch((err:Error) => log.error(err.message))
 }
 
 /**
@@ -253,9 +256,9 @@ export async function saveNodeWsUrl(url: string): Promise<void> {
       .update({
         ws_url: url,
       })
-      .catch((err) => console.log(err))
+      .catch((err:Error) => log.error(err.message))
   } else {
-    console.log('Invalid websocket url')
+    log.warn('Invalid websocket url')
   }
 }
 
@@ -274,7 +277,7 @@ async function handleRevocations(
     .where({ master_key: manifest.master_key })
     .andWhere('seq', '<', manifest.seq)
     .update({ revoked: true },['manifests.signing_key'])
-    .catch((err) => console.log(err))
+    .catch((err:Error) => log.error(err.message) )
   
   const revokedSigningKeysArray = revokedSigningKeys
     ? revokedSigningKeys.map((obj) => {
@@ -286,7 +289,7 @@ async function handleRevocations(
   const newer = await query('manifests')
     .where({ master_key: manifest.master_key })
     .andWhere('seq', '>', manifest.seq)
-    .catch((err) => console.log(err))
+    .catch((err:Error) => log.error(err.message))
 
   const updated = { revoked: false, ...manifest }
 
@@ -315,7 +318,7 @@ export async function saveManifest(manifest: DatabaseManifest): Promise<void> {
     .insert(updated)
     .onConflict(['master_signature'])
     .merge()
-    .catch((err) => console.log(err))
+    .catch((err:Error) => log.error(err.message))
 }
 
 /**
@@ -331,7 +334,7 @@ export async function getValidatorSigningKeys(): Promise<string[]> {
         return key.signing_key
       })
     })
-    .catch((err) => console.log(err))
+    .catch((err:Error) => log.error(err.message))
 }
 /**
  * Saves a Location to database.
@@ -344,7 +347,7 @@ export async function saveLocation(location: Location): Promise<void> {
     .insert(location)
     .onConflict('public_key')
     .merge()
-    .catch((err) => console.log(err))
+    .catch((err:Error) => log.error(err.message))
 }
 
 /**
@@ -360,7 +363,7 @@ export async function saveHourlyAgreement(
     .insert(agreement)
     .onConflict(['master_key', 'start'])
     .merge()
-    .catch((err) => console.log(err))
+    .catch((err:Error) => log.error(err.message))
 }
 
 /**
@@ -376,7 +379,7 @@ export async function saveDailyAgreement(
     .insert(agreement)
     .onConflict(['master_key', 'day'])
     .merge()
-    .catch((err) => console.log(err))
+    .catch((err:Error) => log.error(err.message) )
 }
 
 /**
@@ -410,7 +413,7 @@ export async function signingToMaster(
     .select('master_key')
     .where({ signing_key })
     .then(async (resp) => resp[0]?.master_key)
-    .catch((err) => console.log(err))
+    .catch((err:Error) => log.error(err.message) )
 }
 
 /**
@@ -472,7 +475,7 @@ export async function update1HourValidatorAgreement(
   await query('validators')
     .where({ master_key })
     .update({ agreement_1hour: agreement })
-    .catch((err) => console.log(err))
+    .catch((err:Error) => log.error(err.message) )
 }
 /**
  *  Updates the validator's 24 hour agreement score.
@@ -488,7 +491,7 @@ export async function update24HourValidatorAgreement(
   await query('validators')
     .where({ master_key })
     .update({ agreement_24hour: agreement })
-    .catch((err) => console.log(err))
+    .catch((err:Error) => log.error(err.message) )
 }
 
 /**
@@ -505,7 +508,7 @@ export async function update30DayValidatorAgreement(
   await query('validators')
     .where({ master_key })
     .update({ agreement_30day: agreement })
-    .catch((err) => console.log(err))
+    .catch((err:Error) => log.error(err.message) )
 }
 
 /**
@@ -526,7 +529,7 @@ export async function getNodesToLocate(): Promise<Node[]> {
         .whereNull('location.updated')
         .orWhere('location.updated', '<', sixDaysAgo)
     })
-    .catch((err: Error) => console.log(`Error querying nodes: ${err.message}`))
+    .catch((err: Error) => log.error(`Error querying nodes: ${err.message}`))
 }
 
 /**
@@ -541,7 +544,7 @@ export async function saveValidator(
     .insert(validator)
     .onConflict('signing_key')
     .merge()
-    .catch((err) => console.log(err))
+    .catch((err:Error) => log.error(err.message) )
 }
 
 /**
@@ -556,7 +559,7 @@ export async function purgeHourlyAgreementScores(): Promise<void> {
   await query('hourly_agreement')
     .delete('*')
     .where('start', '<', thirtyDaysAgo)
-    .catch((err: Error) => console.log(err))
+    .catch((err: Error) => log.error(err.message))
 }
 
 /**
@@ -586,6 +589,6 @@ export async function saveValidatorChains(chain: Chain): Promise<void> {
   try {
     await Promise.all(promises)
   } catch (err) {
-    console.log(err)
+    log.error(err.message)
   }
 }

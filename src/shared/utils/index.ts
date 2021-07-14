@@ -4,6 +4,10 @@ import { normalizeManifest } from 'xrpl-validator-domains'
 import { UNL, UNLBlob, UNLValidator } from '../types'
 
 import config from './config'
+import logger from '../utils/logger'
+
+const log = logger({name:'utils'})
+
 /**
  * Fetches the UNL.
  *
@@ -18,7 +22,7 @@ export async function fetchValidatorList(url: string): Promise<UNLBlob> {
     const blobParsed: UNLBlob = JSON.parse(buf.toString('ascii'))
     return blobParsed
   } catch (err) {
-    console.log(err)
+    log.error(err.message)
     return Promise.reject()
   }
 }

@@ -1,7 +1,9 @@
 import { saveValidatorChains } from '../shared/database'
 import { Ledger, ValidationRaw, Chain } from '../shared/types'
 import { overlaps } from '../shared/utils'
+import logger from '../shared/utils/logger'
 
+const log = logger({name:'chains'})
 /**
  * Helper to sort chains by chain length.
  *
@@ -144,7 +146,7 @@ class Chains {
       incomplete: true,
     }
 
-    console.log(`Added new chain new chain, chain.${chain.id}`)
+    log.info(`Added new chain new chain, chain.${chain.id}`)
     this.chains.push(chain)
   }
 
@@ -196,7 +198,7 @@ class Chains {
 
     if (chainWithThisValidator !== undefined) {
       const skipped = ledger.ledger_index - chainWithThisValidator.current
-      console.log(`Possibly skipped ${skipped} ledgers`)
+      log.warn(`Possibly skipped ${skipped} ledgers`)
       if (skipped > 1 && skipped < 20) {
         chainWithThisValidator.incomplete = true
         addLedgerToChain(ledger, chainWithThisValidator)

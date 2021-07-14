@@ -2,6 +2,9 @@ import { Request, Response } from 'express'
 
 import { query } from '../../../shared/database'
 import { AgreementScore } from '../../../shared/types'
+import logger from '../../../shared/utils/logger'
+
+const log = logger({name:'api-daily-report'});
 
 interface DailyScoreResponse {
   validation_public_key: string
@@ -94,7 +97,7 @@ async function cacheScores(): Promise<void> {
     cache.scores = await getReports()
     cache.time = Date.now()
   } catch (err) {
-    console.log(err.toString())
+    log.error(err.toString())
   }
 }
 

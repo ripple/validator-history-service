@@ -18,9 +18,10 @@ import {
 } from '../shared/types'
 import { fetchValidatorList, fetchRpcManifest, getLists } from '../shared/utils'
 import config from '../shared/utils/config'
-
+import logger from '../shared/utils/logger'
 import hard_dunl from './fixtures/unl-hard.json'
 
+const log = logger({name:'manifests'})
 const MANIFESTS_JOB_INTERVAL = 60 * 60 * 1000
 let jobsStarted = false
 /**
@@ -36,7 +37,7 @@ export async function handleManifest(
   try {
     verification = await verifyValidatorDomain(manifest)
   } catch (err) {
-    console.log(err.message)
+    log.warn(err.message)
     let normalized
     try {
       normalized = normalizeManifest(manifest)
@@ -66,7 +67,7 @@ export async function handleManifest(
  */
 export async function updateUNLManifests(): Promise<void> {
   try {
-    console.log('Fetching UNL...')
+    log.info('Fetching UNL...')
     const unl: UNLBlob = await fetchValidatorList(config.vl_main)
     const promises: Array<Promise<void>> = []
 
@@ -78,8 +79,7 @@ export async function updateUNLManifests(): Promise<void> {
     })
     await Promise.all(promises)
   } catch (err) {
-    console.log('Error updating UNL manifests')
-    console.log(err)
+    log.error(`Error updating UNL manifests:${err}`)
   }
 }
 
@@ -91,7 +91,7 @@ export async function updateUNLManifests(): Promise<void> {
  */
 export async function updateManifestsFromRippled(): Promise<void> {
   try {
-    console.log('Getting latest Manifests...')
+    log.info('Getting latest Manifests...')
     const keys = await getValidatorSigningKeys()
 
     const manifestPromises: Array<Promise<string | undefined>> = []
@@ -110,10 +110,9 @@ export async function updateManifestsFromRippled(): Promise<void> {
       }
     }
     await Promise.all(handleManifestPromises)
-    console.log('Manifests updated')
+    log.info('Manifests updated')
   } catch (err) {
-    console.log('Error updating manifests from rippled')
-    console.log(err)
+    log.error(`Error updating manifests from rippled:${err}`)
   }
 }
 
@@ -124,16 +123,15 @@ export async function updateManifestsFromRippled(): Promise<void> {
  * @returns A promise that resolves to void once all of the latest manifests have been saved.
  */
 async function updateValidatorDomainsFromManifests(): Promise<void> {
-  console.log('Updating validator domains...')
+  log.info('Updating validator domains...')
   try {
     await db().raw(
       'UPDATE validators SET domain = manifests.domain, domain_verified = manifests.domain_verified FROM manifests WHERE validators.signing_key = manifests.signing_key AND manifests.domain IS NOT NULL',
     )
   } catch (err) {
-    console.log('Error updating validator domains')
-    console.log(err)
+    log.error(`Error updating validator domains ${err}`)
   }
-  console.log('Finished updating validator domains')
+  log.info('Finished updating validator domains')
 }
 
 /**
@@ -145,7 +143,7 @@ async function updateValidatorDomainsFromManifests(): Promise<void> {
 export async function updateUnls(): Promise<void> {
   try {
     const lists = await getLists()
-    console.log('Updating validator unls...')
+    log.info('Updating validator unls...')
     for (const [name, list] of Object.entries(lists)) {
       // Get latest signing keys from manifests table
 
@@ -200,10 +198,9 @@ export async function updateUnls(): Promise<void> {
           .update({unl: null})
       }
     }
-    console.log('Finished updating validator unls')
+    log.info('Finished updating validator unls')
   } catch (err) {
-    console.log('Error updating validator unls')
-    console.log(err)
+    log.error(`Error updating validator unls: ${err}`)
   }
 }
 
@@ -213,15 +210,15 @@ export async function updateUnls(): Promise<void> {
  * @returns A promise that resolves to void once all master keys are updated.
  */
 async function updateValidatorMasterKeys(): Promise<void> {
-  console.log('Updating validator master keys...')
+  log.info('Updating validator master keys...')
   try {
     await db().raw(
       'UPDATE validators SET master_key = manifests.master_key FROM manifests WHERE validators.signing_key = manifests.signing_key',
     )
   } catch (err) {
-    console.log(err)
+    log.error(`Error updating validator master keys: ${err}`)
   }
-  console.log('Finished updating validator master keys')
+  log.info('Finished updating validator master keys')
 }
 
 /**
@@ -231,15 +228,15 @@ async function updateValidatorMasterKeys(): Promise<void> {
  * @returns Void.
  */
 async function updateRevocations(): Promise<void> {
-  console.log('Updating revocations...')
+  log.info('Updating revocations...')
   try {
     await db().raw(
       'UPDATE validators SET revoked = manifests.revoked FROM manifests WHERE validators.signing_key = manifests.signing_key',
     )
   } catch (err) {
-    console.log(err)
+    log.error(`Error updating revocations:${err}`)
   }
-  console.log('Finished updating revocations')
+  log.info('Finished updating revocations')
 }
 
 /**
@@ -250,13 +247,13 @@ async function updateRevocations(): Promise<void> {
 async function purgeOldValidators(): Promise<void> {
   const oneWeekAgo = new Date()
   oneWeekAgo.setDate(oneWeekAgo.getDate() - 7)
-  console.log('Deleting old validators')
+  log.info('Deleting old validators')
   try {
     await query('validators').where('last_ledger_time', '<', oneWeekAgo).del()
   } catch (err) {
-    console.log(err)
+    log.error(`Error purging old validators ${err}`)
   }
-  console.log('Finished deleting old validators')
+  log.info('Finished deleting old validators')
 }
 
 /**
@@ -265,7 +262,7 @@ async function purgeOldValidators(): Promise<void> {
  * @returns Void.
  */
 async function updateHardCodedUnls(): Promise<void> {
-  console.log('Hard coding validators from dUNL (ddv pending)...')
+  log.info('Hard coding validators from dUNL (ddv pending)...')
 
   interface HardCoded {
     [key: string]: string
@@ -277,12 +274,12 @@ async function updateHardCodedUnls(): Promise<void> {
         .where('master_key', '=', master_key)
         .whereNull('domain')
         .update({ domain: obj[master_key] }, ['master_key'])
-        .catch((err) => console.log(err))
+        .catch((err) => log.error(`Hard coding error - query error: ${err}`))
     } catch (err) {
-      console.log(err)
+      log.error(`Error updating hard coded UNL validators: ${err}`)
     }
   }
-  console.log('Finished hard coding dUNL validators')
+  log.info('Finished hard coding dUNL validators')
 }
 
 async function jobs(): Promise<void> {
@@ -298,10 +295,10 @@ async function jobs(): Promise<void> {
 
 export async function doManifestJobs(): Promise<void> {
   if (!jobsStarted) {
-    jobs().catch((err) => console.log(err))
+    jobs().catch((err) => log.error(`Error starting manifest jobs: ${err}`))
     setInterval(() => {
       jobsStarted = true
-      jobs().catch((err) => console.log(err))
+      jobs().catch((err) => log.error(`Error starting manifest jobs: ${err}`))
     }, MANIFESTS_JOB_INTERVAL)
   }
 }

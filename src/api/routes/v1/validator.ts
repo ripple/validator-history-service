@@ -2,6 +2,9 @@ import { Request, Response } from 'express'
 
 import { query } from '../../../shared/database'
 import { AgreementScore } from '../../../shared/types'
+import logger from '../../../shared/utils/logger'
+
+const log = logger({name:'api-validator'})
 
 interface Cache {
   validators: ValidatorResponse[]
@@ -111,7 +114,7 @@ async function cacheValidators(): Promise<void> {
     cache.validators = await getValidators()
     cache.time = Date.now()
   } catch (err) {
-    console.log(err.toString())
+    log.error(err.toString())
   }
 }
 

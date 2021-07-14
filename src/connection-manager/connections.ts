@@ -54,7 +54,7 @@ async function setHandlers(ip: string, ws: WebSocket): Promise<void> {
       try {
         data = JSON.parse(message)
       } catch (error) {
-        console.log(error)
+        log.error(error.message)
         return
       }
       if (data?.type === 'validationReceived') {
@@ -137,11 +137,11 @@ async function createConnections(): Promise<void> {
     promises.push(findConnection(node))
   })
   await Promise.all(promises)
-  console.log(`${connections.size} connections created`)
+  log.info(`${connections.size} connections created`)
 }
 
 setInterval(() => {
-  console.log(`${connections.size} connections established`)
+  log.info(`${connections.size} connections established`)
 }, REPORTING_INTERVAL)
 
 /**

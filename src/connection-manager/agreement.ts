@@ -10,8 +10,10 @@ import {
   signingToMaster,
 } from '../shared/database'
 import { AgreementScore, ValidationRaw } from '../shared/types'
-
+import logger from '../shared/utils/logger'
 import chains from './chains'
+
+const log = logger({name:'agreement'})
 
 const AGREEMENT_INTERVAL = 60 * 60 * 1000
 const PURGE_INTERVAL = 10 * 60 * 1000
@@ -122,7 +124,7 @@ class Agreement {
    * Calculates agreement scores, run hourly.
    */
   public async calculateAgreement(): Promise<void> {
-    console.log('Calculating agreement scores')
+    log.info('Calculating agreement scores')
     const promises = []
 
     const agreementChains = chains.calculateChainsFromLedgers()

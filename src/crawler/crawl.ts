@@ -5,7 +5,9 @@ import { query, saveNode } from '../shared/database'
 import { Crawl } from '../shared/types'
 
 import crawlNode from './network'
+import logger from '../shared/utils/logger'
 
+const log = logger({name:'crawler'})
 const TIME_FORMAT = 'YYYY-MM-DD HH:mm:ss[Z]'
 const DEFAULT_PORT = 51235
 const IP_ADDRESS = /^::ffff:/u
@@ -53,7 +55,7 @@ class Crawler {
    *
    */
   public async crawl(host: string, port: number = DEFAULT_PORT): Promise<void> {
-    console.log(`Starting crawl at ${host}:${port}`)
+    log.info(`Starting crawl at ${host}:${port}`)
     let network = ''
     if (host === 's1.ripple.com' || host === 's2.ripple.com') {
       network = 'main'
@@ -89,7 +91,7 @@ class Crawler {
           outbound_count: connections.out.size,
           networks,
         })
-        .catch((err: Error) => console.log(err))
+        .catch((err: Error) => log.error(err.message))
     }
   }
 
