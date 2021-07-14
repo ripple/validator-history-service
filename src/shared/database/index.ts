@@ -262,6 +262,23 @@ export async function saveNodeWsUrl(url: string, connected: boolean): Promise<vo
 }
 
 /**
+ * Sets connected column to false
+ *
+ * @returns Promise that resolves to void
+ *
+ */
+export async function clearConnectionsDb(): Promise<void> {
+  try {
+    await query('crawls')
+      .update({
+        connected: false
+      })
+  } catch(err) {
+    console.log(err.message)
+  }
+}
+
+/**
  * Updates revoked column on older manifests.
  *
  * @param manifest -- Incoming manifest.

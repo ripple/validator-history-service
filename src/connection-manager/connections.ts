@@ -1,6 +1,6 @@
 import WebSocket from 'ws'
 
-import { query, saveNodeWsUrl } from '../shared/database'
+import { query, saveNodeWsUrl, clearConnectionsDb} from '../shared/database'
 
 import agreement from './agreement'
 import { handleManifest } from './manifests'
@@ -152,9 +152,10 @@ setInterval(() => {
 export default async function startConnections(): Promise<void> {
   if (!cmStarted) {
     cmStarted = true
+    await clearConnectionsDb();
     await createConnections()
     setInterval(() => {
-      void createConnections()
+       void createConnections()
     }, CM_INTERVAL)
   }
 }
