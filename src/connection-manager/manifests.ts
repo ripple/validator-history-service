@@ -19,9 +19,10 @@ import {
 import { fetchValidatorList, fetchRpcManifest, getLists } from '../shared/utils'
 import config from '../shared/utils/config'
 import logger from '../shared/utils/logger'
+
 import hard_dunl from './fixtures/unl-hard.json'
 
-const log = logger({name:'manifests'})
+const log = logger({ name: 'manifests' })
 const MANIFESTS_JOB_INTERVAL = 60 * 60 * 1000
 let jobsStarted = false
 /**
@@ -36,14 +37,17 @@ export async function handleManifest(
   let verification
   try {
     verification = await verifyValidatorDomain(manifest)
-  } catch (err) {
-    log.warn(err.message)
+  } catch {
     let normalized
     try {
       normalized = normalizeManifest(manifest)
-    } catch {
+    } catch (err: unknown) {
+      log.error('Manifest could not be normalized', err)
       return
     }
+    log.warn(
+      `Domain verification failed for manifest (master key): ${normalized.master_key}`,
+    )
     const dBManifest: DatabaseManifest = {
       domain_verified: false,
       ...normalized,
@@ -79,7 +83,7 @@ export async function updateUNLManifests(): Promise<void> {
     })
     await Promise.all(promises)
   } catch (err) {
-    log.error(`Error updating UNL manifests:${err}`)
+    log.error('Error updating UNL manifests', err)
   }
 }
 
@@ -112,7 +116,7 @@ export async function updateManifestsFromRippled(): Promise<void> {
     await Promise.all(handleManifestPromises)
     log.info('Manifests updated')
   } catch (err) {
-    log.error(`Error updating manifests from rippled:${err}`)
+    log.error(`Error updating manifests from rippled`, err)
   }
 }
 
@@ -129,7 +133,7 @@ async function updateValidatorDomainsFromManifests(): Promise<void> {
       'UPDATE validators SET domain = manifests.domain, domain_verified = manifests.domain_verified FROM manifests WHERE validators.signing_key = manifests.signing_key AND manifests.domain IS NOT NULL',
     )
   } catch (err) {
-    log.error(`Error updating validator domains ${err}`)
+    log.error('Error updating validator domains', err)
   }
   log.info('Finished updating validator domains')
 }
@@ -140,6 +144,7 @@ async function updateValidatorDomainsFromManifests(): Promise<void> {
  *
  * @returns A promise that resolves to void once unl column is updated for all applicable validators.
  */
+// eslint-disable-next-line max-lines-per-function -- Necessary use of extra lines.
 export async function updateUnls(): Promise<void> {
   try {
     const lists = await getLists()
@@ -151,7 +156,6 @@ export async function updateUnls(): Promise<void> {
         .select('master_key')
         .whereIn('signing_key', Array.from(list))
 
-      // eslint-disable-next-line no-await-in-loop -- necessary await
       const keys: string[] = await query('manifests')
         .distinctOn('master_key')
         .select('signing_key')
@@ -162,45 +166,41 @@ export async function updateUnls(): Promise<void> {
             return idx.signing_key
           })
         })
-      
+
       // eslint-disable-next-line max-depth -- necessary depth
       if (name === 'vl_main') {
-        // eslint-disable-next-line no-await-in-loop -- necessary await
         await query('validators')
           .whereIn('signing_key', keys)
           .update({ unl: config.vl_main })
-        // eslint-disable-next-line no-await-in-loop -- necessary await
         await query('validators')
-          .whereNotIn('signing_key',keys)
-          .where('unl','=',config.vl_main)
-          .update({unl: null})
+          .whereNotIn('signing_key', keys)
+          .where('unl', '=', config.vl_main)
+          .update({ unl: null })
       }
       // eslint-disable-next-line max-depth -- necessary depth
       if (name === 'vl_test') {
-        // eslint-disable-next-line no-await-in-loop -- necessary await
         await query('validators')
           .whereIn('signing_key', keys)
           .update({ unl: config.vl_test })
         await query('validators')
-          .whereNotIn('signing_key',keys)
-          .where('unl','=',config.vl_test)
-          .update({unl: null})
+          .whereNotIn('signing_key', keys)
+          .where('unl', '=', config.vl_test)
+          .update({ unl: null })
       }
       // eslint-disable-next-line max-depth -- necessary depth
       if (name === 'vl_dev') {
-        // eslint-disable-next-line no-await-in-loop -- necessary await
         await query('validators')
           .whereIn('signing_key', keys)
           .update({ unl: config.vl_dev })
         await query('validators')
-          .whereNotIn('signing_key',keys)
-          .where('unl','=',config.vl_dev)
-          .update({unl: null})
+          .whereNotIn('signing_key', keys)
+          .where('unl', '=', config.vl_dev)
+          .update({ unl: null })
       }
     }
     log.info('Finished updating validator unls')
   } catch (err) {
-    log.error(`Error updating validator unls: ${err}`)
+    log.error(`Error updating validator unls`, err)
   }
 }
 
@@ -216,7 +216,7 @@ async function updateValidatorMasterKeys(): Promise<void> {
       'UPDATE validators SET master_key = manifests.master_key FROM manifests WHERE validators.signing_key = manifests.signing_key',
     )
   } catch (err) {
-    log.error(`Error updating validator master keys: ${err}`)
+    log.error(`Error updating validator master keys`, err)
   }
   log.info('Finished updating validator master keys')
 }
@@ -234,7 +234,7 @@ async function updateRevocations(): Promise<void> {
       'UPDATE validators SET revoked = manifests.revoked FROM manifests WHERE validators.signing_key = manifests.signing_key',
     )
   } catch (err) {
-    log.error(`Error updating revocations:${err}`)
+    log.error(`Error updating revocations`, err)
   }
   log.info('Finished updating revocations')
 }
@@ -251,7 +251,7 @@ async function purgeOldValidators(): Promise<void> {
   try {
     await query('validators').where('last_ledger_time', '<', oneWeekAgo).del()
   } catch (err) {
-    log.error(`Error purging old validators ${err}`)
+    log.error(`Error purging old validators`, err)
   }
   log.info('Finished deleting old validators')
 }
@@ -274,9 +274,9 @@ async function updateHardCodedUnls(): Promise<void> {
         .where('master_key', '=', master_key)
         .whereNull('domain')
         .update({ domain: obj[master_key] }, ['master_key'])
-        .catch((err) => log.error(`Hard coding error - query error: ${err}`))
+        .catch((err) => log.error(`Hard coding error - query error`, err))
     } catch (err) {
-      log.error(`Error updating hard coded UNL validators: ${err}`)
+      log.error(`Error updating hard coded UNL validators`, err)
     }
   }
   log.info('Finished hard coding dUNL validators')
@@ -295,10 +295,10 @@ async function jobs(): Promise<void> {
 
 export async function doManifestJobs(): Promise<void> {
   if (!jobsStarted) {
-    jobs().catch((err) => log.error(`Error starting manifest jobs: ${err}`))
+    jobs().catch((err) => log.error(`Error starting manifest jobs`, err))
     setInterval(() => {
       jobsStarted = true
-      jobs().catch((err) => log.error(`Error starting manifest jobs: ${err}`))
+      jobs().catch((err) => log.error(`Error starting manifest jobs`, err))
     }, MANIFESTS_JOB_INTERVAL)
   }
 }

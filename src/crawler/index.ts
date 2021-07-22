@@ -3,12 +3,12 @@ import moment from 'moment'
 
 import { setupTable } from '../shared/database'
 import config from '../shared/utils/config'
+import logger from '../shared/utils/logger'
 
 import Crawler from './crawl'
 import locate from './locate'
-import logger from '../shared/utils/logger'
 
-const log = logger({name:'crawler-start'})
+const log = logger({ name: 'crawler-start' })
 const LOCATE_INTERVAL = 24 * 60 * 60 * 1000
 const CRAWL_INTERVAL = 2 * 60 * 1000
 

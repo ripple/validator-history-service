@@ -4,7 +4,7 @@ import { query } from '../../../shared/database'
 import { AgreementScore } from '../../../shared/types'
 import logger from '../../../shared/utils/logger'
 
-const log = logger({name:'api-validator'})
+const log = logger({ name: 'api-validator' })
 
 interface Cache {
   validators: ValidatorResponse[]
@@ -99,7 +99,7 @@ async function getValidators(): Promise<ValidatorResponse[]> {
       'master_key',
       'revoked',
     ])
-    .where('revoked','=','false')
+    .where('revoked', '=', 'false')
     .orderBy(['master_key', 'signing_key'])
     .then((res: dbResponse[]) => res.map(formatResponse))
 }

@@ -6,7 +6,7 @@ import { Node, Location } from '../shared/types'
 import config from '../shared/utils/config'
 import logger from '../shared/utils/logger'
 
-const log = logger({name:'locate'})
+const log = logger({ name: 'locate' })
 const LOCATE_TIMEOUT = 10000
 const TIME_FORMAT = 'YYYY-MM-DD HH:mm:ss[Z]'
 
@@ -54,10 +54,9 @@ async function updateLocation(nodes: Node[]): Promise<void> {
 
     let resp: City | undefined
     try {
-      // eslint-disable-next-line no-await-in-loop -- saves nodes one at a time
       resp = await geoClient.city(node.ip)
     } catch (err) {
-      log.error(err.message)
+      log.error('maxmind Error', err)
       return
     }
 
@@ -69,7 +68,9 @@ async function updateLocation(nodes: Node[]): Promise<void> {
     const region: string | undefined = subdivision?.names.en
     const country: string | undefined = resp.country?.names.en
 
-    log.info(`${node.public_key}, ${city ?? ''}, ${region ?? ''}, ${country ?? ''}`)
+    log.info(
+      `${node.public_key}, ${city ?? ''}, ${region ?? ''}, ${country ?? ''}`,
+    )
 
     const location: Location = {
       public_key: node.public_key,
@@ -91,7 +92,6 @@ async function updateLocation(nodes: Node[]): Promise<void> {
       location_source: 'maxmind',
     }
 
-    // eslint-disable-next-line no-await-in-loop -- saves nodes one at a time
     await saveLocation(location)
   }
 }
@@ -110,6 +110,6 @@ export default async function locate(): Promise<void> {
   try {
     await startLocation()
   } catch (err) {
-    log.error(err.message)
+    log.error('Error geolocating nodes', err)
   }
 }

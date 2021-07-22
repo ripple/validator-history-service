@@ -4,7 +4,7 @@ import { query } from '../../../shared/database'
 import { AgreementScore } from '../../../shared/types'
 import logger from '../../../shared/utils/logger'
 
-const log = logger({name:'api-daily-report'});
+const log = logger({ name: 'api-daily-report' })
 
 interface DailyScoreResponse {
   validation_public_key: string

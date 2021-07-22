@@ -3,7 +3,7 @@ import { Ledger, ValidationRaw, Chain } from '../shared/types'
 import { overlaps } from '../shared/utils'
 import logger from '../shared/utils/logger'
 
-const log = logger({name:'chains'})
+const log = logger({ name: 'chains' })
 /**
  * Helper to sort chains by chain length.
  *
@@ -189,7 +189,7 @@ class Chains {
       | undefined = this.chains
       .filter((chain) => overlaps(chain.validators, validators))
       .shift()
-    
+
     const chainWithLedger:
       | Chain
       | undefined = this.chains.find((chain: Chain) =>

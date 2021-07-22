@@ -1,12 +1,12 @@
 import WebSocket from 'ws'
 
 import { query, saveNodeWsUrl } from '../shared/database'
+import logger from '../shared/utils/logger'
 
 import agreement from './agreement'
 import { handleManifest } from './manifests'
-import logger from '../shared/utils/logger'
 
-const log = logger({name:'connections'})
+const log = logger({ name: 'connections' })
 const ports = [443, 80, 6005, 6006, 51233, 51234]
 const protocols = ['wss://', 'ws://']
 const connections: Map<string, WebSocket> = new Map()
@@ -53,8 +53,8 @@ async function setHandlers(ip: string, ws: WebSocket): Promise<void> {
       let data
       try {
         data = JSON.parse(message)
-      } catch (error) {
-        log.error(error.message)
+      } catch (error: unknown) {
+        log.error('Error parsing validation message', error)
         return
       }
       if (data?.type === 'validationReceived') {
@@ -126,7 +126,7 @@ async function createConnections(): Promise<void> {
   log.info('Finding Connections...')
   const tenMinutesAgo = new Date()
   tenMinutesAgo.setMinutes(tenMinutesAgo.getMinutes() - 10)
-  
+
   const nodes = await query('crawls')
     .select(['ip', 'ws_url'])
     .whereNotNull('ip')

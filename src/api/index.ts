@@ -1,12 +1,14 @@
 import 'dotenv/config'
+
 import express, { Request, Response } from 'express'
-import logger from '../shared/utils/logger'
+
 import config from '../shared/utils/config'
+import logger from '../shared/utils/logger'
 
 import routes from './routes/v1'
 import handleInfo from './routes/v1/info'
 
-const log = logger({name:'api'})
+const log = logger({ name: 'api' })
 const PORT: number = config.port ? Number(config.port) : 3000
 const ADDR: string = config.addr ?? '0.0.0.0'
 

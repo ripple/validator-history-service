@@ -11,9 +11,10 @@ import {
 } from '../shared/database'
 import { AgreementScore, ValidationRaw } from '../shared/types'
 import logger from '../shared/utils/logger'
+
 import chains from './chains'
 
-const log = logger({name:'agreement'})
+const log = logger({ name: 'agreement' })
 
 const AGREEMENT_INTERVAL = 60 * 60 * 1000
 const PURGE_INTERVAL = 10 * 60 * 1000

@@ -3,7 +3,7 @@ import { Request, Response } from 'express'
 import { query } from '../../../shared/database'
 import logger from '../../../shared/utils/logger'
 
-const log = logger({name:'api-nodes'})
+const log = logger({ name: 'api-nodes' })
 
 interface NodeResponse {
   node_public_key: string

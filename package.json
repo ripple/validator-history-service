@@ -1,6 +1,6 @@
 {
-  "name": "validator-history-service",
-  "version": "0.1.1",
+  "name": "@mayurb/validator-history-service",
+  "version": "0.1.1-beta.5",
   "description": "Service for ingesting, aggregating, storing, and disbursing validation related data",
   "main": "./build/index.js",
   "scripts": {
@@ -37,7 +37,7 @@
     "@typescript-eslint/eslint-plugin": "^4.12.0",
     "@typescript-eslint/parser": "^4.12.0",
     "@xpring-eng/eslint-config-base": "^0.11.0",
-    "eslint": "^7.17.0",
+    "eslint": "^7.31.0",
     "eslint-plugin-array-func": "^3.1.7",
     "eslint-plugin-disable": "^2.0.1",
     "eslint-plugin-eslint-comments": "^3.2.0",
