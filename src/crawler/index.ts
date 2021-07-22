@@ -3,10 +3,12 @@ import moment from 'moment'
 
 import { setupTable } from '../shared/database'
 import config from '../shared/utils/config'
+import logger from '../shared/utils/logger'
 
 import Crawler from './crawl'
 import locate from './locate'
 
+const log = logger({ name: 'crawler-start' })
 const LOCATE_INTERVAL = 24 * 60 * 60 * 1000
 const CRAWL_INTERVAL = 2 * 60 * 1000
 
@@ -21,7 +23,7 @@ async function crawl(): Promise<void> {
 
   const duration = moment.utc().diff(crawler.start) / 1000
   const peers = crawler.publicKeysSeen.size
-  console.log(`Crawl took ${duration} seconds, ${peers} peers discovered`)
+  log.info(`Crawl took ${duration} seconds, ${peers} peers discovered`)
 }
 
 async function start(): Promise<void> {
@@ -42,4 +44,4 @@ async function main(): Promise<void> {
   }, LOCATE_INTERVAL)
 }
 
-main().catch((err: Error) => console.log(`ERROR: ${err.message}`))
+main().catch((err: Error) => log.error(`${err.message}`))

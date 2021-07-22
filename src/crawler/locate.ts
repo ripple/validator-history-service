@@ -4,7 +4,9 @@ import moment from 'moment'
 import { saveLocation, getNodesToLocate } from '../shared/database'
 import { Node, Location } from '../shared/types'
 import config from '../shared/utils/config'
+import logger from '../shared/utils/logger'
 
+const log = logger({ name: 'locate' })
 const LOCATE_TIMEOUT = 10000
 const TIME_FORMAT = 'YYYY-MM-DD HH:mm:ss[Z]'
 
@@ -41,7 +43,7 @@ async function updateLocation(nodes: Node[]): Promise<void> {
   const geoClient = getClient()
 
   if (!geoClient) {
-    console.log('No specified geolocation keys')
+    log.warn('No specified geolocation keys')
     return
   }
 
@@ -52,10 +54,9 @@ async function updateLocation(nodes: Node[]): Promise<void> {
 
     let resp: City | undefined
     try {
-      // eslint-disable-next-line no-await-in-loop -- saves nodes one at a time
       resp = await geoClient.city(node.ip)
     } catch (err) {
-      console.log(err)
+      log.error('maxmind Error', err)
       return
     }
 
@@ -67,7 +68,9 @@ async function updateLocation(nodes: Node[]): Promise<void> {
     const region: string | undefined = subdivision?.names.en
     const country: string | undefined = resp.country?.names.en
 
-    console.log(node.public_key, city ?? '', region ?? '', country ?? '')
+    log.info(
+      `${node.public_key}, ${city ?? ''}, ${region ?? ''}, ${country ?? ''}`,
+    )
 
     const location: Location = {
       public_key: node.public_key,
@@ -89,7 +92,6 @@ async function updateLocation(nodes: Node[]): Promise<void> {
       location_source: 'maxmind',
     }
 
-    // eslint-disable-next-line no-await-in-loop -- saves nodes one at a time
     await saveLocation(location)
   }
 }
@@ -97,7 +99,7 @@ async function updateLocation(nodes: Node[]): Promise<void> {
 async function startLocation(): Promise<void> {
   const nodes: Node[] = await getNodesToLocate()
 
-  console.log(`Locating ${nodes.length} nodes`)
+  log.info(`Locating ${nodes.length} nodes`)
   void updateLocation(nodes)
 }
 
@@ -108,6 +110,6 @@ export default async function locate(): Promise<void> {
   try {
     await startLocation()
   } catch (err) {
-    console.log(err)
+    log.error('Error geolocating nodes', err)
   }
 }

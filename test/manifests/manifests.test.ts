@@ -4,7 +4,7 @@ import {
   handleManifest,
   updateManifestsFromRippled,
   updateUNLManifests,
-  updateUnls
+  updateUnls,
 } from '../../src/connection-manager/manifests'
 import { destroy, query, setupTable, tearDown } from '../../src/shared/database'
 import config from '../../src/shared/utils/config'
@@ -29,7 +29,7 @@ describe('manifest ingest', () => {
   })
 
   afterEach(async () => {
-    nock.cleanAll();
+    nock.cleanAll()
     await query('manifests').delete('*')
     await query('validators').delete('*')
   })
@@ -135,33 +135,44 @@ describe('manifest ingest', () => {
   })
 
   test('updates unls', async () => {
-    // Mock validator list contains a single validator 
+    // Mock validator list contains a single validator
     nock(`http://${config.vl_main}`).get('/').reply(200, unl1)
     await query('validators').insert({
       master_key: 'nHBtDzdRDykxiuv7uSMPTcGexNm879RUUz5GW4h1qgjbtyvWZ1LE',
       signing_key: 'n9LCf7NtwcyXVc5fYB6UVByRoQZqJDhrMUoKnr3GQB6mFqpcmMzg',
-    }) 
+    })
     await query('manifests').insert({
       master_key: 'nHBtDzdRDykxiuv7uSMPTcGexNm879RUUz5GW4h1qgjbtyvWZ1LE',
       signing_key: 'n9LCf7NtwcyXVc5fYB6UVByRoQZqJDhrMUoKnr3GQB6mFqpcmMzg',
     })
-    await updateUnls();
-    let validator = await query('validators').select('master_key','signing_key','unl').where('master_key','=','nHBtDzdRDykxiuv7uSMPTcGexNm879RUUz5GW4h1qgjbtyvWZ1LE')
+    await updateUnls()
+    let validator = await query('validators')
+      .select('master_key', 'signing_key', 'unl')
+      .where(
+        'master_key',
+        '=',
+        'nHBtDzdRDykxiuv7uSMPTcGexNm879RUUz5GW4h1qgjbtyvWZ1LE',
+      )
     expect(validator[0]).toEqual({
       master_key: 'nHBtDzdRDykxiuv7uSMPTcGexNm879RUUz5GW4h1qgjbtyvWZ1LE',
       signing_key: 'n9LCf7NtwcyXVc5fYB6UVByRoQZqJDhrMUoKnr3GQB6mFqpcmMzg',
-      unl:"vl.ripple.com"
+      unl: 'vl.ripple.com',
     })
 
-    //New unl replaces old validator with a new one
+    // New unl replaces old validator with a new one
     nock(`http://${config.vl_main}`).get('/').reply(200, unl2)
-    await updateUnls();
-    validator = await query('validators').select('master_key','signing_key','unl').where('master_key','=','nHBtDzdRDykxiuv7uSMPTcGexNm879RUUz5GW4h1qgjbtyvWZ1LE')
+    await updateUnls()
+    validator = await query('validators')
+      .select('master_key', 'signing_key', 'unl')
+      .where(
+        'master_key',
+        '=',
+        'nHBtDzdRDykxiuv7uSMPTcGexNm879RUUz5GW4h1qgjbtyvWZ1LE',
+      )
     expect(validator[0]).toEqual({
       master_key: 'nHBtDzdRDykxiuv7uSMPTcGexNm879RUUz5GW4h1qgjbtyvWZ1LE',
       signing_key: 'n9LCf7NtwcyXVc5fYB6UVByRoQZqJDhrMUoKnr3GQB6mFqpcmMzg',
-      unl: null
+      unl: null,
     })
   })
-
 })
