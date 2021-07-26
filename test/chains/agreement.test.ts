@@ -41,7 +41,6 @@ describe('Agreement', () => {
 
   test('Does not calculate score without master_key', async () => {
     for (const validation of validations) {
-      // eslint-disable-next-line no-await-in-loop -- necessary await
       await agreement.handleValidation(validation)
     }
 
@@ -62,7 +61,6 @@ describe('Agreement', () => {
     await insertManifests()
 
     for (const validation of validations) {
-      // eslint-disable-next-line no-await-in-loop -- necessary await
       await agreement.handleValidation(validation)
     }
 

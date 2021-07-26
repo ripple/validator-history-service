@@ -14,6 +14,9 @@ import {
 } from '../types'
 import { getLists, overlaps } from '../utils'
 import config from '../utils/config'
+import logger from '../utils/logger'
+
+const log = logger({ name: 'database' })
 
 let lists:
   | undefined
@@ -27,7 +30,7 @@ getLists()
   .then((ret) => {
     lists = ret
   })
-  .catch((err) => console.log(err))
+  .catch((err) => log.error('Error getting validator lists', err))
 let knexDb: undefined | knex
 
 /**
@@ -235,16 +238,20 @@ export async function saveNode(node: Node): Promise<void> {
     .insert(node)
     .onConflict('public_key')
     .merge()
-    .catch((err) => console.log(err))
+    .catch((err: Error) => log.error(err.message))
 }
 
 /**
  * Saves the Websocket URL of a rippled node.
  *
  * @param url - Websocket URL of a rippled node.
+ * @param connected - Boolean value representing whether we are currently connected to this node.
  * @returns Void.
  */
-export async function saveNodeWsUrl(url: string, connected: boolean): Promise<void> {
+export async function saveNodeWsUrl(
+  url: string,
+  connected: boolean,
+): Promise<void> {
   const ip_match = IP_REGEX.exec(url)
   if (ip_match) {
     query('crawls')
@@ -253,28 +260,27 @@ export async function saveNodeWsUrl(url: string, connected: boolean): Promise<vo
       })
       .update({
         ws_url: url,
-        connected
+        connected,
       })
-      .catch((err) => console.log(err))
+      .catch((err: Error) => log.error(err.message))
   } else {
-    console.log('Invalid websocket url')
+    log.warn('Invalid websocket url')
   }
 }
 
 /**
- * Sets connected column to false
+ * Sets connected column to false.
  *
- * @returns Promise that resolves to void
+ * @returns Promise that resolves to void.
  *
  */
 export async function clearConnectionsDb(): Promise<void> {
   try {
-    await query('crawls')
-      .update({
-        connected: false
-      })
-  } catch(err) {
-    console.log(err.message)
+    await query('crawls').update({
+      connected: false,
+    })
+  } catch (err) {
+    log.error('Error clearing connections', err)
   }
 }
 
@@ -292,20 +298,22 @@ async function handleRevocations(
   const revokedSigningKeys = await query('manifests')
     .where({ master_key: manifest.master_key })
     .andWhere('seq', '<', manifest.seq)
-    .update({ revoked: true },['manifests.signing_key'])
-    .catch((err) => console.log(err))
-  
+    .update({ revoked: true }, ['manifests.signing_key'])
+    .catch((err: Error) => log.error('Error revoking older manifests', err))
+
   const revokedSigningKeysArray = revokedSigningKeys
-    ? revokedSigningKeys.map((obj) => {
-        return obj.signing_key;
-      })
-    : [];
-  
+    ? await Promise.all(
+        revokedSigningKeys.map(async (obj) => {
+          return obj.signing_key
+        }),
+      )
+    : []
+
   // If there exists a newer manifest, mark this manifest as revoked
   const newer = await query('manifests')
     .where({ master_key: manifest.master_key })
     .andWhere('seq', '>', manifest.seq)
-    .catch((err) => console.log(err))
+    .catch((err) => log.error('Error revoking current manifest', err))
 
   const updated = { revoked: false, ...manifest }
 
@@ -314,10 +322,10 @@ async function handleRevocations(
     revokedSigningKeysArray.push(manifest.signing_key)
   }
 
-  // updates revocations in validators table 
+  // updates revocations in validators table
   await query('validators')
-    .whereIn(['signing_key'],revokedSigningKeysArray)
-    .update({revoked:true})
+    .whereIn(['signing_key'], revokedSigningKeysArray)
+    .update({ revoked: true })
 
   return updated
 }
@@ -334,7 +342,7 @@ export async function saveManifest(manifest: DatabaseManifest): Promise<void> {
     .insert(updated)
     .onConflict(['master_signature'])
     .merge()
-    .catch((err) => console.log(err))
+    .catch((err) => log.error('Error Saving Manifest', err))
 }
 
 /**
@@ -350,7 +358,7 @@ export async function getValidatorSigningKeys(): Promise<string[]> {
         return key.signing_key
       })
     })
-    .catch((err) => console.log(err))
+    .catch((err) => log.error('Error getting validator signing keys', err))
 }
 /**
  * Saves a Location to database.
@@ -363,7 +371,7 @@ export async function saveLocation(location: Location): Promise<void> {
     .insert(location)
     .onConflict('public_key')
     .merge()
-    .catch((err) => console.log(err))
+    .catch((err) => log.error('Error saving location', err))
 }
 
 /**
@@ -379,7 +387,7 @@ export async function saveHourlyAgreement(
     .insert(agreement)
     .onConflict(['master_key', 'start'])
     .merge()
-    .catch((err) => console.log(err))
+    .catch((err: Error) => log.error('Error saving Hourly Agreement', err))
 }
 
 /**
@@ -395,7 +403,7 @@ export async function saveDailyAgreement(
     .insert(agreement)
     .onConflict(['master_key', 'day'])
     .merge()
-    .catch((err) => console.log(err))
+    .catch((err) => log.error('Error saving Daily Agreement', err))
 }
 
 /**
@@ -429,7 +437,7 @@ export async function signingToMaster(
     .select('master_key')
     .where({ signing_key })
     .then(async (resp) => resp[0]?.master_key)
-    .catch((err) => console.log(err))
+    .catch((err) => log.error('Error finding master key from signing key', err))
 }
 
 /**
@@ -491,7 +499,7 @@ export async function update1HourValidatorAgreement(
   await query('validators')
     .where({ master_key })
     .update({ agreement_1hour: agreement })
-    .catch((err) => console.log(err))
+    .catch((err) => log.error('Error Updating 1 Hour Validator Agreement', err))
 }
 /**
  *  Updates the validator's 24 hour agreement score.
@@ -507,7 +515,9 @@ export async function update24HourValidatorAgreement(
   await query('validators')
     .where({ master_key })
     .update({ agreement_24hour: agreement })
-    .catch((err) => console.log(err))
+    .catch((err) =>
+      log.error('Error updating 24 Hour Validator Agreement', err),
+    )
 }
 
 /**
@@ -524,7 +534,7 @@ export async function update30DayValidatorAgreement(
   await query('validators')
     .where({ master_key })
     .update({ agreement_30day: agreement })
-    .catch((err) => console.log(err))
+    .catch((err) => log.error('Error updating 30 Day Validator Agreement', err))
 }
 
 /**
@@ -545,7 +555,7 @@ export async function getNodesToLocate(): Promise<Node[]> {
         .whereNull('location.updated')
         .orWhere('location.updated', '<', sixDaysAgo)
     })
-    .catch((err: Error) => console.log(`Error querying nodes: ${err.message}`))
+    .catch((err) => log.error(`Error querying nodes to locate`, err))
 }
 
 /**
@@ -560,7 +570,7 @@ export async function saveValidator(
     .insert(validator)
     .onConflict('signing_key')
     .merge()
-    .catch((err) => console.log(err))
+    .catch((err) => log.error('Error Saving Validator', err))
 }
 
 /**
@@ -575,7 +585,7 @@ export async function purgeHourlyAgreementScores(): Promise<void> {
   await query('hourly_agreement')
     .delete('*')
     .where('start', '<', thirtyDaysAgo)
-    .catch((err: Error) => console.log(err))
+    .catch((err) => log.error('Error Purging Hourly Agreement Scores', err))
 }
 
 /**
@@ -604,7 +614,7 @@ export async function saveValidatorChains(chain: Chain): Promise<void> {
   })
   try {
     await Promise.all(promises)
-  } catch (err) {
-    console.log(err)
+  } catch (err: unknown) {
+    log.error('Error saving validator chains', err)
   }
 }

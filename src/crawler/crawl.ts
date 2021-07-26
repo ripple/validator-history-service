@@ -3,9 +3,11 @@ import { encodeNodePublic } from 'ripple-address-codec'
 
 import { query, saveNode } from '../shared/database'
 import { Crawl } from '../shared/types'
+import logger from '../shared/utils/logger'
 
 import crawlNode from './network'
 
+const log = logger({ name: 'crawler' })
 const TIME_FORMAT = 'YYYY-MM-DD HH:mm:ss[Z]'
 const DEFAULT_PORT = 51235
 const IP_ADDRESS = /^::ffff:/u
@@ -53,7 +55,7 @@ class Crawler {
    *
    */
   public async crawl(host: string, port: number = DEFAULT_PORT): Promise<void> {
-    console.log(`Starting crawl at ${host}:${port}`)
+    log.info(`Starting crawl at ${host}:${port}`)
     let network = ''
     if (host === 's1.ripple.com' || host === 's2.ripple.com') {
       network = 'main'
@@ -75,7 +77,6 @@ class Crawler {
    */
   public async saveConnections(network: string): Promise<void> {
     for (const [key, connections] of this.connections) {
-      // eslint-disable-next-line no-await-in-loop -- necessary await
       const dbNetworks = await query('crawls')
         .select('networks')
         .where({ public_key: key })
@@ -89,7 +90,9 @@ class Crawler {
           outbound_count: connections.out.size,
           networks,
         })
-        .catch((err: Error) => console.log(err))
+        .catch((err) =>
+          log.error('Error updating crawls inbound outbound', err),
+        )
     }
   }
 

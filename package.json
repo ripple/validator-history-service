@@ -1,14 +1,14 @@
 {
-  "name": "validator-history-service",
-  "version": "0.1.1",
+  "name": "@mayurb/validator-history-service",
+  "version": "0.1.1-beta.5",
   "description": "Service for ingesting, aggregating, storing, and disbursing validation related data",
   "main": "./build/index.js",
   "scripts": {
     "build": "tsc --build tsconfig.build.json",
     "lint": "eslint . --ext .ts --max-warnings 0",
-    "startCrawlerDev": "ts-node-dev --transpile-only ./src/crawler/index.ts",
-    "startApiDev": "ts-node-dev --transpile-only ./src/api/index.ts",
-    "startConnectionsDev": "ts-node-dev --transpile-only ./src/connection-manager/index.ts",
+    "startCrawlerDev": "ts-node-dev --transpile-only ./src/crawler/index.ts | ./node_modules/.bin/bunyan ",
+    "startApiDev": "ts-node-dev --transpile-only ./src/api/index.ts | ./node_modules/.bin/bunyan",
+    "startConnectionsDev": "ts-node-dev --transpile-only ./src/connection-manager/index.ts | ./node_modules/.bin/bunyan",
     "test": "jest --setupFiles dotenv/config"
   },
   "files": [
@@ -37,7 +37,7 @@
     "@typescript-eslint/eslint-plugin": "^4.12.0",
     "@typescript-eslint/parser": "^4.12.0",
     "@xpring-eng/eslint-config-base": "^0.11.0",
-    "eslint": "^7.17.0",
+    "eslint": "^7.31.0",
     "eslint-plugin-array-func": "^3.1.7",
     "eslint-plugin-disable": "^2.0.1",
     "eslint-plugin-eslint-comments": "^3.2.0",
@@ -56,7 +56,9 @@
   },
   "dependencies": {
     "@maxmind/geoip2-node": "^2.1.0",
+    "@types/bunyan": "^1.8.7",
     "axios": "^0.21.1",
+    "bunyan": "^1.8.15",
     "dotenv": "^8.2.0",
     "express": "4.17.1",
     "knex": "0.21.15",

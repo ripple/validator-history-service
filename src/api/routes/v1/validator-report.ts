@@ -49,10 +49,10 @@ function formatResponse(response: DatabaseResponse): ScoreResponse {
 }
 
 /**
- * Gets all daily score reports for a validator
+ * Gets all daily score reports for a validator.
  *
  * @param master_key - Master key of validator.
- * @returns A promise that resolves to an array of ScoreResponse 
+ * @returns A promise that resolves to an array of ScoreResponse.
  */
 async function getReports(master_key: string): Promise<ScoreResponse[]> {
   return query('daily_agreement')
@@ -68,7 +68,7 @@ async function getReports(master_key: string): Promise<ScoreResponse[]> {
       'validators.master_key',
     )
     .where('validators.master_key', '=', master_key)
-    .andWhere('validators.revoked','=','false')
+    .andWhere('validators.revoked', '=', 'false')
     .then((resp: DatabaseResponse[]) => resp.map(formatResponse))
 }
 
