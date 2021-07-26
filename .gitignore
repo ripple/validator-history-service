@@ -101,3 +101,4 @@ dist
 
 # Config file
 config.js
+node_modules

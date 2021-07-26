@@ -245,9 +245,13 @@ export async function saveNode(node: Node): Promise<void> {
  * Saves the Websocket URL of a rippled node.
  *
  * @param url - Websocket URL of a rippled node.
+ * @param connected - Boolean value representing whether we are currently connected to this node.
  * @returns Void.
  */
-export async function saveNodeWsUrl(url: string, connected: boolean): Promise<void> {
+export async function saveNodeWsUrl(
+  url: string,
+  connected: boolean,
+): Promise<void> {
   const ip_match = IP_REGEX.exec(url)
   if (ip_match) {
     query('crawls')
@@ -256,11 +260,27 @@ export async function saveNodeWsUrl(url: string, connected: boolean): Promise<vo
       })
       .update({
         ws_url: url,
-        connected
+        connected,
       })
       .catch((err: Error) => log.error(err.message))
   } else {
     log.warn('Invalid websocket url')
+  }
+}
+
+/**
+ * Sets connected column to false.
+ *
+ * @returns Promise that resolves to void.
+ *
+ */
+export async function clearConnectionsDb(): Promise<void> {
+  try {
+    await query('crawls').update({
+      connected: false,
+    })
+  } catch (err) {
+    log.error('Error clearing connections', err)
   }
 }
 

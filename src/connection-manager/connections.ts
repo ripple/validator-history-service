@@ -1,6 +1,6 @@
 import WebSocket from 'ws'
 
-import { query, saveNodeWsUrl } from '../shared/database'
+import { query, saveNodeWsUrl, clearConnectionsDb } from '../shared/database'
 import logger from '../shared/utils/logger'
 
 import agreement from './agreement'
@@ -66,8 +66,8 @@ async function setHandlers(ip: string, ws: WebSocket): Promise<void> {
     ws.on('close', () => {
       if (connections.get(ip)?.url === ws.url) {
         connections.delete(ip)
+        void saveNodeWsUrl(ws.url, false)
       }
-      void saveNodeWsUrl(ws.url, false)
       ws.terminate()
       resolve()
     })
@@ -75,7 +75,6 @@ async function setHandlers(ip: string, ws: WebSocket): Promise<void> {
       if (connections.get(ip)?.url === ws.url) {
         connections.delete(ip)
       }
-      void saveNodeWsUrl(ws.url, false)
       ws.terminate()
       resolve()
     })
@@ -154,6 +153,7 @@ setInterval(() => {
 export default async function startConnections(): Promise<void> {
   if (!cmStarted) {
     cmStarted = true
+    await clearConnectionsDb()
     await createConnections()
     setInterval(() => {
       void createConnections()

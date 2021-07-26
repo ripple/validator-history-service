@@ -1,11 +1,11 @@
 import { Router as createRouter } from 'express'
 
 import handleDailyScores from './daily-report'
+import handleHealth from './health'
 import handleValidatorManifest from './manifests'
 import { handleNode, handleNodes, handleTopology } from './nodes'
 import { handleValidator, handleValidators } from './validator'
 import handleValidatorReport from './validator-report'
-import handleHealth from './health'
 
 const api = createRouter()
 api.use('/health', handleHealth)
