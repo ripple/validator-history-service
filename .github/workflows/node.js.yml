@@ -26,6 +26,9 @@ jobs:
           --health-interval 10s
           --health-timeout 5s
           --health-retries 5
+        ports:
+          # Maps tcp port 5432 on service container to the host
+          - 5432:5432
 
     steps:
     - uses: actions/checkout@v2
@@ -42,7 +45,7 @@ jobs:
         # The default PostgreSQL port
         POSTGRES_PORT: 5432
         # Database connection info
-        DB_HOST: ''
+        DB_HOST: 'localhost'
         DB_USER: 'postgres'
         DB_DATABASE: 'postgres'
         DB_PASSWORD: 'postgres'
