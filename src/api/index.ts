@@ -13,6 +13,14 @@ const PORT: number = config.port ? Number(config.port) : 3000
 const ADDR: string = config.addr ?? '0.0.0.0'
 
 const app = express()
+
+app.use((_req, res, next) => {
+  res.append('Access-Control-Allow-Origin', ['*'])
+  res.append('Access-Control-Allow-Methods', 'GET,PUT,POST,DELETE')
+  res.append('Access-Control-Allow-Headers', 'Content-Type')
+  next()
+})
+
 app.use('/v1', routes)
 app.use('/', handleInfo)
 
