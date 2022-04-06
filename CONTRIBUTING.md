@@ -2,6 +2,10 @@
 
 :tada: First off, thanks for taking the time to contribute! :tada:
 
+## Architecture
+
+Go to [ARCHITECTURE.md](ARCHITECTURE.md)
+
 ## Setting up repo
 
 Install the dependencies.
