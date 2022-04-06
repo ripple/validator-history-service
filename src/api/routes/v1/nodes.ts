@@ -97,7 +97,7 @@ async function findInDatabase(
 /**
  * Reads nodes from database.
  *
- * @returns Locations of nodes crawled in the last 10 minutes.
+ * @returns Locations of nodes crawled in the last hour.
  */
 async function getNodes(): Promise<NodeResponse[]> {
   const now = new Date()
@@ -182,7 +182,8 @@ export async function handleNode(req: Request, res: Response): Promise<void> {
       ...node,
       result: 'success',
     })
-  } catch {
+  } catch (err) {
+    log.error(err.toString())
     res.send({ result: 'error', message: 'internal error' })
   }
 }
