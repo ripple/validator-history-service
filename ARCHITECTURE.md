@@ -10,7 +10,7 @@ There are 3 folders in `src`:
 
 ## API Endpoints
 
-* `/`: 
+* `/`: Information about the endpoints.
 * `v1`
   * `/health`: A health check for the VHS. Returns the number of nodes that it is connected to.
   * `/network/validator_reports`: Returns scores for the nodes that it has crawled in the last day.
