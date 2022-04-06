@@ -1,7 +1,7 @@
 import nock from 'nock'
 
 import Crawler from '../../src/crawler/crawl'
-import { destroy, query, setupTable } from '../../src/shared/database'
+import { destroy, query, setupTables } from '../../src/shared/database'
 import { Node } from '../../src/shared/types'
 
 import network2 from './fixtures/cyclic-network.json'
@@ -31,7 +31,7 @@ function mock(): void {
 
 describe('Runs test crawl', () => {
   beforeAll(async () => {
-    await setupTable()
+    await setupTables()
     mock()
   })
 
