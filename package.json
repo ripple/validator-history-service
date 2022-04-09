@@ -62,7 +62,7 @@
     "dotenv": "^8.2.0",
     "express": "4.17.1",
     "knex": "0.21.15",
-    "moment": "2.29.1",
+    "moment": "2.29.2",
     "nconf": "^0.11.0",
     "pg": "8.5.1",
     "ripple-address-codec": "^4.1.1",
