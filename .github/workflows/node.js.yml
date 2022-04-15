@@ -1,0 +1,64 @@
+name: Node.js CI
+
+on:
+  push:
+    branches: [ main ]
+  pull_request:
+  workflow_dispatch:
+
+jobs:
+  build:
+
+    runs-on: ubuntu-latest
+
+    strategy:
+      matrix:
+        node-version: [14.x, 16.x]
+        # See supported Node.js release schedule at https://nodejs.org/en/about/releases/
+
+    services:
+      # Label used to access the service container
+      postgres:
+        # Docker Hub image
+        image: postgres
+        # Provide the password for postgres
+        env:
+          POSTGRES_PASSWORD: postgres
+        # Set health checks to wait until postgres has started
+        options: >-
+          --health-cmd pg_isready
+          --health-interval 10s
+          --health-timeout 5s
+          --health-retries 5
+        ports:
+          # Maps tcp port 5432 on service container to the host
+          - 5432:5432
+
+    steps:
+    - uses: actions/checkout@v2
+    - name: Use Node.js ${{ matrix.node-version }}
+      uses: actions/setup-node@v2
+      with:
+        node-version: ${{ matrix.node-version }}
+    - run: npm install
+    - run: npm run lint
+    - run: npm test
+      env:
+        # The hostname used to communicate with the PostgreSQL service container
+        POSTGRES_HOST: postgres
+        # The default PostgreSQL port
+        POSTGRES_PORT: 5432
+        # Database connection info
+        DB_HOST: 'localhost'
+        DB_USER: 'postgres'
+        DB_DATABASE: 'postgres'
+        DB_PASSWORD: 'postgres'
+        # Entry points for crawler, in a comma separated list
+        ENTRIES: 's2.ripple.com,s.altnet.rippletest.net,s.devnet.rippletest.net'
+        # Rippled Server with access to manifest command
+        RIPPLED_RPC_ADMIN: 'https://xrpl.ws/'
+        # Validator lists for main, dev, and test networks
+        VL_MAIN: 'vl.ripple.com'
+        VL_TEST: 'vl.altnet.rippletest.net'
+        VL_DEV: 'vl.devnet.rippletest.net'
+  
