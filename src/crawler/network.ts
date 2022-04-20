@@ -3,7 +3,6 @@ import https from 'https'
 import axios, { AxiosInstance } from 'axios'
 
 import { Crawl, Node } from '../shared/types'
-
 import logger from '../shared/utils/logger'
 
 let fetch: AxiosInstance | undefined
@@ -37,6 +36,7 @@ const TIMEOUT = 6000
  *
  * @param host - Hostname or ip address of peer.
  * @param port - Port to hit /crawl endpoint.
+ * @param unl
  * @returns A list of Nodes.
  */
 async function crawlNode(
@@ -69,7 +69,7 @@ async function crawlNode(
         load_factor_server,
         uptime,
         version,
-        complete_ledgers
+        complete_ledgers,
       }
 
       const crawl: Crawl = {
@@ -83,18 +83,18 @@ async function crawlNode(
       }
       const node_unl = validatorSites[0].uri
 
-      const unls = [`https://${unl}`];
+      const unls = [`https://${unl}`]
       if (unl === 'vl.ripple.com') {
         unls.concat(['https://vl.xrplf.org', 'https://vl.coil.com'])
       }
       if (!unls.includes(node_unl)) {
-        throw new Error(`Node in the wrong network: ${host}, ${unl}`);
+        throw new Error(`Node in the wrong network: ${host}, ${unl}`)
       }
 
       return crawl
     })
     .catch((error) => {
-      if (error.message.includes("wrong network")) {
+      if (error.message.includes('wrong network')) {
         throw error
       }
       if (!error.isAxiosError) {

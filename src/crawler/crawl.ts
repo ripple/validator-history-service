@@ -3,8 +3,8 @@ import { encodeNodePublic } from 'ripple-address-codec'
 
 import { query, saveNode } from '../shared/database'
 import { Crawl } from '../shared/types'
-import logger from '../shared/utils/logger'
 import config from '../shared/utils/config'
+import logger from '../shared/utils/logger'
 
 import crawlNode from './network'
 
@@ -50,26 +50,38 @@ class Crawler {
     return encodeNodePublic(Buffer.from(publicKey, 'base64'))
   }
 
+  /**
+   * @param newestLedger
+   * @param nodeNewestLedger
+   */
   private static ledgerInRange(
     newestLedger: string | undefined,
-    nodeNewestLedger: string | undefined
+    nodeNewestLedger: string | undefined,
   ): boolean {
     if (newestLedger != null && nodeNewestLedger != null) {
-      const intNewestLedger = parseInt(newestLedger);
-      const intNodeNewestLedger = parseInt(nodeNewestLedger);
-      if (intNewestLedger - LEDGER_RANGE < intNodeNewestLedger && intNodeNewestLedger < intNewestLedger + LEDGER_RANGE) {
+      const intNewestLedger = parseInt(newestLedger)
+      const intNodeNewestLedger = parseInt(nodeNewestLedger)
+      if (
+        intNewestLedger - LEDGER_RANGE < intNodeNewestLedger &&
+        intNodeNewestLedger < intNewestLedger + LEDGER_RANGE
+      ) {
         return true
       }
     }
     return false
   }
 
-  private static getRecentLedger(completeLedgers: string | undefined): string | undefined {
+  /**
+   * @param completeLedgers
+   */
+  private static getRecentLedger(
+    completeLedgers: string | undefined,
+  ): string | undefined {
     const splitLedgers = completeLedgers?.split('-')
     if (splitLedgers != null) {
-      return splitLedgers[splitLedgers.length-1]
+      return splitLedgers[splitLedgers.length - 1]
     }
-    return undefined;
+    return undefined
   }
 
   /**
@@ -83,7 +95,11 @@ class Crawler {
     log.info(`Starting crawl at ${host}:${port}`)
     let network = ''
     let unl = ''
-    if (host === 's1.ripple.com' || host === 's2.ripple.com' || host === 'p2p.livenet.ripple.com') {
+    if (
+      host === 's1.ripple.com' ||
+      host === 's2.ripple.com' ||
+      host === 'p2p.livenet.ripple.com'
+    ) {
       network = 'main'
       unl = config.vl_main
     }
@@ -109,7 +125,7 @@ class Crawler {
       const dbNetworks = await query('crawls')
         .select('networks')
         .where({ public_key: key })
-      
+
       const arr = dbNetworks[0]?.networks?.split(',') || []
       arr.push(network)
       const networks = Array.from(new Set(arr)).join()
@@ -146,11 +162,23 @@ class Crawler {
     this.connections.set(key2, keys)
   }
 
+  /**
+   * @param badNode
+   */
   private removeConnection(badNode: string) {
-    this.connections.delete(badNode);
+    this.connections.delete(badNode)
   }
 
-  private async crawlNode(host: string, port: number, unl: string): Promise<Crawl | undefined> {
+  /**
+   * @param host
+   * @param port
+   * @param unl
+   */
+  private async crawlNode(
+    host: string,
+    port: number,
+    unl: string,
+  ): Promise<Crawl | undefined> {
     return crawlNode(host, port, unl).catch(() => {
       this.removeConnection(host)
       return undefined
@@ -162,9 +190,14 @@ class Crawler {
    *
    * @param host - Hostname or ip address of peer.
    * @param port - Port to hit /crawl endpoint.
+   * @param unl
    * @returns Void.
    */
-  private async crawlEndpoint(host: string, port: number, unl: string): Promise<void> {
+  private async crawlEndpoint(
+    host: string,
+    port: number,
+    unl: string,
+  ): Promise<void> {
     const nodes: Crawl | undefined = await this.crawlNode(host, port, unl)
 
     if (nodes === undefined) {
@@ -172,14 +205,14 @@ class Crawler {
     }
 
     const { this_node, active_nodes } = nodes
-    const newestLedger = Crawler.getRecentLedger(this_node.complete_ledgers);
+    const newestLedger = Crawler.getRecentLedger(this_node.complete_ledgers)
 
     const promises: Array<Promise<void>> = [saveNode(this_node)]
 
     for (const node of active_nodes) {
       const normalizedPublicKey = Crawler.normalizePublicKey(node.public_key)
 
-      const nodeNewestLedger = Crawler.getRecentLedger(node.complete_ledgers);
+      const nodeNewestLedger = Crawler.getRecentLedger(node.complete_ledgers)
       if (!Crawler.ledgerInRange(newestLedger, nodeNewestLedger)) {
         continue
       }
