@@ -10,7 +10,7 @@
             "complete_ledgers": "9-29"
           },
           {
-            "ip": "2.2.2.23",
+            "ip": "1.1.1.23",
             "port": 51235,
             "public_key": "n9LgkNWaPfRnxLKAgnSCMHRCyHBZsSdGBdRmyaYEArL3SBoq1EqK",
             "complete_ledgers": "10-20"
@@ -31,7 +31,7 @@
       "overlay": {
         "active": [
           {
-            "ip": "2.2.2.23",
+            "ip": "1.1.1.23",
             "port": 51235,
             "public_key": "n9LgkNWaPfRnxLKAgnSCMHRCyHBZsSdGBdRmyaYEArL3SBoq1EqK",
             "complete_ledgers": "10-20"
@@ -48,7 +48,7 @@
         "version": "1.6.0"
       }
     },
-    "2.2.2.23": {
+    "1.1.1.23": {
       "overlay": {
         "active": []
       },
@@ -76,7 +76,7 @@
     },
     {
       "public_key": "n9LgkNWaPfRnxLKAgnSCMHRCyHBZsSdGBdRmyaYEArL3SBoq1EqK",
-      "ip": "2.2.2.23",
+      "ip": "1.1.1.23",
       "port": 51235
     }
   ]
