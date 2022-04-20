@@ -97,7 +97,6 @@ class Crawler {
       network = 'dev'
       unl = config.vl_dev
     }
-    // console.log(unl)
     await this.crawlEndpoint(host, port, unl)
     await this.saveConnections(network)
   }
@@ -114,9 +113,6 @@ class Crawler {
         .where({ public_key: key })
       
       const arr = dbNetworks[0]?.networks?.split(',') || []
-      if (arr.length > 0) {
-        console.log(await query('crawls').select('*').where({ public_key: key }), network)
-      }
       arr.push(network)
       const networks = Array.from(new Set(arr)).join()
       void query('crawls')
@@ -187,7 +183,6 @@ class Crawler {
 
       const nodeNewestLedger = Crawler.getRecentLedger(node.complete_ledgers);
       if (nodeNewestLedger && !Crawler.ledgerInRange(newestLedger, nodeNewestLedger)) {
-        // console.log(host, node.ip, this_node.complete_ledgers, node)
         continue
       }
 

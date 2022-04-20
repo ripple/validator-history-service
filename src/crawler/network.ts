@@ -84,7 +84,6 @@ async function crawlNode(
         unls.concat(['https://vl.xrplf.org', 'https://vl.coil.com'])
       }
       if (!unls.includes(node_unl)) {
-        console.log(`IGNORE ${host}: ${unl}`)
         throw new Error(`Node in the wrong network: ${host}, ${unl}`);
       }
 
