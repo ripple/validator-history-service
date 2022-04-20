@@ -59,11 +59,9 @@ class Crawler {
       const intNodeNewestLedger = parseInt(nodeNewestLedger);
       if (intNewestLedger - LEDGER_RANGE < intNodeNewestLedger && intNodeNewestLedger < intNewestLedger + LEDGER_RANGE) {
         return true
-      } else {
-        return false
       }
     }
-    return true
+    return false
   }
 
   private static getRecentLedger(completeLedgers: string | undefined): string | undefined {
@@ -182,7 +180,7 @@ class Crawler {
       const normalizedPublicKey = Crawler.normalizePublicKey(node.public_key)
 
       const nodeNewestLedger = Crawler.getRecentLedger(node.complete_ledgers);
-      if (nodeNewestLedger && !Crawler.ledgerInRange(newestLedger, nodeNewestLedger)) {
+      if (!Crawler.ledgerInRange(newestLedger, nodeNewestLedger)) {
         continue
       }
 
