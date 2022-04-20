@@ -31,18 +31,18 @@ This table keeps track of (TODO: finish)
 | Key                  | Definition                                              |
 |----------------------|---------------------------------------------------------|
 | `public_key`         |The public key of the node.                              |
-| `start`              |                                                         |
+| `start`              |When the node was first crawled.                         |
 | `complete_ledgers`   |The range of ledgers for which the node has data.        |
 | `compete_shards`     |                                                         |
 | `ip`                 |The IP address of the node.                              |
 | `port`               |The peer port of the node.                               |
 | `ws_url`             |The WS URL of the node. Optional.                        |
 | `connected`          |                                                         |
-| `networks`           |                                                         |
+| `networks`           |The network(s) that the node belongs to.                 |
 | `type`               |                                                         |
-| `uptime`             |                                                         |
-| `inbound_count`      |                                                         |
-| `outbound_count`     |                                                         |
+| `uptime`             |The uptime of the node.                                  |
+| `inbound_count`      |How many inbound connections the node has.               |
+| `outbound_count`     |How many outbound connections the node has.              |
 | `server_state`       |The `server_state` of the server.                        |
 | `io_latency_ms`      |The `io_latency_ms` of the server.                       |
 | `load_factor_server` |The load factor of the server (used for fees).           |
@@ -131,13 +131,14 @@ This table keeps track of (TODO: finish)
 | `master_key`         |The master key of the node.                              |
 | `signing_key`        |The signing key of the node.                             |
 | `revoked`            |                                                         |
-| `ledger_hash`        |                                                         |
+| `ledger_hash`        |The hash of the last ledger the validator validated.     |
 | `current_index`      |                                                         |
 | `load_fee`           |                                                         |
 | `partial`            |                                                         |
 | `chain`              |                                                         |
-| `domain`             |                                                         |
-| `domain_verified`    |                                                         |
+| `domain`             |The domain associated with the validator.                |
+| `domain_verified`    |Whether the domain has been verified.                    |
+| `last_ledger_time`   |The last time the validator validated a ledger.          |
 | `agreement_1hour`    |                                                         |
 | `agreement_24hour`   |                                                         |
 | `agreement_30day`    |                                                         |
