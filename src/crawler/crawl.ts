@@ -14,6 +14,8 @@ const DEFAULT_PORT = 51235
 const IP_ADDRESS = /^::ffff:/u
 const BASE58_MAX_LENGTH = 50
 
+const LEDGER_RANGE = 10000
+
 /**
  *
  */
@@ -48,6 +50,30 @@ class Crawler {
     return encodeNodePublic(Buffer.from(publicKey, 'base64'))
   }
 
+  private static ledgerInRange(
+    newestLedger: string | undefined,
+    nodeNewestLedger: string | undefined
+  ): boolean {
+    if (newestLedger != null && nodeNewestLedger != null) {
+      const intNewestLedger = parseInt(newestLedger);
+      const intNodeNewestLedger = parseInt(nodeNewestLedger);
+      if (intNewestLedger - LEDGER_RANGE < intNodeNewestLedger && intNodeNewestLedger < intNewestLedger + LEDGER_RANGE) {
+        return true
+      } else {
+        return false
+      }
+    }
+    return true
+  }
+
+  private static getRecentLedger(completeLedgers: string | undefined): string | undefined {
+    const splitLedgers = completeLedgers?.split('-')
+    if (splitLedgers != null) {
+      return splitLedgers[splitLedgers.length-1]
+    }
+    return undefined;
+  }
+
   /**
    * Starts network crawl at entry point host:port/crawl.
    *
@@ -71,6 +97,7 @@ class Crawler {
       network = 'dev'
       unl = config.vl_dev
     }
+    // console.log(unl)
     await this.crawlEndpoint(host, port, unl)
     await this.saveConnections(network)
   }
@@ -85,7 +112,11 @@ class Crawler {
       const dbNetworks = await query('crawls')
         .select('networks')
         .where({ public_key: key })
+      
       const arr = dbNetworks[0]?.networks?.split(',') || []
+      if (arr.length > 0) {
+        console.log(await query('crawls').select('*').where({ public_key: key }), network)
+      }
       arr.push(network)
       const networks = Array.from(new Set(arr)).join()
       void query('crawls')
@@ -147,11 +178,18 @@ class Crawler {
     }
 
     const { this_node, active_nodes } = nodes
+    const newestLedger = Crawler.getRecentLedger(this_node.complete_ledgers);
 
     const promises: Array<Promise<void>> = [saveNode(this_node)]
 
     for (const node of active_nodes) {
       const normalizedPublicKey = Crawler.normalizePublicKey(node.public_key)
+
+      const nodeNewestLedger = Crawler.getRecentLedger(node.complete_ledgers);
+      if (nodeNewestLedger && !Crawler.ledgerInRange(newestLedger, nodeNewestLedger)) {
+        // console.log(host, node.ip, this_node.complete_ledgers, node)
+        continue
+      }
 
       this.updateConnections(
         this_node.public_key,
@@ -170,6 +208,7 @@ class Crawler {
       }
 
       this.publicKeysSeen.add(normalizedPublicKey)
+
       promises.push(saveNode(dbNode))
 
       if (node.ip === undefined || node.port === undefined) {

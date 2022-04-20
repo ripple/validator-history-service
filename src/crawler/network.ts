@@ -55,6 +55,7 @@ async function crawlNode(
         load_factor_server,
         uptime,
         build_version: version,
+        complete_ledgers,
       } = response.data?.server
 
       if (active_nodes === undefined) {
@@ -68,6 +69,7 @@ async function crawlNode(
         load_factor_server,
         uptime,
         version,
+        complete_ledgers
       }
 
       const crawl: Crawl = {
@@ -77,19 +79,23 @@ async function crawlNode(
 
       const node_unl = response.data?.unl.validator_sites[0].uri
 
-      if (node_unl != `https://${unl}`) {
-        console.log(`IGNORE ${host}`)
-        throw new Error(`Node in the wrong network: ${host}`);
+      const unls = [`https://${unl}`];
+      if (unl === 'vl.ripple.com') {
+        unls.concat(['https://vl.xrplf.org', 'https://vl.coil.com'])
+      }
+      if (!unls.includes(node_unl)) {
+        console.log(`IGNORE ${host}: ${unl}`)
+        throw new Error(`Node in the wrong network: ${host}, ${unl}`);
       }
 
       return crawl
     })
     .catch((error) => {
-      if (!error.isAxiosError) {
-        log.error(error)
-      }
       if (error.message.includes("wrong network")) {
         throw error
+      }
+      if (!error.isAxiosError) {
+        log.error(error)
       }
       return undefined
     })
