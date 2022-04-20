@@ -4,6 +4,7 @@ import { encodeNodePublic } from 'ripple-address-codec'
 import { query, saveNode } from '../shared/database'
 import { Crawl } from '../shared/types'
 import logger from '../shared/utils/logger'
+import config from '../shared/utils/config'
 
 import crawlNode from './network'
 
@@ -57,16 +58,19 @@ class Crawler {
   public async crawl(host: string, port: number = DEFAULT_PORT): Promise<void> {
     log.info(`Starting crawl at ${host}:${port}`)
     let network = ''
-    if (host === 's1.ripple.com' || host === 's2.ripple.com') {
+    let unl = ''
       network = 'main'
+      unl = config.vl_main
     }
     if (host === 's.altnet.rippletest.net') {
       network = 'test'
+      unl = config.vl_test
     }
     if (host === 's.devnet.rippletest.net') {
       network = 'dev'
+      unl = config.vl_dev
     }
-    await this.crawlEndpoint(host, port)
+    await this.crawlEndpoint(host, port, unl)
     await this.saveConnections(network)
   }
 
@@ -116,6 +120,17 @@ class Crawler {
     this.connections.set(key2, keys)
   }
 
+  private removeConnection(badNode: string) {
+    this.connections.delete(badNode);
+  }
+
+  private async crawlNode(host: string, port: number, unl: string): Promise<Crawl | undefined> {
+    return crawlNode(host, port, unl).catch(() => {
+      this.removeConnection(host)
+      return undefined
+    })
+  }
+
   /**
    * Crawls endpoint at host:port/crawl.
    *
@@ -123,8 +138,8 @@ class Crawler {
    * @param port - Port to hit /crawl endpoint.
    * @returns Void.
    */
-  private async crawlEndpoint(host: string, port: number): Promise<void> {
-    const nodes: Crawl | undefined = await crawlNode(host, port)
+  private async crawlEndpoint(host: string, port: number, unl: string): Promise<void> {
+    const nodes: Crawl | undefined = await this.crawlNode(host, port, unl)
 
     if (nodes === undefined) {
       return
@@ -164,7 +179,7 @@ class Crawler {
         ? node.ip.substr('::ffff:'.length)
         : node.ip
 
-      promises.push(this.crawlEndpoint(ip, node.port))
+      promises.push(this.crawlEndpoint(ip, node.port, unl))
     }
 
     await Promise.all(promises)

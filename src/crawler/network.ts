@@ -4,7 +4,11 @@ import axios, { AxiosInstance } from 'axios'
 
 import { Crawl, Node } from '../shared/types'
 
+import logger from '../shared/utils/logger'
+
 let fetch: AxiosInstance | undefined
+
+const log = logger({ name: 'crawl' })
 
 /**
  * Gets Axios Instance, creates if not instantiated.
@@ -38,6 +42,7 @@ const TIMEOUT = 6000
 async function crawlNode(
   host: string,
   port: number,
+  unl: string,
 ): Promise<Crawl | undefined> {
   return getAxiosInstance()
     .get(`https://${host}:${port}/crawl`, { timeout: TIMEOUT })
@@ -70,9 +75,24 @@ async function crawlNode(
         active_nodes,
       }
 
+      const node_unl = response.data?.unl.validator_sites[0].uri
+
+      if (node_unl != `https://${unl}`) {
+        console.log(`IGNORE ${host}`)
+        throw new Error(`Node in the wrong network: ${host}`);
+      }
+
       return crawl
     })
-    .catch(() => undefined)
+    .catch((error) => {
+      if (!error.isAxiosError) {
+        log.error(error)
+      }
+      if (error.message.includes("wrong network")) {
+        throw error
+      }
+      return undefined
+    })
 }
 
 export default crawlNode
