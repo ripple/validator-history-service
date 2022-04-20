@@ -234,6 +234,10 @@ export async function destroy(): Promise<void> {
  * @returns Void.
  */
 export async function saveNode(node: Node): Promise<void> {
+  if (node.complete_ledgers && node.complete_ledgers.length > 255) {
+    const ledgersSplit = node.complete_ledgers.split(',')
+    node.complete_ledgers = ledgersSplit[ledgersSplit.length-1]
+  }
   query('crawls')
     .insert(node)
     .onConflict('public_key')
