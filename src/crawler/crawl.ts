@@ -14,7 +14,7 @@ const DEFAULT_PORT = 51235
 const IP_ADDRESS = /^::ffff:/u
 const BASE58_MAX_LENGTH = 50
 
-const LEDGER_RANGE = 10000
+const LEDGER_RANGE = 100000
 
 /**
  *
