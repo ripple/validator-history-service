@@ -59,6 +59,7 @@ class Crawler {
     log.info(`Starting crawl at ${host}:${port}`)
     let network = ''
     let unl = ''
+    if (host === 's1.ripple.com' || host === 's2.ripple.com' || host === 'p2p.livenet.ripple.com') {
       network = 'main'
       unl = config.vl_main
     }
