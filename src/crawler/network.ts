@@ -36,13 +36,11 @@ const TIMEOUT = 6000
  *
  * @param host - Hostname or ip address of peer.
  * @param port - Port to hit /crawl endpoint.
- * @param unl
  * @returns A list of Nodes.
  */
 async function crawlNode(
   host: string,
   port: number,
-  unl: string,
 ): Promise<Crawl | undefined> {
   return getAxiosInstance()
     .get(`https://${host}:${port}/crawl`, { timeout: TIMEOUT })
@@ -72,23 +70,12 @@ async function crawlNode(
         complete_ledgers,
       }
 
+      const validatorSites = response.data?.unl.validator_sites
+
       const crawl: Crawl = {
         this_node,
         active_nodes,
-      }
-
-      const validatorSites = response.data?.unl.validator_sites
-      if (validatorSites.length === 0) {
-        return crawl
-      }
-      const node_unl = validatorSites[0].uri
-
-      const unls = [`https://${unl}`]
-      if (unl === 'vl.ripple.com') {
-        unls.concat(['https://vl.xrplf.org', 'https://vl.coil.com'])
-      }
-      if (!unls.includes(node_unl)) {
-        throw new Error(`Node in the wrong network: ${host}, ${unl}`)
+        node_unl: validatorSites.length > 0 ? validatorSites[0].uri : undefined,
       }
 
       return crawl

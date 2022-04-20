@@ -55,6 +55,7 @@ interface Location {
 interface Crawl {
   this_node: Node
   active_nodes: Node[]
+  node_unl: string | null
 }
 
 // This is the raw validation message format you can expect to see from the validations stream

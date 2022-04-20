@@ -51,16 +51,19 @@ class Crawler {
   }
 
   /**
-   * @param newestLedger
-   * @param nodeNewestLedger
+   * Helper function for determining if a node's newest ledger is close to the current network's range.
+   *
+   * @param newestLedger - The newest ledger for the current node.
+   * @param nodeNewestLedger - The newest ledger for the new node.
+   * @returns Whether the network is in a valid range.
    */
   private static ledgerInRange(
     newestLedger: string | undefined,
     nodeNewestLedger: string | undefined,
   ): boolean {
     if (newestLedger != null && nodeNewestLedger != null) {
-      const intNewestLedger = parseInt(newestLedger)
-      const intNodeNewestLedger = parseInt(nodeNewestLedger)
+      const intNewestLedger = parseInt(newestLedger, 10)
+      const intNodeNewestLedger = parseInt(nodeNewestLedger, 10)
       if (
         intNewestLedger - LEDGER_RANGE < intNodeNewestLedger &&
         intNodeNewestLedger < intNewestLedger + LEDGER_RANGE
@@ -72,7 +75,11 @@ class Crawler {
   }
 
   /**
-   * @param completeLedgers
+   * Helper function to parse `complete_ledgers` and determine the most recent ledger
+   * the node has seen.
+   *
+   * @param completeLedgers - The `complete_ledgers` value.
+   * @returns The most recent ledger the node has seen.
    */
   private static getRecentLedger(
     completeLedgers: string | undefined,
@@ -163,25 +170,41 @@ class Crawler {
   }
 
   /**
-   * @param badNode
+   * Removes a node from the connections map.
+   *
+   * @param badNode - The bad node to remove from connections.
    */
-  private removeConnection(badNode: string) {
+  private removeConnection(badNode: string): void {
     this.connections.delete(badNode)
   }
 
   /**
-   * @param host
-   * @param port
-   * @param unl
+   * Crawl endpoint at host:port/crawl. Remove if the UNL is a different network.
+   *
+   * @param host - Hostname or ip address of peer.
+   * @param port - Port to hit /crawl endpoint.
+   * @param unl - UNL of the current network.
+   * @returns A list of Nodes.
    */
   private async crawlNode(
     host: string,
     port: number,
     unl: string,
   ): Promise<Crawl | undefined> {
-    return crawlNode(host, port, unl).catch(() => {
-      this.removeConnection(host)
-      return undefined
+    return crawlNode(host, port).then((crawl) => {
+      if (crawl == null) {
+        return crawl
+      }
+      const { node_unl } = crawl
+      const unls = [`https://${unl}`]
+      if (unl === 'vl.ripple.com') {
+        unls.concat(['https://vl.xrplf.org', 'https://vl.coil.com'])
+      }
+      if (node_unl && !unls.includes(node_unl)) {
+        this.removeConnection(host)
+        return undefined
+      }
+      return crawl
     })
   }
 
@@ -190,9 +213,10 @@ class Crawler {
    *
    * @param host - Hostname or ip address of peer.
    * @param port - Port to hit /crawl endpoint.
-   * @param unl
+   * @param unl - UNL of the current network.
    * @returns Void.
    */
+  // eslint-disable-next-line max-statements -- All statements necessary
   private async crawlEndpoint(
     host: string,
     port: number,
@@ -234,7 +258,6 @@ class Crawler {
       }
 
       this.publicKeysSeen.add(normalizedPublicKey)
-
       promises.push(saveNode(dbNode))
 
       if (node.ip === undefined || node.port === undefined) {
@@ -244,7 +267,6 @@ class Crawler {
       const ip = IP_ADDRESS.exec(node.ip)
         ? node.ip.substr('::ffff:'.length)
         : node.ip
-
       promises.push(this.crawlEndpoint(ip, node.port, unl))
     }
 
