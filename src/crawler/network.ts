@@ -77,7 +77,11 @@ async function crawlNode(
         active_nodes,
       }
 
-      const node_unl = response.data?.unl.validator_sites[0].uri
+      const validatorSites = response.data?.unl.validator_sites
+      if (validatorSites.length === 0) {
+        return crawl
+      }
+      const node_unl = validatorSites[0].uri
 
       const unls = [`https://${unl}`];
       if (unl === 'vl.ripple.com') {
