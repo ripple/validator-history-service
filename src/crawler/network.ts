@@ -70,7 +70,7 @@ async function crawlNode(
         complete_ledgers,
       }
 
-      const validatorSites = response.data?.unl.validator_sites
+      const validatorSites = response.data?.unl?.validator_sites ?? []
 
       const crawl: Crawl = {
         this_node,

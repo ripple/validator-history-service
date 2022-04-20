@@ -18,6 +18,7 @@
         ]
       },
       "server": {
+        "complete_ledgers": "10-20",
         "pubkey_node" : "n9Mh83gUuY4hBXVD9geWHsyVwz5h32rjauLWQCZJVTEbCb5TYs21",
         "server_state": "connected",
         "io_latency_ms": "1",
@@ -38,6 +39,7 @@
         ]
       },
       "server": {
+        "complete_ledgers": "10-20",
         "pubkey_node" : "n9Kt2gdtxsYV6h4SAfHkRFUMU8gB6rDQ3MktiB3MMEDS9s9obu9b",
         "server_state": "connected",
         "io_latency_ms": "1",
@@ -51,6 +53,7 @@
         "active": []
       },
       "server": {
+        "complete_ledgers": "10-20",
         "pubkey_node" : "n9LgkNWaPfRnxLKAgnSCMHRCyHBZsSdGBdRmyaYEArL3SBoq1EqK",
         "server_state": "connected",
         "io_latency_ms": "1",
