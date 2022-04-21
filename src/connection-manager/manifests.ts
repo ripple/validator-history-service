@@ -72,8 +72,10 @@ export async function handleManifest(
 export async function updateUNLManifests(): Promise<void> {
   try {
     log.info('Fetching UNL...')
-    const mainNetwork = networks.filter((network) => network.network === 'main')
-    const unl: UNLBlob = await fetchValidatorList(mainNetwork[0].unls[0])
+    const mainNetwork = networks.filter(
+      (network) => network.network === 'main',
+    )[0]
+    const unl: UNLBlob = await fetchValidatorList(mainNetwork.unls[0])
     const promises: Array<Promise<void>> = []
 
     unl.validators.forEach((validator: UNLValidator) => {

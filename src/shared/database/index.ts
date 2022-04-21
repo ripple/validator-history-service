@@ -18,14 +18,14 @@ import logger from '../utils/logger'
 
 const log = logger({ name: 'database' })
 
-let lists: undefined | Record<string, Set<string>>
+let lists: Record<string, Set<string>> | undefined
 
 getLists()
   .then((ret) => {
     lists = ret
   })
   .catch((err) => log.error('Error getting validator lists', err))
-let knexDb: undefined | knex
+let knexDb: knex | undefined
 
 /**
  * Gets an instance of knex connection.
