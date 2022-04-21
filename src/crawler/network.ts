@@ -3,8 +3,11 @@ import https from 'https'
 import axios, { AxiosInstance } from 'axios'
 
 import { Crawl, Node } from '../shared/types'
+import logger from '../shared/utils/logger'
 
 let fetch: AxiosInstance | undefined
+
+const log = logger({ name: 'crawl' })
 
 /**
  * Gets Axios Instance, creates if not instantiated.
@@ -50,6 +53,7 @@ async function crawlNode(
         load_factor_server,
         uptime,
         build_version: version,
+        complete_ledgers,
       } = response.data?.server
 
       if (active_nodes === undefined) {
@@ -63,16 +67,28 @@ async function crawlNode(
         load_factor_server,
         uptime,
         version,
+        complete_ledgers,
       }
+
+      const validatorSites = response.data?.unl?.validator_sites ?? []
 
       const crawl: Crawl = {
         this_node,
         active_nodes,
+        node_unl: validatorSites.length > 0 ? validatorSites[0].uri : undefined,
       }
 
       return crawl
     })
-    .catch(() => undefined)
+    .catch((error) => {
+      if (error.message.includes('wrong network')) {
+        throw error
+      }
+      if (!error.isAxiosError) {
+        log.error(error)
+      }
+      return undefined
+    })
 }
 
 export default crawlNode

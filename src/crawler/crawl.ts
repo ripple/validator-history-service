@@ -3,6 +3,7 @@ import { encodeNodePublic } from 'ripple-address-codec'
 
 import { query, saveNode } from '../shared/database'
 import { Crawl } from '../shared/types'
+import config from '../shared/utils/config'
 import logger from '../shared/utils/logger'
 
 import crawlNode from './network'
@@ -12,6 +13,8 @@ const TIME_FORMAT = 'YYYY-MM-DD HH:mm:ss[Z]'
 const DEFAULT_PORT = 51235
 const IP_ADDRESS = /^::ffff:/u
 const BASE58_MAX_LENGTH = 50
+
+const LEDGER_RANGE = 100000
 
 /**
  *
@@ -48,6 +51,48 @@ class Crawler {
   }
 
   /**
+   * Helper function for determining if a node's newest ledger is close to the current network's range.
+   *
+   * @param thisCompleteLedgers - The `complete_ledgers` for the current node.
+   * @param nodeCompleteLedgers - The `complete_ledgers` for the new node.
+   * @returns Whether the network is in a valid range.
+   */
+  private static ledgerInRange(
+    thisCompleteLedgers: string | undefined,
+    nodeCompleteLedgers: string | undefined,
+  ): boolean {
+    const newestLedger = Crawler.getRecentLedger(thisCompleteLedgers)
+    const nodeNewestLedger = Crawler.getRecentLedger(nodeCompleteLedgers)
+    if (newestLedger == null || nodeNewestLedger == null) {
+      return false
+    }
+
+    const intNewestLedger = parseInt(newestLedger, 10)
+    const intNodeNewestLedger = parseInt(nodeNewestLedger, 10)
+    if (Math.abs(intNewestLedger - intNodeNewestLedger) <= LEDGER_RANGE) {
+      return true
+    }
+    return false
+  }
+
+  /**
+   * Helper function to parse `complete_ledgers` and determine the most recent ledger
+   * the node has seen.
+   *
+   * @param completeLedgers - The `complete_ledgers` value.
+   * @returns The most recent ledger the node has seen.
+   */
+  private static getRecentLedger(
+    completeLedgers: string | undefined,
+  ): string | undefined {
+    const splitLedgers = completeLedgers?.split('-')
+    if (splitLedgers != null) {
+      return splitLedgers[splitLedgers.length - 1]
+    }
+    return undefined
+  }
+
+  /**
    * Starts network crawl at entry point host:port/crawl.
    *
    * @param host - Hostname or ip address of peer.
@@ -57,16 +102,20 @@ class Crawler {
   public async crawl(host: string, port: number = DEFAULT_PORT): Promise<void> {
     log.info(`Starting crawl at ${host}:${port}`)
     let network = ''
-    if (host === 's1.ripple.com' || host === 's2.ripple.com') {
-      network = 'main'
-    }
+    let unl = ''
+
     if (host === 's.altnet.rippletest.net') {
       network = 'test'
-    }
-    if (host === 's.devnet.rippletest.net') {
+      unl = config.vl_test
+    } else if (host === 's.devnet.rippletest.net') {
       network = 'dev'
+      unl = config.vl_dev
+    } else if (host.includes('ripple.com')) {
+      // mainnet nodes
+      network = 'main'
+      unl = config.vl_main
     }
-    await this.crawlEndpoint(host, port)
+    await this.crawlEndpoint(host, port, unl)
     await this.saveConnections(network)
   }
 
@@ -80,6 +129,7 @@ class Crawler {
       const dbNetworks = await query('crawls')
         .select('networks')
         .where({ public_key: key })
+
       const arr = dbNetworks[0]?.networks?.split(',') || []
       arr.push(network)
       const networks = Array.from(new Set(arr)).join()
@@ -117,14 +167,58 @@ class Crawler {
   }
 
   /**
+   * Removes a node from the connections map.
+   *
+   * @param badNode - The bad node to remove from connections.
+   */
+  private removeConnection(badNode: string): void {
+    this.connections.delete(badNode)
+  }
+
+  /**
+   * Crawl endpoint at host:port/crawl. Remove if the UNL is a different network.
+   *
+   * @param host - Hostname or ip address of peer.
+   * @param port - Port to hit /crawl endpoint.
+   * @param unl - UNL of the current network.
+   * @returns A list of Nodes.
+   */
+  private async crawlNode(
+    host: string,
+    port: number,
+    unl: string,
+  ): Promise<Crawl | undefined> {
+    return crawlNode(host, port).then((crawl) => {
+      if (crawl == null) {
+        return crawl
+      }
+      const { node_unl } = crawl
+      const unls = [`https://${unl}`]
+      if (unl === 'vl.ripple.com') {
+        unls.concat(['https://vl.xrplf.org', 'https://vl.coil.com'])
+      }
+      if (node_unl && !unls.includes(node_unl)) {
+        this.removeConnection(host)
+        return undefined
+      }
+      return crawl
+    })
+  }
+
+  /**
    * Crawls endpoint at host:port/crawl.
    *
    * @param host - Hostname or ip address of peer.
    * @param port - Port to hit /crawl endpoint.
+   * @param unl - UNL of the current network.
    * @returns Void.
    */
-  private async crawlEndpoint(host: string, port: number): Promise<void> {
-    const nodes: Crawl | undefined = await crawlNode(host, port)
+  private async crawlEndpoint(
+    host: string,
+    port: number,
+    unl: string,
+  ): Promise<void> {
+    const nodes: Crawl | undefined = await this.crawlNode(host, port, unl)
 
     if (nodes === undefined) {
       return
@@ -136,6 +230,15 @@ class Crawler {
 
     for (const node of active_nodes) {
       const normalizedPublicKey = Crawler.normalizePublicKey(node.public_key)
+
+      if (
+        !Crawler.ledgerInRange(
+          this_node.complete_ledgers,
+          node.complete_ledgers,
+        )
+      ) {
+        continue
+      }
 
       this.updateConnections(
         this_node.public_key,
@@ -163,8 +266,7 @@ class Crawler {
       const ip = IP_ADDRESS.exec(node.ip)
         ? node.ip.substr('::ffff:'.length)
         : node.ip
-
-      promises.push(this.crawlEndpoint(ip, node.port))
+      promises.push(this.crawlEndpoint(ip, node.port, unl))
     }
 
     await Promise.all(promises)
