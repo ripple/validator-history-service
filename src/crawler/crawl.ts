@@ -69,10 +69,7 @@ class Crawler {
 
     const intNewestLedger = parseInt(newestLedger, 10)
     const intNodeNewestLedger = parseInt(nodeNewestLedger, 10)
-    if (
-      intNewestLedger - LEDGER_RANGE < intNodeNewestLedger &&
-      intNodeNewestLedger < intNewestLedger + LEDGER_RANGE
-    ) {
+    if (Math.abs(intNewestLedger - intNodeNewestLedger) <= LEDGER_RANGE) {
       return true
     }
     return false
