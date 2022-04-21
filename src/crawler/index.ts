@@ -13,16 +13,21 @@ const LOCATE_INTERVAL = 24 * 60 * 60 * 1000
 const CRAWL_INTERVAL = 2 * 60 * 1000
 
 async function crawl(): Promise<void> {
-  const crawler = new Crawler()
-
+  const crawlers: Crawler[] = []
+  const startCrawl = moment.utc()
   const promises = []
   for (const entry of config.entries) {
+    const crawler = new Crawler()
+    crawlers.push(crawler)
     promises.push(crawler.crawl(entry))
   }
   await Promise.all(promises)
 
-  const duration = moment.utc().diff(crawler.start) / 1000
-  const peers = crawler.publicKeysSeen.size
+  const duration = moment.utc().diff(startCrawl) / 1000
+  const peers = crawlers.reduce(
+    (size, crawler) => crawler.publicKeysSeen.size + size,
+    0,
+  )
   log.info(`Crawl took ${duration} seconds, ${peers} peers discovered`)
 }
 
