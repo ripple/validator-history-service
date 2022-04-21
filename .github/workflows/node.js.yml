@@ -53,4 +53,7 @@ jobs:
         DB_USER: 'postgres'
         DB_DATABASE: 'postgres'
         DB_PASSWORD: 'postgres'
+        # Rippled Server with access to manifest command
+        RIPPLED_RPC_ADMIN: 'https://xrpl.ws/'
+        # (Placeholder) Mainnet entry point for crawler (without https://).
         MAINNET_P2P_ENTRY: 'test.example.com'
