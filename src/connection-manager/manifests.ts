@@ -17,8 +17,8 @@ import {
   DatabaseManifest,
 } from '../shared/types'
 import { fetchValidatorList, fetchRpcManifest, getLists } from '../shared/utils'
-import config from '../shared/utils/config'
 import logger from '../shared/utils/logger'
+import networks from '../shared/utils/networks.json'
 
 import hard_dunl from './fixtures/unl-hard.json'
 
@@ -73,7 +73,8 @@ export async function handleManifest(
 export async function updateUNLManifests(): Promise<void> {
   try {
     log.info('Fetching UNL...')
-    const unl: UNLBlob = await fetchValidatorList(config.vl_main)
+    const mainNetwork = networks.filter((network) => network.network === 'main')
+    const unl: UNLBlob = await fetchValidatorList(mainNetwork[0].unls[0])
     const promises: Array<Promise<void>> = []
 
     unl.validators.forEach((validator: UNLValidator) => {
@@ -167,36 +168,15 @@ export async function updateUnls(): Promise<void> {
           return res.map((idx: { signing_key: string }) => idx.signing_key)
         })
 
-      // eslint-disable-next-line max-depth -- necessary depth
-      if (name === 'vl_main') {
-        await query('validators')
-          .whereIn('signing_key', keys)
-          .update({ unl: config.vl_main })
-        await query('validators')
-          .whereNotIn('signing_key', keys)
-          .where('unl', '=', config.vl_main)
-          .update({ unl: null })
-      }
-      // eslint-disable-next-line max-depth -- necessary depth
-      if (name === 'vl_test') {
-        await query('validators')
-          .whereIn('signing_key', keys)
-          .update({ unl: config.vl_test })
-        await query('validators')
-          .whereNotIn('signing_key', keys)
-          .where('unl', '=', config.vl_test)
-          .update({ unl: null })
-      }
-      // eslint-disable-next-line max-depth -- necessary depth
-      if (name === 'vl_dev') {
-        await query('validators')
-          .whereIn('signing_key', keys)
-          .update({ unl: config.vl_dev })
-        await query('validators')
-          .whereNotIn('signing_key', keys)
-          .where('unl', '=', config.vl_dev)
-          .update({ unl: null })
-      }
+      const network = networks.filter((ntwk) => ntwk.network === name)[0]
+      const networkUNL = network.unls[0]
+      await query('validators')
+        .whereIn('signing_key', keys)
+        .update({ unl: networkUNL })
+      await query('validators')
+        .whereNotIn('signing_key', keys)
+        .where('unl', '=', networkUNL)
+        .update({ unl: null })
     }
     log.info('Finished updating validator unls')
   } catch (err) {

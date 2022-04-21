@@ -596,13 +596,13 @@ export async function purgeHourlyAgreementScores(): Promise<void> {
  */
 export async function saveValidatorChains(chain: Chain): Promise<void> {
   let id = chain.id
-  if (lists && overlaps(chain.validators, lists.vl_main)) {
+  if (lists && overlaps(chain.validators, lists.main)) {
     id = 'main'
   }
-  if (lists && overlaps(chain.validators, lists.vl_test)) {
+  if (lists && overlaps(chain.validators, lists.test)) {
     id = 'test'
   }
-  if (lists && overlaps(chain.validators, lists.vl_dev)) {
+  if (lists && overlaps(chain.validators, lists.dev)) {
     id = 'dev'
   }
 

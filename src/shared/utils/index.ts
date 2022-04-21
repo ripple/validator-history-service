@@ -98,7 +98,7 @@ export async function getLists(): Promise<Record<string, Set<string>>> {
     promises.push(
       fetchValidatorList(network.unls[0]).then((blob) => {
         Object.assign(lists, {
-          [`vl_${network.network}`]: blobToValidators(blob),
+          [network.network]: blobToValidators(blob),
         })
       }),
     )
