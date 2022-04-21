@@ -69,7 +69,6 @@ export async function handleManifest(
  *
  * @returns A promise that resolves to void once all UNL validators are saved.
  */
-// eslint-disable-next-line import/no-unused-modules -- Used in testing
 export async function updateUNLManifests(): Promise<void> {
   try {
     log.info('Fetching UNL...')
@@ -95,7 +94,6 @@ export async function updateUNLManifests(): Promise<void> {
  *
  * @returns A promise that resolves to void once all of the latest manifests have been saved.
  */
-// eslint-disable-next-line import/no-unused-modules -- Used in testing
 export async function updateManifestsFromRippled(): Promise<void> {
   try {
     log.info('Getting latest Manifests...')
@@ -147,7 +145,6 @@ async function updateValidatorDomainsFromManifests(): Promise<void> {
  *
  * @returns A promise that resolves to void once unl column is updated for all applicable validators.
  */
-// eslint-disable-next-line import/no-unused-modules -- Used in testing
 export async function updateUnls(): Promise<void> {
   try {
     const lists = await getLists()
