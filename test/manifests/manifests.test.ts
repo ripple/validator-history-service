@@ -6,7 +6,12 @@ import {
   updateUNLManifests,
   updateUnls,
 } from '../../src/connection-manager/manifests'
-import { destroy, query, setupTables, tearDown } from '../../src/shared/database'
+import {
+  destroy,
+  query,
+  setupTables,
+  tearDown,
+} from '../../src/shared/database'
 import config from '../../src/shared/utils/config'
 
 import unl1 from './fixtures/unl-response1.json'
