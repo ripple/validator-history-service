@@ -2,16 +2,19 @@
   {
     "network": "main",
     "entry": null,
+    "port": 51235,
     "unls": ["vl.ripple.com", "vl.xrplf.org", "vl.coil.com"]
   },
   {
     "network": "test",
     "entry": "s.altnet.rippletest.net",
+    "port": 51235,
     "unls": ["vl.altnet.rippletest.net"]
   },
   {
     "network": "dev",
     "entry": "s.devnet.ripple.test.net",
+    "port": 51235,
     "unls": ["vl.devnet.rippletest.net"]
   }
 ]

@@ -2,8 +2,8 @@ import 'dotenv/config'
 import moment from 'moment'
 
 import { setupTables } from '../shared/database'
-import config from '../shared/utils/config'
 import logger from '../shared/utils/logger'
+import networks from '../shared/utils/networks.json'
 
 import Crawler from './crawl'
 import locate from './locate'
@@ -16,7 +16,7 @@ async function crawl(): Promise<void> {
   const crawlers: Crawler[] = []
   const startCrawl = moment.utc()
   const promises = []
-  for (const entry of config.entries) {
+  for (const entry of networks) {
     const crawler = new Crawler()
     crawlers.push(crawler)
     promises.push(crawler.crawl(entry))

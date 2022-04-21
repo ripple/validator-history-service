@@ -16,6 +16,13 @@ const BASE58_MAX_LENGTH = 50
 
 const LEDGER_RANGE = 100000
 
+interface Network {
+  network: string
+  port?: number
+  entry: string | null
+  unls: string[]
+}
+
 /**
  *
  */
@@ -95,28 +102,26 @@ class Crawler {
   /**
    * Starts network crawl at entry point host:port/crawl.
    *
-   * @param host - Hostname or ip address of peer.
-   * @param port - Port to hit /crawl endpoint.
-   *
+   * @param network - The network to crawl.
+   * @throws Exception if network entry undefined and not mainnet.
    */
-  public async crawl(host: string, port: number = DEFAULT_PORT): Promise<void> {
-    log.info(`Starting crawl at ${host}:${port}`)
-    let network = ''
-    let unl = ''
+  public async crawl(network: Network): Promise<void> {
+    const port = network.port ?? DEFAULT_PORT
+    let entry = ''
 
-    if (host === 's.altnet.rippletest.net') {
-      network = 'test'
-      unl = config.vl_test
-    } else if (host === 's.devnet.rippletest.net') {
-      network = 'dev'
-      unl = config.vl_dev
-    } else if (host.includes('ripple.com')) {
-      // mainnet nodes
-      network = 'main'
-      unl = config.vl_main
+    // We want to avoid making public the mainnet P2P server we use
+    if (network.entry == null) {
+      if (network.network !== 'main') {
+        throw new Error(`Unknown entry for ${network.network}`)
+      }
+      entry = config.mainnet_p2p_server
+    } else {
+      entry = network.entry
     }
-    await this.crawlEndpoint(host, port, unl)
-    await this.saveConnections(network)
+    log.info(`Starting crawl at ${entry}:${port}`)
+
+    await this.crawlEndpoint(entry, port, network.unls[0])
+    await this.saveConnections(network.network)
   }
 
   /**

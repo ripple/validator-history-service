@@ -38,6 +38,10 @@ const vl_test = getRequiredEnvironmentVariable(EnvironmentVariable.vl_test)
 
 const vl_dev = getRequiredEnvironmentVariable(EnvironmentVariable.vl_dev)
 
+const mainnet_p2p_server = getRequiredEnvironmentVariable(
+  EnvironmentVariable.mainnet_p2p_server,
+)
+
 const port = getEnvironmentVariable(EnvironmentVariable.port)
 
 const addr = getEnvironmentVariable(EnvironmentVariable.addr)
@@ -53,6 +57,7 @@ const config = {
   vl_dev,
   port,
   addr,
+  mainnet_p2p_server,
 }
 
 export default config

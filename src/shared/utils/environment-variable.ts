@@ -17,6 +17,7 @@ export enum EnvironmentVariable {
   vl_dev = 'VL_DEV',
   port = 'PORT',
   addr = 'ADDR',
+  mainnet_p2p_server = 'MAINNET_P2P_ENTRY',
 }
 
 /**
@@ -50,6 +51,7 @@ const requiredEnvironmentVariables = new Set([
   EnvironmentVariable.vl_dev,
   EnvironmentVariable.port,
   EnvironmentVariable.addr,
+  EnvironmentVariable.mainnet_p2p_server,
 ])
 
 /**
