@@ -5,7 +5,7 @@ import { UNL, UNLBlob, UNLValidator } from '../types'
 
 import config from './config'
 import logger from './logger'
-import networks from './networks.json'
+import networks from './networks'
 
 const log = logger({ name: 'utils' })
 

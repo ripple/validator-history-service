@@ -3,8 +3,8 @@ import { encodeNodePublic } from 'ripple-address-codec'
 
 import { query, saveNode } from '../shared/database'
 import { Crawl } from '../shared/types'
-import config from '../shared/utils/config'
 import logger from '../shared/utils/logger'
+import { Network } from '../shared/utils/networks'
 
 import crawlNode from './network'
 
@@ -15,13 +15,6 @@ const IP_ADDRESS = /^::ffff:/u
 const BASE58_MAX_LENGTH = 50
 
 const LEDGER_RANGE = 100000
-
-interface Network {
-  network: string
-  port?: number
-  entry: string | null
-  unls: string[]
-}
 
 /**
  *
@@ -107,20 +100,9 @@ class Crawler {
    */
   public async crawl(network: Network): Promise<void> {
     const port = network.port ?? DEFAULT_PORT
-    let entry = ''
+    log.info(`Starting crawl at ${network.entry}:${port}`)
 
-    // We want to avoid making public the mainnet P2P server we use
-    if (network.entry == null) {
-      if (network.network !== 'main') {
-        throw new Error(`Unknown entry for ${network.network}`)
-      }
-      entry = config.mainnet_p2p_server
-    } else {
-      entry = network.entry
-    }
-    log.info(`Starting crawl at ${entry}:${port}`)
-
-    await this.crawlEndpoint(entry, port, network.unls[0])
+    await this.crawlEndpoint(network.entry, port, network.unls[0])
     await this.saveConnections(network.network)
   }
 

@@ -3,7 +3,7 @@ import moment from 'moment'
 
 import { setupTables } from '../shared/database'
 import logger from '../shared/utils/logger'
-import networks from '../shared/utils/networks.json'
+import networks from '../shared/utils/networks'
 
 import Crawler from './crawl'
 import locate from './locate'

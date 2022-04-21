@@ -18,7 +18,7 @@ import {
 } from '../shared/types'
 import { fetchValidatorList, fetchRpcManifest, getLists } from '../shared/utils'
 import logger from '../shared/utils/logger'
-import networks from '../shared/utils/networks.json'
+import networks from '../shared/utils/networks'
 
 import hard_dunl from './fixtures/unl-hard.json'
 

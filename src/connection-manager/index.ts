@@ -2,7 +2,7 @@ import 'dotenv/config'
 
 import Crawler from '../crawler/crawl'
 import { setupTables } from '../shared/database'
-import networks from '../shared/utils/networks.json'
+import networks from '../shared/utils/networks'
 
 import agreement from './agreement'
 import startConnections from './connections'
