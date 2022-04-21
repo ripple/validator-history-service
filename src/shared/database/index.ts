@@ -18,13 +18,7 @@ import logger from '../utils/logger'
 
 const log = logger({ name: 'database' })
 
-let lists:
-  | undefined
-  | {
-      vl_main: Set<string>
-      vl_test: Set<string>
-      vl_dev: Set<string>
-    }
+let lists: undefined | Record<string, Set<string>>
 
 getLists()
   .then((ret) => {
@@ -201,6 +195,7 @@ async function setupDailyAgreementTable(): Promise<void> {
  *
  * @returns Promise that resolves to void.
  */
+// eslint-disable-next-line import/no-unused-modules -- Used in testing.
 export async function tearDown(): Promise<void> {
   await db()
     .schema.dropTableIfExists('location')
@@ -223,6 +218,7 @@ export function query(tbName: string): QueryBuilder {
  *
  * @returns Promise that destroys database connection.
  */
+// eslint-disable-next-line import/no-unused-modules -- Used in testing.
 export async function destroy(): Promise<void> {
   return db().destroy()
 }

@@ -69,6 +69,7 @@ export async function handleManifest(
  *
  * @returns A promise that resolves to void once all UNL validators are saved.
  */
+// eslint-disable-next-line import/no-unused-modules -- Used in testing
 export async function updateUNLManifests(): Promise<void> {
   try {
     log.info('Fetching UNL...')
@@ -93,6 +94,7 @@ export async function updateUNLManifests(): Promise<void> {
  *
  * @returns A promise that resolves to void once all of the latest manifests have been saved.
  */
+// eslint-disable-next-line import/no-unused-modules -- Used in testing
 export async function updateManifestsFromRippled(): Promise<void> {
   try {
     log.info('Getting latest Manifests...')
@@ -144,7 +146,7 @@ async function updateValidatorDomainsFromManifests(): Promise<void> {
  *
  * @returns A promise that resolves to void once unl column is updated for all applicable validators.
  */
-// eslint-disable-next-line max-lines-per-function -- Necessary use of extra lines.
+// eslint-disable-next-line import/no-unused-modules -- Used in testing
 export async function updateUnls(): Promise<void> {
   try {
     const lists = await getLists()
@@ -162,9 +164,7 @@ export async function updateUnls(): Promise<void> {
         .whereIn('master_key', subquery)
         .orderBy(['master_key', { column: 'seq', order: 'desc' }])
         .then(async (res) => {
-          return res.map((idx: { signing_key: string }) => {
-            return idx.signing_key
-          })
+          return res.map((idx: { signing_key: string }) => idx.signing_key)
         })
 
       // eslint-disable-next-line max-depth -- necessary depth

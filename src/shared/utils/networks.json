@@ -1,0 +1,17 @@
+[
+  {
+    "network": "main",
+    "entry": null,
+    "unls": ["vl.ripple.com", "vl.xrplf.org", "vl.coil.com"]
+  },
+  {
+    "network": "test",
+    "entry": "s.altnet.rippletest.net",
+    "unls": ["vl.altnet.rippletest.net"]
+  },
+  {
+    "network": "dev",
+    "entry": "s.devnet.ripple.test.net",
+    "unls": ["vl.devnet.rippletest.net"]
+  }
+]
