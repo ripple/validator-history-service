@@ -53,23 +53,27 @@ class Crawler {
   /**
    * Helper function for determining if a node's newest ledger is close to the current network's range.
    *
-   * @param newestLedger - The newest ledger for the current node.
-   * @param nodeNewestLedger - The newest ledger for the new node.
+   * @param thisCompleteLedgers - The `complete_ledgers` for the current node.
+   * @param nodeCompleteLedgers - The `complete_ledgers` for the new node.
    * @returns Whether the network is in a valid range.
    */
   private static ledgerInRange(
-    newestLedger: string | undefined,
-    nodeNewestLedger: string | undefined,
+    thisCompleteLedgers: string | undefined,
+    nodeCompleteLedgers: string | undefined,
   ): boolean {
-    if (newestLedger != null && nodeNewestLedger != null) {
-      const intNewestLedger = parseInt(newestLedger, 10)
-      const intNodeNewestLedger = parseInt(nodeNewestLedger, 10)
-      if (
-        intNewestLedger - LEDGER_RANGE < intNodeNewestLedger &&
-        intNodeNewestLedger < intNewestLedger + LEDGER_RANGE
-      ) {
-        return true
-      }
+    const newestLedger = Crawler.getRecentLedger(thisCompleteLedgers)
+    const nodeNewestLedger = Crawler.getRecentLedger(nodeCompleteLedgers)
+    if (newestLedger == null || nodeNewestLedger == null) {
+      return false
+    }
+
+    const intNewestLedger = parseInt(newestLedger, 10)
+    const intNodeNewestLedger = parseInt(nodeNewestLedger, 10)
+    if (
+      intNewestLedger - LEDGER_RANGE < intNodeNewestLedger &&
+      intNodeNewestLedger < intNewestLedger + LEDGER_RANGE
+    ) {
+      return true
     }
     return false
   }
@@ -102,21 +106,17 @@ class Crawler {
     log.info(`Starting crawl at ${host}:${port}`)
     let network = ''
     let unl = ''
-    if (
-      host === 's1.ripple.com' ||
-      host === 's2.ripple.com' ||
-      host === 'p2p.livenet.ripple.com'
-    ) {
-      network = 'main'
-      unl = config.vl_main
-    }
+
     if (host === 's.altnet.rippletest.net') {
       network = 'test'
       unl = config.vl_test
-    }
-    if (host === 's.devnet.rippletest.net') {
+    } else if (host === 's.devnet.rippletest.net') {
       network = 'dev'
       unl = config.vl_dev
+    } else if (host.includes('ripple.com')) {
+      // mainnet nodes
+      network = 'main'
+      unl = config.vl_main
     }
     await this.crawlEndpoint(host, port, unl)
     await this.saveConnections(network)
@@ -216,7 +216,6 @@ class Crawler {
    * @param unl - UNL of the current network.
    * @returns Void.
    */
-  // eslint-disable-next-line max-statements -- All statements necessary
   private async crawlEndpoint(
     host: string,
     port: number,
@@ -229,15 +228,18 @@ class Crawler {
     }
 
     const { this_node, active_nodes } = nodes
-    const newestLedger = Crawler.getRecentLedger(this_node.complete_ledgers)
 
     const promises: Array<Promise<void>> = [saveNode(this_node)]
 
     for (const node of active_nodes) {
       const normalizedPublicKey = Crawler.normalizePublicKey(node.public_key)
 
-      const nodeNewestLedger = Crawler.getRecentLedger(node.complete_ledgers)
-      if (!Crawler.ledgerInRange(newestLedger, nodeNewestLedger)) {
+      if (
+        !Crawler.ledgerInRange(
+          this_node.complete_ledgers,
+          node.complete_ledgers,
+        )
+      ) {
         continue
       }
 
