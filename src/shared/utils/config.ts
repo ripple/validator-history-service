@@ -32,6 +32,8 @@ const mainnet_p2p_server = getRequiredEnvironmentVariable(
   EnvironmentVariable.mainnet_p2p_server,
 )
 
+const mainnet_unl = getEnvironmentVariable(EnvironmentVariable.mainnet_unl)
+
 const port = getEnvironmentVariable(EnvironmentVariable.port)
 
 const addr = getEnvironmentVariable(EnvironmentVariable.addr)
@@ -44,6 +46,7 @@ const config = {
   port,
   addr,
   mainnet_p2p_server,
+  mainnet_unl,
 }
 
 export default config

@@ -7,6 +7,20 @@ interface Network {
   unls: string[]
 }
 
+// put the UNL you want to prioritize at the front
+const mainMainnetUnls = ['vl.ripple.com', 'vl.xrplf.org', 'vl.coil.com']
+let mainnetUnls
+if (config.mainnet_unl == null) {
+  mainnetUnls = mainMainnetUnls
+} else {
+  mainnetUnls = [config.mainnet_unl]
+  mainMainnetUnls.forEach((unl) => {
+    if (unl !== config.mainnet_unl) {
+      mainnetUnls.push(unl)
+    }
+  })
+}
+
 const networks: Network[] = [
   {
     network: 'main',

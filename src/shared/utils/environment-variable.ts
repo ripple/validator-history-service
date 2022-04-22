@@ -14,6 +14,7 @@ export enum EnvironmentVariable {
   port = 'PORT',
   addr = 'ADDR',
   mainnet_p2p_server = 'MAINNET_P2P_ENTRY',
+  mainnet_unl = 'MAINNET_UNL',
 }
 
 /**
