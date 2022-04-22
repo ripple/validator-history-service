@@ -1,6 +1,6 @@
 # Validator History Service <!-- omit in toc -->
 
-Service for ingesting, aggregating, storing, and disbursing validation related data.
+The Validator History Service (VHS) is a service for ingesting, aggregating, storing, and disbursing node- and validation-related data.
 
 - [Installation](#installation)
   - [Install VHS globally](#install-vhs-globally)
@@ -22,7 +22,7 @@ npm i -g validator-history-service
 
 ### Database
 
-The Validator History Service only supports Postgres. You'll need to create a database, but the Validator History Service will create the schema for you.
+The Validator History Service only supports Postgres. You'll need to create a database, but the Validator History Service will create the tables and schema for you.
 
 ### Environment variables
 
