@@ -2,10 +2,10 @@
 
 <!-- TODO: this page should probably be fleshed out into a documentation website of some sort -->
 
-There are 3 folders in `src`:
-* `api` manages the VHS API endpoints
-* `connection-manager` manages the connections to rippled, and listens to validation and manifest streams
-* `crawler` finds validators and overlay nodes
+There are 3 folders in `src`, corresponding to the 3 processes that the VHS runs:
+* `api` manages the VHS API endpoints.
+* `connection-manager` manages the connections to rippled, and listens to validation and manifest streams.
+* `crawler` finds validators and overlay nodes.
 
 
 ## API Endpoints
@@ -73,7 +73,7 @@ This table keeps track of how reliable validators have been, on an hourly level.
 
 ### `ledgers`
 
-As far as I can tell, this table is not used at all.
+This table does not appear to be used at all.
 
 <!--
 | Key                  | Definition                                              |
