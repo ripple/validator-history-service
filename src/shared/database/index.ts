@@ -594,14 +594,12 @@ export async function purgeHourlyAgreementScores(): Promise<void> {
  */
 export async function saveValidatorChains(chain: Chain): Promise<void> {
   let id = chain.id
-  if (lists && overlaps(chain.validators, lists.main)) {
-    id = 'main'
-  }
-  if (lists && overlaps(chain.validators, lists.test)) {
-    id = 'test'
-  }
-  if (lists && overlaps(chain.validators, lists.dev)) {
-    id = 'dev'
+  if (lists != null) {
+    Object.entries(lists).forEach(([network, set]) => {
+      if (overlaps(chain.validators, set)) {
+        id = network
+      }
+    })
   }
 
   const promises: QueryBuilder[] = []
