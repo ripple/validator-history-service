@@ -25,6 +25,18 @@ import hard_dunl from './fixtures/unl-hard.json'
 const log = logger({ name: 'manifests' })
 const MANIFESTS_JOB_INTERVAL = 60 * 60 * 1000
 let jobsStarted = false
+
+/**
+ * Get the first UNL in the list of UNLs for the network with name `networkName`.
+ *
+ * @param networkName - The name of the network.
+ * @returns The first UNL in the list of UNLs for the network.
+ */
+function getFirstUNL(networkName: string): string {
+  const network = networks.filter((ntwk) => ntwk.network === networkName)[0]
+  return network.unls[0]
+}
+
 /**
  * Performs Domain verification and saves the Manifest.
  *
@@ -72,10 +84,7 @@ export async function handleManifest(
 export async function updateUNLManifests(): Promise<void> {
   try {
     log.info('Fetching UNL...')
-    const mainNetwork = networks.filter(
-      (network) => network.network === 'main',
-    )[0]
-    const unl: UNLBlob = await fetchValidatorList(mainNetwork.unls[0])
+    const unl: UNLBlob = await fetchValidatorList(getFirstUNL('main'))
     const promises: Array<Promise<void>> = []
 
     unl.validators.forEach((validator: UNLValidator) => {
@@ -167,8 +176,7 @@ export async function updateUnls(): Promise<void> {
           return res.map((idx: { signing_key: string }) => idx.signing_key)
         })
 
-      const network = networks.filter((ntwk) => ntwk.network === name)[0]
-      const networkUNL = network.unls[0]
+      const networkUNL = getFirstUNL(name)
       await query('validators')
         .whereIn('signing_key', keys)
         .update({ unl: networkUNL })
