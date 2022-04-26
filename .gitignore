@@ -102,3 +102,6 @@ dist
 # Config file
 config.js
 node_modules
+
+# Mac-specific
+.DS_Store

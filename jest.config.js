@@ -6,4 +6,5 @@ module.exports = {
   moduleFileExtensions: ['ts', 'tsx', 'js', 'jsx', 'json', 'node'],
   collectCoverage: true,
   maxWorkers: 1,
+  coverageReporters: ['text', 'text-summary', 'html'],
 }
