@@ -1,7 +1,7 @@
 import 'dotenv/config'
 import moment from 'moment'
 
-import { setupTable } from '../shared/database'
+import { setupTables } from '../shared/database'
 import config from '../shared/utils/config'
 import logger from '../shared/utils/logger'
 
@@ -32,7 +32,7 @@ async function crawl(): Promise<void> {
 }
 
 async function start(): Promise<void> {
-  await setupTable()
+  await setupTables()
   await crawl()
   void locate()
 }

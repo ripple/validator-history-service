@@ -1,5 +1,5 @@
 import chains from '../../src/connection-manager/chains'
-import { destroy, query, setupTable } from '../../src/shared/database'
+import { destroy, query, setupTables } from '../../src/shared/database'
 
 import validations from './fixtures/all-validations.json'
 
@@ -7,7 +7,7 @@ jest.useFakeTimers()
 
 describe('Creates chains', () => {
   beforeAll(async () => {
-    await setupTable()
+    await setupTables()
   })
 
   afterAll(async () => {

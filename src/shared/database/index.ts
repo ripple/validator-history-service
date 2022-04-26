@@ -54,7 +54,7 @@ const IP_REGEX = /\b\d{1,3}\.\d{1,3}\.\d{1,3}\.\d{1,3}\b/u
  *
  * @returns Promise that creates tables in database.
  */
-export async function setupTable(): Promise<void> {
+export async function setupTables(): Promise<void> {
   await setupCrawlsTable()
   await setupLocationTable()
   await setupManifestTable()

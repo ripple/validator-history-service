@@ -1,5 +1,5 @@
 import agreement from '../../src/connection-manager/agreement'
-import { destroy, query, setupTable } from '../../src/shared/database'
+import { destroy, query, setupTables } from '../../src/shared/database'
 
 import validations from './fixtures/all-validations.json'
 
@@ -20,7 +20,7 @@ async function insertManifests(): Promise<void> {
 
 describe('Agreement', () => {
   beforeAll(async () => {
-    await setupTable()
+    await setupTables()
   })
 
   afterAll(async () => {

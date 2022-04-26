@@ -1,5 +1,5 @@
 import chains from '../../src/connection-manager/chains'
-import { destroy, query, setupTable } from '../../src/shared/database'
+import { destroy, query, setupTables } from '../../src/shared/database'
 
 import singleValidations from './fixtures/single-validations.json'
 
@@ -7,7 +7,7 @@ jest.useFakeTimers()
 
 describe('Single Validations', () => {
   beforeAll(async () => {
-    await setupTable()
+    await setupTables()
   })
 
   afterAll(async () => {

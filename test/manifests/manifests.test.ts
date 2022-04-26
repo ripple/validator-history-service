@@ -6,7 +6,12 @@ import {
   updateUNLManifests,
   updateUnls,
 } from '../../src/connection-manager/manifests'
-import { destroy, query, setupTable, tearDown } from '../../src/shared/database'
+import {
+  destroy,
+  query,
+  setupTables,
+  tearDown,
+} from '../../src/shared/database'
 import config from '../../src/shared/utils/config'
 
 import unl1 from './fixtures/unl-response1.json'
@@ -15,7 +20,7 @@ import unl2 from './fixtures/unl-response2.json'
 describe('manifest ingest', () => {
   beforeAll(async () => {
     await tearDown()
-    await setupTable()
+    await setupTables()
   })
 
   afterAll(async () => {

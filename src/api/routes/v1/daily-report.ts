@@ -64,7 +64,7 @@ function formatResponse(response: DatabaseResponse): DailyScoreResponse {
 /**
  * Reads nodes from database.
  *
- * @returns Locations of nodes crawled in the last 10 minutes.
+ * @returns Locations of nodes crawled in the last day.
  */
 async function getReports(): Promise<DailyScoreResponse[]> {
   const day = new Date()
