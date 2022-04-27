@@ -24,19 +24,15 @@ const maxmind = {
   key: getEnvironmentVariable(EnvironmentVariable.maxmind_key),
 }
 
-const entries = getRequiredEnvironmentVariable(
-  EnvironmentVariable.entries,
-).split(',')
-
 const rippled_rpc_admin_server = getRequiredEnvironmentVariable(
   EnvironmentVariable.rippled_rpc_admin_server,
 )
 
-const vl_main = getRequiredEnvironmentVariable(EnvironmentVariable.vl_main)
+const mainnet_p2p_server = getRequiredEnvironmentVariable(
+  EnvironmentVariable.mainnet_p2p_server,
+)
 
-const vl_test = getRequiredEnvironmentVariable(EnvironmentVariable.vl_test)
-
-const vl_dev = getRequiredEnvironmentVariable(EnvironmentVariable.vl_dev)
+const mainnet_unl = getEnvironmentVariable(EnvironmentVariable.mainnet_unl)
 
 const port = getEnvironmentVariable(EnvironmentVariable.port)
 
@@ -46,13 +42,11 @@ const config = {
   nodeEnv,
   db,
   maxmind,
-  entries,
   rippled_rpc_admin_server,
-  vl_main,
-  vl_test,
-  vl_dev,
   port,
   addr,
+  mainnet_p2p_server,
+  mainnet_unl,
 }
 
 export default config

@@ -13,9 +13,12 @@ import {
   tearDown,
 } from '../../src/shared/database'
 import config from '../../src/shared/utils/config'
+import networks from '../../src/shared/utils/networks'
 
 import unl1 from './fixtures/unl-response1.json'
 import unl2 from './fixtures/unl-response2.json'
+
+const VALIDATOR_URL = networks[0].unls[0]
 
 describe('manifest ingest', () => {
   beforeAll(async () => {
@@ -71,7 +74,7 @@ describe('manifest ingest', () => {
   })
 
   test('updateUnlManifests', async () => {
-    nock(`http://${config.vl_main}`).get('/').reply(200, unl1)
+    nock(`http://${VALIDATOR_URL}`).get('/').reply(200, unl1)
     await updateUNLManifests()
     const saved_manifest = await query('manifests').select('*')
 
@@ -141,7 +144,7 @@ describe('manifest ingest', () => {
 
   test('updates unls', async () => {
     // Mock validator list contains a single validator
-    nock(`http://${config.vl_main}`).get('/').reply(200, unl1)
+    nock(`http://${VALIDATOR_URL}`).get('/').reply(200, unl1)
     await query('validators').insert({
       master_key: 'nHBtDzdRDykxiuv7uSMPTcGexNm879RUUz5GW4h1qgjbtyvWZ1LE',
       signing_key: 'n9LCf7NtwcyXVc5fYB6UVByRoQZqJDhrMUoKnr3GQB6mFqpcmMzg',
@@ -165,7 +168,7 @@ describe('manifest ingest', () => {
     })
 
     // New unl replaces old validator with a new one
-    nock(`http://${config.vl_main}`).get('/').reply(200, unl2)
+    nock(`http://${VALIDATOR_URL}`).get('/').reply(200, unl2)
     await updateUnls()
     validator = await query('validators')
       .select('master_key', 'signing_key', 'unl')

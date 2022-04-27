@@ -18,20 +18,14 @@ import logger from '../utils/logger'
 
 const log = logger({ name: 'database' })
 
-let lists:
-  | undefined
-  | {
-      vl_main: Set<string>
-      vl_test: Set<string>
-      vl_dev: Set<string>
-    }
+let lists: Record<string, Set<string>> | undefined
 
 getLists()
   .then((ret) => {
     lists = ret
   })
   .catch((err) => log.error('Error getting validator lists', err))
-let knexDb: undefined | knex
+let knexDb: knex | undefined
 
 /**
  * Gets an instance of knex connection.
@@ -600,14 +594,12 @@ export async function purgeHourlyAgreementScores(): Promise<void> {
  */
 export async function saveValidatorChains(chain: Chain): Promise<void> {
   let id = chain.id
-  if (lists && overlaps(chain.validators, lists.vl_main)) {
-    id = 'main'
-  }
-  if (lists && overlaps(chain.validators, lists.vl_test)) {
-    id = 'test'
-  }
-  if (lists && overlaps(chain.validators, lists.vl_dev)) {
-    id = 'dev'
+  if (lists != null) {
+    Object.entries(lists).forEach(([network, set]) => {
+      if (overlaps(chain.validators, set)) {
+        id = network
+      }
+    })
   }
 
   const promises: QueryBuilder[] = []

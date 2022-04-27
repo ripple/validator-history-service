@@ -3,8 +3,8 @@ import { encodeNodePublic } from 'ripple-address-codec'
 
 import { query, saveNode } from '../shared/database'
 import { Crawl } from '../shared/types'
-import config from '../shared/utils/config'
 import logger from '../shared/utils/logger'
+import { Network } from '../shared/utils/networks'
 
 import crawlNode from './network'
 
@@ -95,28 +95,15 @@ class Crawler {
   /**
    * Starts network crawl at entry point host:port/crawl.
    *
-   * @param host - Hostname or ip address of peer.
-   * @param port - Port to hit /crawl endpoint.
-   *
+   * @param network - The network to crawl.
+   * @throws Exception if network entry undefined and not mainnet.
    */
-  public async crawl(host: string, port: number = DEFAULT_PORT): Promise<void> {
-    log.info(`Starting crawl at ${host}:${port}`)
-    let network = ''
-    let unl = ''
+  public async crawl(network: Network): Promise<void> {
+    const port = network.port ?? DEFAULT_PORT
+    log.info(`Starting crawl at ${network.entry}:${port}`)
 
-    if (host === 's.altnet.rippletest.net') {
-      network = 'test'
-      unl = config.vl_test
-    } else if (host === 's.devnet.rippletest.net') {
-      network = 'dev'
-      unl = config.vl_dev
-    } else if (host.includes('ripple.com')) {
-      // mainnet nodes
-      network = 'main'
-      unl = config.vl_main
-    }
-    await this.crawlEndpoint(host, port, unl)
-    await this.saveConnections(network)
+    await this.crawlEndpoint(network.entry, port, network.unls[0])
+    await this.saveConnections(network.network)
   }
 
   /**

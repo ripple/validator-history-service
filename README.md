@@ -32,10 +32,8 @@ Alternatively, update your `.bashrc` or `.zshrc` to export the environment varia
 
 Here are some example values for some environment variables:
 
-- `ENTRIES`: your rippled node(s) [FQDN](https://en.wikipedia.org/wiki/Fully_qualified_domain_name) separated by a comma, for example `ENTRIES=s1.ripple.com,s2.ripple.com`
-- `VL_MAIN`: a mainnet validator domain, for example `VL_MAIN=vl.ripple.com`
-- `VL_TEST`: a testnet validator domain, for example `VL_TEST=vl.altnet.rippletest.net`
-- `VL_DEV`: a devnet validator domain, for example `VL_DEV=vl.devnet.rippletest.net`
+- `MAINNET_P2P_SERVER`: your mainnet peer-to-peer rippled node [FQDN](https://en.wikipedia.org/wiki/Fully_qualified_domain_name)
+- `MAINNET_UNL`: a mainnet validator domain which hosts a UNL, for example `MAINNET_UNL=vl.ripple.com`
 
 ## Run
 

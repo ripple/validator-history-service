@@ -17,14 +17,26 @@ import {
   DatabaseManifest,
 } from '../shared/types'
 import { fetchValidatorList, fetchRpcManifest, getLists } from '../shared/utils'
-import config from '../shared/utils/config'
 import logger from '../shared/utils/logger'
+import networks from '../shared/utils/networks'
 
 import hard_dunl from './fixtures/unl-hard.json'
 
 const log = logger({ name: 'manifests' })
 const MANIFESTS_JOB_INTERVAL = 60 * 60 * 1000
 let jobsStarted = false
+
+/**
+ * Get the first UNL in the list of UNLs for the network with name `networkName`.
+ *
+ * @param networkName - The name of the network.
+ * @returns The first UNL in the list of UNLs for the network.
+ */
+function getFirstUNL(networkName: string): string {
+  const network = networks.filter((ntwk) => ntwk.network === networkName)[0]
+  return network.unls[0]
+}
+
 /**
  * Performs Domain verification and saves the Manifest.
  *
@@ -72,7 +84,7 @@ export async function handleManifest(
 export async function updateUNLManifests(): Promise<void> {
   try {
     log.info('Fetching UNL...')
-    const unl: UNLBlob = await fetchValidatorList(config.vl_main)
+    const unl: UNLBlob = await fetchValidatorList(getFirstUNL('main'))
     const promises: Array<Promise<void>> = []
 
     unl.validators.forEach((validator: UNLValidator) => {
@@ -144,7 +156,6 @@ async function updateValidatorDomainsFromManifests(): Promise<void> {
  *
  * @returns A promise that resolves to void once unl column is updated for all applicable validators.
  */
-// eslint-disable-next-line max-lines-per-function -- Necessary use of extra lines.
 export async function updateUnls(): Promise<void> {
   try {
     const lists = await getLists()
@@ -162,41 +173,17 @@ export async function updateUnls(): Promise<void> {
         .whereIn('master_key', subquery)
         .orderBy(['master_key', { column: 'seq', order: 'desc' }])
         .then(async (res) => {
-          return res.map((idx: { signing_key: string }) => {
-            return idx.signing_key
-          })
+          return res.map((idx: { signing_key: string }) => idx.signing_key)
         })
 
-      // eslint-disable-next-line max-depth -- necessary depth
-      if (name === 'vl_main') {
-        await query('validators')
-          .whereIn('signing_key', keys)
-          .update({ unl: config.vl_main })
-        await query('validators')
-          .whereNotIn('signing_key', keys)
-          .where('unl', '=', config.vl_main)
-          .update({ unl: null })
-      }
-      // eslint-disable-next-line max-depth -- necessary depth
-      if (name === 'vl_test') {
-        await query('validators')
-          .whereIn('signing_key', keys)
-          .update({ unl: config.vl_test })
-        await query('validators')
-          .whereNotIn('signing_key', keys)
-          .where('unl', '=', config.vl_test)
-          .update({ unl: null })
-      }
-      // eslint-disable-next-line max-depth -- necessary depth
-      if (name === 'vl_dev') {
-        await query('validators')
-          .whereIn('signing_key', keys)
-          .update({ unl: config.vl_dev })
-        await query('validators')
-          .whereNotIn('signing_key', keys)
-          .where('unl', '=', config.vl_dev)
-          .update({ unl: null })
-      }
+      const networkUNL = getFirstUNL(name)
+      await query('validators')
+        .whereIn('signing_key', keys)
+        .update({ unl: networkUNL })
+      await query('validators')
+        .whereNotIn('signing_key', keys)
+        .where('unl', '=', networkUNL)
+        .update({ unl: null })
     }
     log.info('Finished updating validator unls')
   } catch (err) {

@@ -29,6 +29,14 @@ function mock(): void {
   })
 }
 
+async function crawl(ip: string): Promise<void> {
+  await new Crawler().crawl({
+    network: 'main',
+    entry: ip,
+    unls: [],
+  })
+}
+
 describe('Runs test crawl', () => {
   beforeAll(async () => {
     await setupTables()
@@ -44,7 +52,7 @@ describe('Runs test crawl', () => {
   })
 
   test('successfully crawls 3 node network', async () => {
-    await new Crawler().crawl('1.1.1.1')
+    await crawl('1.1.1.1')
 
     const results: Node[] = await query('crawls').select([
       'ip',
@@ -58,7 +66,7 @@ describe('Runs test crawl', () => {
   })
 
   test('successfully crawls cyclic node network', async () => {
-    await new Crawler().crawl('2.2.2.2')
+    await crawl('2.2.2.2')
 
     const results: Node[] = await query('crawls').select([
       'ip',
@@ -82,7 +90,7 @@ describe('Runs test crawl', () => {
 
     nock(`https://3.3.3.3:51235`).get('/crawl').reply(403)
 
-    await new Crawler().crawl('2.2.2.2')
+    await crawl('2.2.2.2')
 
     const results: Node[] = await query('crawls').select([
       'ip',

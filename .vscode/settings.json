@@ -1,5 +1,8 @@
 {
     "editor.tabSize": 2,
+    "cSpell.words": [
+      "secp256k1"
+    ],
     "[javascript]": {
         "editor.defaultFormatter": "esbenp.prettier-vscode",
         "editor.formatOnSave": true
@@ -21,23 +24,15 @@
     "eslint.codeAction.showDocumentation": {
         "enable": true
     },
-    "eslint.workingDirectories": [
-      {
-          "directory": "./server",
-          "changeProcessCWD": true
-      },
-      {
-          "directory": "./src",
-          "changeProcessCWD": true
-      },
-    ],
     "editor.codeActionsOnSave": {
         "source.fixAll.eslint": true
     },
     "files.insertFinalNewline": true,
     "files.trimFinalNewlines": true,
     "files.trimTrailingWhitespace": true,
-    "css.validate": false, // Make sure to install the recommended extensions for StyleLint
-    "jestRunIt.jestPath": "./backend/node_modules/.bin/jest",
-    "jestRunIt.jestConfigPath": "./backend/jest.config.js",
-  }
+    "files.watcherExclude": {
+        "**/.git/objects/**": true,
+        "**/.git/subtree-cache/**": true,
+        "**/.hg/store/**": true
+    },
+}

@@ -10,13 +10,11 @@ export enum EnvironmentVariable {
   user = 'DB_USER',
   database = 'DB_DATABASE',
   password = 'DB_PASSWORD',
-  entries = 'ENTRIES',
   rippled_rpc_admin_server = 'RIPPLED_RPC_ADMIN',
-  vl_main = 'VL_MAIN',
-  vl_test = 'VL_TEST',
-  vl_dev = 'VL_DEV',
   port = 'PORT',
   addr = 'ADDR',
+  mainnet_p2p_server = 'MAINNET_P2P_ENTRY',
+  mainnet_unl = 'MAINNET_UNL',
 }
 
 /**
@@ -43,13 +41,10 @@ export function getEnvironmentVariable(
 const requiredEnvironmentVariables = new Set([
   EnvironmentVariable.user,
   EnvironmentVariable.database,
-  EnvironmentVariable.entries,
   EnvironmentVariable.rippled_rpc_admin_server,
-  EnvironmentVariable.vl_main,
-  EnvironmentVariable.vl_test,
-  EnvironmentVariable.vl_dev,
   EnvironmentVariable.port,
   EnvironmentVariable.addr,
+  EnvironmentVariable.mainnet_p2p_server,
 ])
 
 /**

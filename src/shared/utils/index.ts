@@ -5,6 +5,7 @@ import { UNL, UNLBlob, UNLValidator } from '../types'
 
 import config from './config'
 import logger from './logger'
+import networks from './networks'
 
 const log = logger({ name: 'utils' })
 
@@ -90,19 +91,20 @@ function blobToValidators(blob: UNLBlob): Set<string> {
  *
  * @returns An array of sets containing the signing keys of validators on each list.
  */
-export async function getLists(): Promise<{
-  vl_main: Set<string>
-  vl_test: Set<string>
-  vl_dev: Set<string>
-}> {
-  const main_blob = await fetchValidatorList(config.vl_main)
-  const test_blob = await fetchValidatorList(config.vl_test)
-  const dev_blob = await fetchValidatorList(config.vl_dev)
-  return {
-    vl_main: blobToValidators(main_blob),
-    vl_test: blobToValidators(test_blob),
-    vl_dev: blobToValidators(dev_blob),
-  }
+export async function getLists(): Promise<Record<string, Set<string>>> {
+  const lists = {}
+  const promises: Array<Promise<void>> = []
+  networks.forEach(async (network) => {
+    promises.push(
+      fetchValidatorList(network.unls[0]).then((blob) => {
+        Object.assign(lists, {
+          [network.network]: blobToValidators(blob),
+        })
+      }),
+    )
+  })
+  await Promise.all(promises)
+  return lists
 }
 
 /**

@@ -95,6 +95,9 @@ module.exports = {
 
         // We have lots of statements in tests
         'max-statements': 'off',
+
+        // Helper test functions don't need docs
+        'jsdoc/require-jsdoc': 'off',
       },
     },
     {

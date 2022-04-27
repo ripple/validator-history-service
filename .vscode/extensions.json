@@ -1,8 +1,6 @@
 {
     "recommendations": [
       "dbaeumer.vscode-eslint",
-      "esbenp.prettier-vscode",
-      "stylelint.vscode-stylelint",
-      "vespa-dev-works.jestrunit",
+      "esbenp.prettier-vscode"
     ]
   }
