@@ -265,8 +265,6 @@ export async function handleValidators(
     if (Date.now() - cache.time > 60 * 1000) {
       await cacheValidators()
     }
-    console.log(req.params)
-    console.log(cache.validators.length)
 
     const { network } = req.params
     const validators =
