@@ -67,7 +67,7 @@ interface ValidationRaw {
   master_key: string
   signature: string
   signing_time: number
-  type: 'validationReceived'
+  type: string
   validation_public_key: string
   // The validation_public_key is the same as the signing_key in StreamManifest
 }
