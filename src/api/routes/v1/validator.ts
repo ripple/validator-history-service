@@ -265,13 +265,15 @@ export async function handleValidators(
     if (Date.now() - cache.time > 60 * 1000) {
       await cacheValidators()
     }
+    console.log(req.params)
+    console.log(cache.validators.length)
 
-    const { unl } = req.params
+    const { network } = req.params
     const validators =
       // eslint-disable-next-line @typescript-eslint/no-unnecessary-condition -- Necessary here
-      unl == null
+      network == null
         ? cache.validators
-        : cache.validators.filter((validator) => validator.unl === unl)
+        : cache.validators.filter((validator) => validator.chain === network)
 
     const response: ValidatorsResponse = {
       result: 'success',
