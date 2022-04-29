@@ -64,9 +64,10 @@ interface ValidationRaw {
   full: boolean
   ledger_hash: string
   ledger_index: string
+  master_key: string
   signature: string
   signing_time: number
-  type: string
+  type: 'validationReceived'
   validation_public_key: string
   // The validation_public_key is the same as the signing_key in StreamManifest
 }
