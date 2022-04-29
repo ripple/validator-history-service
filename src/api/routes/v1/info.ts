@@ -12,14 +12,14 @@ const info = {
       example: 'https://data.xrpl.org/v1/network/topology/nodes',
     },
     {
-      action: 'Get Topology Node',
-      route: '/v1/network/topology/nodes/{pubkey}',
-      example: 'https://data.xrpl.org/v1/network/topology/nodes/{pubkey}',
+      action: 'Get Topology Nodes By Network',
+      route: '/v1/network/topology/nodes/{network}',
+      example: 'https://data.xrpl.org/v1/network/topology/nodes/{network}',
     },
     {
-      action: 'Get Validator',
-      route: '/v2/network/validators/{pubkey}',
-      example: 'https://data.xrpl.org/v1/network/validators/{pubkey}',
+      action: 'Get Topology Node',
+      route: '/v1/network/topology/node/{pubkey}',
+      example: 'https://data.xrpl.org/v1/network/topology/node/{pubkey}',
     },
     {
       action: 'Get Validators',
@@ -27,13 +27,23 @@ const info = {
       example: 'https://data.xrpl.org/v1/network/validators',
     },
     {
+      action: 'Get Validators By Network',
+      route: '/v2/network/validators/{network}',
+      example: 'https://data.xrpl.org/v1/network/validators/{network}',
+    },
+    {
+      action: 'Get Validator',
+      route: '/v2/network/validator/{pubkey}',
+      example: 'https://data.xrpl.org/v1/network/validator/{pubkey}',
+    },
+    {
       action: 'Get Validator Manifests',
-      route: '/v2/network/validators/{pubkey}/manifests',
+      route: '/v2/network/validator/{pubkey}/manifests',
       example: 'https://data.xrpl.org/v1/network/validators/{pubkey}/manifests',
     },
     {
       action: 'Get Single Validator Report',
-      route: '/v2/network/validators/{pubkey}/reports',
+      route: '/v2/network/validator/{pubkey}/reports',
       example: 'https://data.xrpl.org/v1/network/validators/{pubkey}/reports',
     },
     {
