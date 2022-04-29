@@ -102,7 +102,7 @@ class Crawler {
     const port = network.port ?? DEFAULT_PORT
     log.info(`Starting crawl at ${network.entry}:${port}`)
 
-    await this.crawlEndpoint(network.entry, port, network.unls[0])
+    await this.crawlEndpoint(network.entry, port, network.unls)
     await this.saveConnections(network.network)
   }
 
@@ -167,23 +167,19 @@ class Crawler {
    *
    * @param host - Hostname or ip address of peer.
    * @param port - Port to hit /crawl endpoint.
-   * @param unl - UNL of the current network.
+   * @param unls - List of UNLs on the current network.
    * @returns A list of Nodes.
    */
   private async crawlNode(
     host: string,
     port: number,
-    unl: string,
+    unls: string[],
   ): Promise<Crawl | undefined> {
     return crawlNode(host, port).then((crawl) => {
       if (crawl == null) {
         return crawl
       }
       const { node_unl } = crawl
-      const unls = [`https://${unl}`]
-      if (unl === 'vl.ripple.com') {
-        unls.concat(['https://vl.xrplf.org', 'https://vl.coil.com'])
-      }
       if (node_unl && !unls.includes(node_unl)) {
         this.removeConnection(host)
         return undefined
@@ -197,15 +193,15 @@ class Crawler {
    *
    * @param host - Hostname or ip address of peer.
    * @param port - Port to hit /crawl endpoint.
-   * @param unl - UNL of the current network.
+   * @param unls - List of UNLs on the current network.
    * @returns Void.
    */
   private async crawlEndpoint(
     host: string,
     port: number,
-    unl: string,
+    unls: string[],
   ): Promise<void> {
-    const nodes: Crawl | undefined = await this.crawlNode(host, port, unl)
+    const nodes: Crawl | undefined = await this.crawlNode(host, port, unls)
 
     if (nodes === undefined) {
       return
@@ -253,7 +249,7 @@ class Crawler {
       const ip = IP_ADDRESS.exec(node.ip)
         ? node.ip.substr('::ffff:'.length)
         : node.ip
-      promises.push(this.crawlEndpoint(ip, node.port, unl))
+      promises.push(this.crawlEndpoint(ip, node.port, unls))
     }
 
     await Promise.all(promises)
