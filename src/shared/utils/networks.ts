@@ -26,7 +26,7 @@ const networks: Network[] = [
     network: 'main',
     entry: config.mainnet_p2p_server,
     port: 51235,
-    unls: ['vl.ripple.com', 'vl.xrplf.org', 'vl.coil.com'],
+    unls: mainnetUnls,
   },
   {
     network: 'test',
