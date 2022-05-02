@@ -171,10 +171,10 @@ async function setupHourlyAgreementTable(): Promise<void> {
   const hasHourlyAgreement = await db().schema.hasTable('hourly_agreement')
   if (!hasHourlyAgreement) {
     await db().schema.createTable('hourly_agreement', (table) => {
-      table.string('master_key')
+      table.string('main_key')
       table.dateTime('start')
       table.json('agreement')
-      table.primary(['master_key', 'start'])
+      table.primary(['main_key', 'start'])
     })
   }
 }
@@ -183,10 +183,10 @@ async function setupDailyAgreementTable(): Promise<void> {
   const hasDailyAgreement = await db().schema.hasTable('daily_agreement')
   if (!hasDailyAgreement) {
     await db().schema.createTable('daily_agreement', (table) => {
-      table.string('master_key')
+      table.string('main_key')
       table.dateTime('day')
       table.json('agreement')
-      table.primary(['master_key', 'day'])
+      table.primary(['main_key', 'day'])
     })
   }
 }
@@ -384,7 +384,7 @@ export async function saveHourlyAgreement(
 ): Promise<void> {
   query('hourly_agreement')
     .insert(agreement)
-    .onConflict(['master_key', 'start'])
+    .onConflict(['main_key', 'start'])
     .merge()
     .catch((err: Error) => log.error('Error saving Hourly Agreement', err))
 }
@@ -400,7 +400,7 @@ export async function saveDailyAgreement(
 ): Promise<void> {
   query('daily_agreement')
     .insert(agreement)
-    .onConflict(['master_key', 'day'])
+    .onConflict(['main_key', 'day'])
     .merge()
     .catch((err) => log.error('Error saving Daily Agreement', err))
 }
@@ -455,7 +455,7 @@ async function getHourlyAgreementScores(
 ): Promise<AgreementScore[]> {
   return query('hourly_agreement')
     .select(['agreement'])
-    .where({ master_key: validator.master_key ?? validator.signing_key })
+    .where({ main_key: validator.master_key ?? validator.signing_key })
     .where('start', '>', start)
     .where('start', '<', end)
     .then(async (scores) =>

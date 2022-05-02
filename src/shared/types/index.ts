@@ -139,13 +139,13 @@ interface ValidatorKeys {
 }
 
 interface HourlyAgreement {
-  master_key: string
+  main_key: string
   start: Date
   agreement: AgreementScore
 }
 
 interface DailyAgreement {
-  master_key: string
+  main_key: string
   day: Date
   agreement: AgreementScore
 }
