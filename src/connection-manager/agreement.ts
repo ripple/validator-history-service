@@ -166,6 +166,7 @@ class Agreement {
       hashes.set(validation.ledger_hash, Date.now())
       this.validationsByPublicKey.set(signing_key, hashes)
       const validator = {
+        master_key: validation.master_key,
         signing_key,
         ledger_hash: validation.ledger_hash,
         current_index: Number(validation.ledger_index),

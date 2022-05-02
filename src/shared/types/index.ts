@@ -64,6 +64,7 @@ interface ValidationRaw {
   full: boolean
   ledger_hash: string
   ledger_index: string
+  master_key: string
   signature: string
   signing_time: number
   type: string

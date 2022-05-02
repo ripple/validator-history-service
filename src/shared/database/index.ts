@@ -569,6 +569,13 @@ export async function saveValidator(
     .onConflict('signing_key')
     .merge()
     .catch((err) => log.error('Error Saving Validator', err))
+
+  // set revoked to false only if revoked doesn't exist
+  // (this prevents someone from messing with data by submitting
+  // bad validations with an old signing key)
+  await query('validators')
+    .where({ signing_key: validator.signing_key, revoked: null })
+    .update({ revoked: false })
 }
 
 /**

@@ -22,31 +22,32 @@ There are 3 folders in `src`, corresponding to the 3 processes that the VHS runs
   * `/network/validators/:publicKey/manifests`: Returns the manifests of a specific validator.
   * `/network/validators/:publicKey/reports`: Returns more detailed information about the reliability of a specific validator.
 
+
 ## SQL Table Schemas
 
 ### `crawls`
 
 This table keeps track of the nodes in the network, which it finds via crawling the network.
 
-| Key                  | Definition                                              |
-|----------------------|---------------------------------------------------------|
-| `public_key`         |The public key of the node.                              |
-| `start`              |When the node was first crawled.                         |
-| `complete_ledgers`   |The range of ledgers for which the node has data.        |
-| `compete_shards`     |                                                         |
-| `ip`                 |The IP address of the node.                              |
-| `port`               |The peer port of the node.                               |
-| `ws_url`             |The WS URL of the node. Optional.                        |
-| `connected`          |                                                         |
-| `networks`           |The network(s) that the node belongs to.                 |
-| `type`               |                                                         |
-| `uptime`             |The uptime of the node.                                  |
-| `inbound_count`      |How many inbound connections the node has.               |
-| `outbound_count`     |How many outbound connections the node has.              |
-| `server_state`       |The `server_state` of the server.                        |
-| `io_latency_ms`      |The `io_latency_ms` of the server.                       |
-| `load_factor_server` |The load factor of the server (used for fees).           |
-| `version`            |The version of rippled software that the node is running.|
+| Key                  | Definition                                                                          |
+|----------------------|-------------------------------------------------------------------------------------|
+| `public_key`         |The public key of the node.                                                          |
+| `start`              |When the node was first crawled.                                                     |
+| `complete_ledgers`   |The range of ledgers for which the node has data.                                    |
+| `compete_shards`     |The [history shards](https://xrpl.org/history-sharding.html) the node keeps track of.|
+| `ip`                 |The IP address of the node.                                                          |
+| `port`               |The peer port of the node.                                                           |
+| `ws_url`             |The WS URL of the node. Optional.                                                    |
+| `connected`          |This appears to be false for every node.                                             |
+| `networks`           |The network(s) that the node belongs to.                                             |
+| `type`               |Whether the TCP connection to the peer is incoming or outgoing.                      |
+| `uptime`             |The uptime of the node.                                                              |
+| `inbound_count`      |How many inbound connections the node has.                                           |
+| `outbound_count`     |How many outbound connections the node has.                                          |
+| `server_state`       |The `server_state` of the server.                                                    |
+| `io_latency_ms`      |The `io_latency_ms` of the server.                                                   |
+| `load_factor_server` |The load factor of the server (used for fees).                                       |
+| `version`            |The version of rippled software that the node is running.                            |
 
 
 ### `daily_agreement`
@@ -117,7 +118,7 @@ This table keeps track of the manifests of the validators.
 | `master_key`         |The master key of the validator.                            |
 | `signing_key`        |The signing key of the validator.                           |
 | `master_signature`   |The master public key for this validator.                   |
-| `signature`          |                                                            |
+| `signature`          |The signature on the manifest.                              |
 | `domain`             |The domain name this validator claims to be associated with.|
 | `domain_verified`    |Whether the domain has been verified.                       |
 | `revoked`            |Whether the manifest has been revoked.                      |
@@ -126,7 +127,7 @@ This table keeps track of the manifests of the validators.
 
 ### `validators`
 
-This table keeps track of (TODO: finish)
+This table keeps track of the validators on the networks.
 
 | Key                  | Definition                                                        |
 |----------------------|-------------------------------------------------------------------|
@@ -136,11 +137,14 @@ This table keeps track of (TODO: finish)
 | `ledger_hash`        |The hash of the last ledger the validator validated.               |
 | `current_index`      |The current ledger index of the validator.                         |
 | `load_fee`           |The current transaction load fee on the validator.                 |
-| `partial`            |                                                                   |
-| `chain`              |                                                                   |
+| `partial`            |Whether the validation is a partial validation*.                   |
+| `chain`              |What chain** the validator is running on.                          |
 | `domain`             |The domain associated with the validator.                          |
 | `domain_verified`    |Whether the domain has been verified.                              |
 | `last_ledger_time`   |The last time the validator validated a ledger.                    |
 | `agreement_1hour`    |Data about the reliability of the validator over the last hour.    |
 | `agreement_24hour`   |Data about the reliability of the validator over the last 24 hours.|
 | `agreement_30day`    |Data about the reliability of the validator over the 30 days.      |
+
+*Partial validations are not meant to vote for any particular ledger. A partial validation indicates that the validator is still online but not keeping up with consensus.
+**A chain is a group of validators validating the same set of ledgers. `main`, `test`, and `dev` represent the validated versions of mainnet, testnet, and devnet respectively. Validators on a fork/validating an alternate version of the ledger will have a different value, usually of the form `chain.[num]`.
