@@ -133,14 +133,19 @@ interface AgreementScore {
   incomplete: boolean
 }
 
+interface ValidatorKeys {
+  master_key?: string
+  signing_key: string
+}
+
 interface HourlyAgreement {
-  master_key: string
+  validator_keys: ValidatorKeys
   start: Date
   agreement: AgreementScore
 }
 
 interface DailyAgreement {
-  master_key: string
+  validator_keys: ValidatorKeys
   day: Date
   agreement: AgreementScore
 }
@@ -163,4 +168,5 @@ export {
   Location,
   Ledger,
   Chain,
+  ValidatorKeys,
 }
