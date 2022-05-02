@@ -434,6 +434,7 @@ export async function signingToMaster(
   return query('validators')
     .select('master_key')
     .where({ signing_key })
+    .where('revoked', '=', 'false')
     .then(async (resp) => resp[0]?.master_key)
     .catch((err) => log.error('Error finding master key from signing key', err))
 }
