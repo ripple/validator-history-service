@@ -96,7 +96,7 @@ async function updateDailyAgreement(
   const agreement = await getAgreementScores(validator_keys, start, end)
 
   await saveDailyAgreement({
-    validator_keys,
+    master_key: validator_keys.master_key ?? validator_keys.signing_key,
     day: start,
     agreement,
   })
@@ -232,7 +232,7 @@ class Agreement {
       incomplete,
     }
     await saveHourlyAgreement({
-      validator_keys,
+      master_key: validator_keys.master_key ?? validator_keys.signing_key,
       start: this.reported_at,
       agreement,
     })
