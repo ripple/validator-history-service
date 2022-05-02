@@ -431,7 +431,7 @@ export async function getAgreementScores(
 export async function signingToMaster(
   signing_key: string,
 ): Promise<string | undefined> {
-  return query('manifests')
+  return query('validators')
     .select('master_key')
     .where({ signing_key })
     .then(async (resp) => resp[0]?.master_key)

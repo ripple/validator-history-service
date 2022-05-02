@@ -146,7 +146,7 @@ class Chains {
       incomplete: true,
     }
 
-    log.info(`Added new chain new chain, chain.${chain.id}`)
+    log.info(`Added new chain, chain.${chain.id}`)
     this.chains.push(chain)
   }
 
