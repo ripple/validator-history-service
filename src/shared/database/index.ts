@@ -502,14 +502,20 @@ export async function update1HourValidatorAgreement(
       .where({ master_key })
       .update({ agreement_1hour: agreement })
       .catch((err) =>
-        log.error('Error Updating 1 Hour Validator Agreement', err),
+        log.error(
+          `Error Updating 1 Hour Validator Agreement, ${master_key}`,
+          err,
+        ),
       )
   } else {
     await query('validators')
       .where({ signing_key })
       .update({ agreement_1hour: agreement })
       .catch((err) =>
-        log.error('Error Updating 1 Hour Validator Agreement', err),
+        log.error(
+          `Error Updating 1 Hour Validator Agreement, ${signing_key}`,
+          err,
+        ),
       )
   }
 }
@@ -530,14 +536,20 @@ export async function update24HourValidatorAgreement(
       .where({ master_key })
       .update({ agreement_24hour: agreement })
       .catch((err) =>
-        log.error('Error updating 24 Hour Validator Agreement', err),
+        log.error(
+          `Error updating 24 Hour Validator Agreement, ${master_key}`,
+          err,
+        ),
       )
   } else {
     await query('validators')
       .where({ signing_key })
       .update({ agreement_24hour: agreement })
       .catch((err) =>
-        log.error('Error updating 24 Hour Validator Agreement', err),
+        log.error(
+          `Error updating 24 Hour Validator Agreement, ${signing_key}`,
+          err,
+        ),
       )
   }
 }
