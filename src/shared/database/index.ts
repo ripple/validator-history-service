@@ -571,14 +571,20 @@ export async function update30DayValidatorAgreement(
       .where({ master_key })
       .update({ agreement_30day: agreement })
       .catch((err) =>
-        log.error('Error updating 30 Day Validator Agreement', err),
+        log.error(
+          `Error updating 30 Day Validator Agreement, ${master_key}`,
+          err,
+        ),
       )
   } else {
     await query('validators')
       .where({ signing_key })
       .update({ agreement_30day: agreement })
       .catch((err) =>
-        log.error('Error updating 30 Day Validator Agreement', err),
+        log.error(
+          `Error updating 30 Day Validator Agreement, ${signing_key}`,
+          err,
+        ),
       )
   }
 }
