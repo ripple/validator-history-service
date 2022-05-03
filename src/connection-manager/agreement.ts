@@ -9,7 +9,7 @@ import {
   purgeHourlyAgreementScores,
   signingToMaster,
 } from '../shared/database'
-import { AgreementScore, ValidationRaw } from '../shared/types'
+import { AgreementScore, ValidationRaw, ValidatorKeys } from '../shared/types'
 import logger from '../shared/utils/logger'
 
 import chains from './chains'
@@ -60,39 +60,43 @@ function setDifference<T>(set1: Iterable<T>, set2: Map<T, unknown>): Set<T> {
 /**
  * Updates 1 hour, 1 day, and 30 day agreement scores.
  *
- * @param master_key - Master Key of the validator.
+ * @param validator_keys - Master Key and Signing Key of the validator.
  * @returns Void.
  */
-async function updateAgreementScores(master_key: string): Promise<void> {
+async function updateAgreementScores(
+  validator_keys: ValidatorKeys,
+): Promise<void> {
   const end = new Date()
 
   const days_1 = new Date()
   days_1.setDate(end.getDate() - 1)
-  const score1 = await getAgreementScores(master_key, days_1, end)
-  await update24HourValidatorAgreement(master_key, score1)
+  const score1 = await getAgreementScores(validator_keys, days_1, end)
+  await update24HourValidatorAgreement(validator_keys, score1)
 
   const days_30 = new Date()
   days_30.setDate(end.getDate() - 30)
-  const score30 = await getAgreementScores(master_key, days_30, end)
-  await update30DayValidatorAgreement(master_key, score30)
+  const score30 = await getAgreementScores(validator_keys, days_30, end)
+  await update30DayValidatorAgreement(validator_keys, score30)
 }
 
 /**
  * Updates agreement for a validator.
  *
- * @param master_key - Signing_key of validator to update agreement for.
+ * @param validator_keys - Signing_keys of validator to update agreement for.
  * @returns Void.
  */
-async function updateDailyAgreement(master_key: string): Promise<void> {
+async function updateDailyAgreement(
+  validator_keys: ValidatorKeys,
+): Promise<void> {
   const start = new Date()
   start.setHours(0, 0, 0, 0)
   const end = new Date()
   end.setHours(23, 59, 59, 999)
 
-  const agreement = await getAgreementScores(master_key, start, end)
+  const agreement = await getAgreementScores(validator_keys, start, end)
 
   await saveDailyAgreement({
-    master_key,
+    main_key: validator_keys.master_key ?? validator_keys.signing_key,
     day: start,
     agreement,
   })
@@ -192,32 +196,29 @@ class Agreement {
     incomplete: boolean,
   ): Promise<void> {
     const master_key = await signingToMaster(signing_key)
-
-    if (!master_key) {
-      return
-    }
+    const validator_keys = { master_key, signing_key }
 
     await this.calculateHourlyAgreement(
-      master_key,
+      validator_keys,
       this.validationsByPublicKey.get(signing_key) ?? new Map(),
       ledger_hashes,
       incomplete,
     )
 
-    await updateDailyAgreement(master_key)
+    await updateDailyAgreement(validator_keys)
   }
 
   /**
    * Calculate the agreement score for the last hour of validations.
    *
-   * @param master_key - Signing key of validations.
+   * @param validator_keys - Signing keys of validations for one validator.
    * @param validations - Set of ledger_hashes validated by signing_key.
    * @param ledgers - Set of ledger_hashes validated by network.
    * @param incomplete - Is this agreement score incomplete.
    * @returns Void.
    */
   private async calculateHourlyAgreement(
-    master_key: string,
+    validator_keys: ValidatorKeys,
     validations: Map<string, number>,
     ledgers: Set<string>,
     incomplete: boolean,
@@ -231,13 +232,13 @@ class Agreement {
       incomplete,
     }
     await saveHourlyAgreement({
-      master_key,
+      main_key: validator_keys.master_key ?? validator_keys.signing_key,
       start: this.reported_at,
       agreement,
     })
 
-    await update1HourValidatorAgreement(master_key, agreement)
-    await updateAgreementScores(master_key)
+    await update1HourValidatorAgreement(validator_keys, agreement)
+    await updateAgreementScores(validator_keys)
   }
 
   /**

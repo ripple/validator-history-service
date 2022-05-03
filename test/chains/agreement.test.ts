@@ -3,21 +3,6 @@ import { destroy, query, setupTables } from '../../src/shared/database'
 
 import validations from './fixtures/all-validations.json'
 
-async function insertManifests(): Promise<void> {
-  await query('manifests').insert({
-    master_key: 'VALIDATOR1MASTER',
-    signing_key: 'VALIDATOR1',
-  })
-  await query('manifests').insert({
-    master_key: 'VALIDATOR2MASTER',
-    signing_key: 'VALIDATOR2',
-  })
-  await query('manifests').insert({
-    master_key: 'VALIDATOR3MASTER',
-    signing_key: 'VALIDATOR3',
-  })
-}
-
 describe('Agreement', () => {
   beforeAll(async () => {
     await setupTables()
@@ -39,7 +24,7 @@ describe('Agreement', () => {
     await query('manifests').delete('*')
   })
 
-  test('Does not calculate score without master_key', async () => {
+  test('Correctly computes hourly + daily agreement', async () => {
     for (const validation of validations) {
       await agreement.handleValidation(validation)
     }
@@ -50,41 +35,19 @@ describe('Agreement', () => {
     Date.now = (): number => time
     await agreement.calculateAgreement()
 
-    const hourly_agreement = await query('hourly_agreement').select('*')
-    const daily_agreement = await query('daily_agreement').select('*')
-
-    expect(hourly_agreement).toEqual([])
-    expect(daily_agreement).toEqual([])
-  })
-
-  test('Correctly computes daily agreement', async () => {
-    await insertManifests()
-
-    for (const validation of validations) {
-      await agreement.handleValidation(validation)
-    }
-
-    const time = Date.now() + 11000
-
-    // Mock date.now
-    Date.now = (): number => time
-    await agreement.calculateAgreement()
-
-    const hourly_agreement: Array<{ master_key: string }> = await query(
+    const hourly_agreement: Array<{ main_key: string }> = await query(
       'hourly_agreement',
     ).select('*')
-    const daily_agreement: Array<{ master_key: string }> = await query(
+    const daily_agreement: Array<{ main_key: string }> = await query(
       'daily_agreement',
     ).select('*')
 
-    const hourly_master_keys = hourly_agreement.map(
-      (member) => member.master_key,
-    )
+    const hourly_master_keys = hourly_agreement.map((member) => member.main_key)
     expect(hourly_master_keys).toContain('VALIDATOR1MASTER')
     expect(hourly_master_keys).toContain('VALIDATOR2MASTER')
     expect(hourly_master_keys).toContain('VALIDATOR3MASTER')
 
-    const daily_master_keys = daily_agreement.map((member) => member.master_key)
+    const daily_master_keys = daily_agreement.map((member) => member.main_key)
     expect(daily_master_keys).toContain('VALIDATOR1MASTER')
     expect(daily_master_keys).toContain('VALIDATOR2MASTER')
     expect(daily_master_keys).toContain('VALIDATOR3MASTER')

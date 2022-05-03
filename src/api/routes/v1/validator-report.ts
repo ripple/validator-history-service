@@ -64,7 +64,7 @@ async function getReports(master_key: string): Promise<ScoreResponse[]> {
     ])
     .innerJoin(
       'validators',
-      'daily_agreement.master_key',
+      'daily_agreement.main_key',
       'validators.master_key',
     )
     .where('validators.master_key', '=', master_key)

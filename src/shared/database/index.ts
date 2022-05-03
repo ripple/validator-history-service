@@ -11,6 +11,7 @@ import {
   AgreementScore,
   Location,
   Chain,
+  ValidatorKeys,
 } from '../types'
 import { getLists, overlaps } from '../utils'
 import config from '../utils/config'
@@ -170,10 +171,10 @@ async function setupHourlyAgreementTable(): Promise<void> {
   const hasHourlyAgreement = await db().schema.hasTable('hourly_agreement')
   if (!hasHourlyAgreement) {
     await db().schema.createTable('hourly_agreement', (table) => {
-      table.string('master_key')
+      table.string('main_key')
       table.dateTime('start')
       table.json('agreement')
-      table.primary(['master_key', 'start'])
+      table.primary(['main_key', 'start'])
     })
   }
 }
@@ -182,10 +183,10 @@ async function setupDailyAgreementTable(): Promise<void> {
   const hasDailyAgreement = await db().schema.hasTable('daily_agreement')
   if (!hasDailyAgreement) {
     await db().schema.createTable('daily_agreement', (table) => {
-      table.string('master_key')
+      table.string('main_key')
       table.dateTime('day')
       table.json('agreement')
-      table.primary(['master_key', 'day'])
+      table.primary(['main_key', 'day'])
     })
   }
 }
@@ -383,7 +384,7 @@ export async function saveHourlyAgreement(
 ): Promise<void> {
   query('hourly_agreement')
     .insert(agreement)
-    .onConflict(['master_key', 'start'])
+    .onConflict(['main_key', 'start'])
     .merge()
     .catch((err: Error) => log.error('Error saving Hourly Agreement', err))
 }
@@ -399,7 +400,7 @@ export async function saveDailyAgreement(
 ): Promise<void> {
   query('daily_agreement')
     .insert(agreement)
-    .onConflict(['master_key', 'day'])
+    .onConflict(['main_key', 'day'])
     .merge()
     .catch((err) => log.error('Error saving Daily Agreement', err))
 }
@@ -413,7 +414,7 @@ export async function saveDailyAgreement(
  * @returns Agreement Score for validator between start and end.
  */
 export async function getAgreementScores(
-  validator: string,
+  validator: ValidatorKeys,
   start: Date,
   end: Date,
 ): Promise<AgreementScore> {
@@ -431,9 +432,10 @@ export async function getAgreementScores(
 export async function signingToMaster(
   signing_key: string,
 ): Promise<string | undefined> {
-  return query('manifests')
+  return query('validators')
     .select('master_key')
     .where({ signing_key })
+    .where('revoked', '=', 'false')
     .then(async (resp) => resp[0]?.master_key)
     .catch((err) => log.error('Error finding master key from signing key', err))
 }
@@ -447,13 +449,13 @@ export async function signingToMaster(
  * @returns Hourly Agreement for validator between start and end.
  */
 async function getHourlyAgreementScores(
-  validator: string,
+  validator: ValidatorKeys,
   start: Date,
   end: Date,
 ): Promise<AgreementScore[]> {
   return query('hourly_agreement')
     .select(['agreement'])
-    .where({ master_key: validator })
+    .where({ main_key: validator.master_key ?? validator.signing_key })
     .where('start', '>', start)
     .where('start', '<', end)
     .then(async (scores) =>
@@ -484,55 +486,107 @@ function calculateAgreementScore(scores: AgreementScore[]): AgreementScore {
 }
 
 /**
- *  Updates a validator's 1 hour agreement score.
+ * Updates a validator's 1 hour agreement score.
  *
- * @param master_key - Signing key of the the validator to be updated.
+ * @param validator_keys - Signing keys of the the validator to be updated.
  * @param agreement - An agreement object.
  * @returns A promise that resolves to void once the agreement has been stored.
  */
 export async function update1HourValidatorAgreement(
-  master_key: string,
+  validator_keys: ValidatorKeys,
   agreement: AgreementScore,
 ): Promise<void> {
-  await query('validators')
-    .where({ master_key })
-    .update({ agreement_1hour: agreement })
-    .catch((err) => log.error('Error Updating 1 Hour Validator Agreement', err))
+  const { master_key, signing_key } = validator_keys
+  if (master_key) {
+    await query('validators')
+      .where({ master_key })
+      .update({ agreement_1hour: agreement })
+      .catch((err) =>
+        log.error(
+          `Error Updating 1 Hour Validator Agreement, ${master_key}`,
+          err,
+        ),
+      )
+  } else {
+    await query('validators')
+      .where({ signing_key })
+      .update({ agreement_1hour: agreement })
+      .catch((err) =>
+        log.error(
+          `Error Updating 1 Hour Validator Agreement, ${signing_key}`,
+          err,
+        ),
+      )
+  }
 }
 /**
  *  Updates the validator's 24 hour agreement score.
  *
- * @param master_key - Signing key of the the validator to be updated.
+ * @param validator_keys - Signing keys of the the validator to be updated.
  * @param agreement - An agreement object.
  * @returns A promise that resolves to void once the agreement has been stored.
  */
 export async function update24HourValidatorAgreement(
-  master_key: string,
+  validator_keys: ValidatorKeys,
   agreement: AgreementScore,
 ): Promise<void> {
-  await query('validators')
-    .where({ master_key })
-    .update({ agreement_24hour: agreement })
-    .catch((err) =>
-      log.error('Error updating 24 Hour Validator Agreement', err),
-    )
+  const { master_key, signing_key } = validator_keys
+  if (master_key) {
+    await query('validators')
+      .where({ master_key })
+      .update({ agreement_24hour: agreement })
+      .catch((err) =>
+        log.error(
+          `Error updating 24 Hour Validator Agreement, ${master_key}`,
+          err,
+        ),
+      )
+  } else {
+    await query('validators')
+      .where({ signing_key })
+      .update({ agreement_24hour: agreement })
+      .catch((err) =>
+        log.error(
+          `Error updating 24 Hour Validator Agreement, ${signing_key}`,
+          err,
+        ),
+      )
+  }
 }
 
 /**
  *  Updates the validator's 30 day agreement score.
  *
- * @param master_key - Signing key of the the validator to be updated.
+ * @param validator_keys - Signing key of the the validator to be updated.
  * @param agreement - An agreement object.
  * @returns A promise that resolves to void once the agreement has been stored.
  */
 export async function update30DayValidatorAgreement(
-  master_key: string,
+  validator_keys: ValidatorKeys,
   agreement: AgreementScore,
 ): Promise<void> {
-  await query('validators')
-    .where({ master_key })
-    .update({ agreement_30day: agreement })
-    .catch((err) => log.error('Error updating 30 Day Validator Agreement', err))
+  const { master_key, signing_key } = validator_keys
+  if (master_key) {
+    await query('validators')
+      .where({ master_key })
+      .update({ agreement_30day: agreement })
+      .catch((err) =>
+        log.error(
+          `Error updating 30 Day Validator Agreement, ${master_key}`,
+          err,
+        ),
+      )
+  } else {
+    await query('validators')
+      .where({ signing_key })
+      .update({ agreement_30day: agreement })
+      .catch((err) =>
+        log.error(
+          `Error updating 30 Day Validator Agreement, ${signing_key}`,
+          err,
+        ),
+      )
+  }
 }
 
 /**
