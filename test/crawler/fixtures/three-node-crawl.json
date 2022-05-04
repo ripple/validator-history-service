@@ -25,6 +25,17 @@
         "load_factor_server": "1",
         "uptime": "1",
         "version": "1.6.0"
+      },
+      "unl": {
+        "validator_sites": [
+          {
+            "last_refresh_status": "same_sequence",
+            "last_refresh_time": "2022-May-03 21:59:20.652097009 UTC",
+            "next_refresh_time": "2022-May-03 22:04:20.636643972 UTC",
+            "refresh_interval_min": 5,
+            "uri":"https://vl.fake.example.com"
+          }
+        ]
       }
     },
     "1.1.1.13": {

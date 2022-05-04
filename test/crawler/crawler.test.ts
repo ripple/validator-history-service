@@ -33,7 +33,7 @@ async function crawl(ip: string): Promise<void> {
   await new Crawler().crawl({
     network: 'main',
     entry: ip,
-    unls: [],
+    unls: ['vl.fake.example.com'],
   })
 }
 
