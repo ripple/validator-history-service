@@ -7,4 +7,5 @@ module.exports = {
   collectCoverage: true,
   maxWorkers: 1,
   coverageReporters: ['text', 'text-summary', 'html'],
+  setupFiles: ['dotenv/config'],
 }
