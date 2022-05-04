@@ -75,7 +75,10 @@ async function crawlNode(
       const crawl: Crawl = {
         this_node,
         active_nodes,
-        node_unl: validatorSites.length > 0 ? validatorSites[0].uri : undefined,
+        node_unl:
+          validatorSites.length > 0
+            ? validatorSites[0].uri.replace(/^https?:\/\//u, '')
+            : undefined,
       }
 
       return crawl
