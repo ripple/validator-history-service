@@ -254,11 +254,11 @@ export async function handleValidator(
 /**
  * Handles Validators Request.
  *
- * @param _u - Express request.
+ * @param req - Express request.
  * @param res - Express response.
  */
 export async function handleValidators(
-  _u: Request,
+  req: Request,
   res: Response,
 ): Promise<void> {
   try {
@@ -266,10 +266,17 @@ export async function handleValidators(
       await cacheValidators()
     }
 
+    const { network } = req.params
+    const validators =
+      // eslint-disable-next-line @typescript-eslint/no-unnecessary-condition -- Necessary here
+      network == null
+        ? cache.validators
+        : cache.validators.filter((validator) => validator.chain === network)
+
     const response: ValidatorsResponse = {
       result: 'success',
-      count: cache.validators.length,
-      validators: cache.validators,
+      count: validators.length,
+      validators,
     }
 
     res.send(response)

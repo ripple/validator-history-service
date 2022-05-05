@@ -16,11 +16,13 @@ There are 3 folders in `src`, corresponding to the 3 processes that the VHS runs
   * `/network/validator_reports`: Returns scores for the nodes that it has crawled in the last day.
   * `/network/topology`: Returns information about all the nodes that the crawler has crawled in the last hour.
   * `/network/topology/nodes`: Same as above.
-  * `/network/topology/nodes/:publicKey`: Returns information about a specific node.
+  * `/network/topology/nodes/:network`: Same as above, filtered to only return the nodes that are a part of `network`.
+  * `/network/topology/node/:publicKey`: Returns information about a specific node.
   * `/network/validators`: Returns information about all the validators that the VHS is paying attention to.
-  * `/network/validators/:publicKey`: Returns information about a specific validator.
-  * `/network/validators/:publicKey/manifests`: Returns the manifests of a specific validator.
-  * `/network/validators/:publicKey/reports`: Returns more detailed information about the reliability of a specific validator.
+  * `/network/validators/:network`: Same as above, filtered to only return the validators that are a part of `network`.
+  * `/network/validator/:publicKey`: Returns information about a specific validator.
+  * `/network/validator/:publicKey/manifests`: Returns the manifests of a specific validator.
+  * `/network/validator/:publicKey/reports`: Returns more detailed information about the reliability of a specific validator.
 
 
 ## SQL Table Schemas

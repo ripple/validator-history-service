@@ -191,19 +191,26 @@ export async function handleNode(req: Request, res: Response): Promise<void> {
 /**
  * Handles Nodes request.
  *
- * @param _u - Unused express request.
+ * @param req - Unused express request.
  * @param res - Express response.
  */
-export async function handleNodes(_u: Request, res: Response): Promise<void> {
+export async function handleNodes(req: Request, res: Response): Promise<void> {
   try {
     if (Date.now() - cache.time > 60 * 1000) {
       await cacheNodes()
     }
 
+    const { network } = req.params
+    const nodes =
+      // eslint-disable-next-line @typescript-eslint/no-unnecessary-condition -- Necessary here
+      network == null
+        ? cache.nodes
+        : cache.nodes.filter((node) => node.networks?.includes(network))
+
     res.send({
       result: 'success',
-      count: cache.nodes.length,
-      nodes: cache.nodes,
+      count: nodes.length,
+      nodes,
     })
   } catch {
     res.send({ result: 'error', message: 'internal error' })
