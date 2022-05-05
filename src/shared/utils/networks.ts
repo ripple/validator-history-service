@@ -40,6 +40,12 @@ const networks: Network[] = [
     port: 51235,
     unls: ['vl.devnet.rippletest.net'],
   },
+  {
+    network: 'nft-dev',
+    entry: 'xls20-sandbox.rippletest.net',
+    port: 51235,
+    unls: ['http://nftvalidators.s3.us-west-2.amazonaws.com/index.json'],
+  },
 ]
 
 export default networks
