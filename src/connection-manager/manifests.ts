@@ -8,6 +8,7 @@ import {
   getValidatorSigningKeys,
   query,
   db,
+  getNetworks,
 } from '../shared/database'
 import {
   StreamManifest,
@@ -18,7 +19,6 @@ import {
 } from '../shared/types'
 import { fetchValidatorList, fetchRpcManifest, getLists } from '../shared/utils'
 import logger from '../shared/utils/logger'
-import networks from '../shared/utils/networks'
 
 import hard_dunl from './fixtures/unl-hard.json'
 
@@ -32,7 +32,8 @@ let jobsStarted = false
  * @param networkName - The name of the network.
  * @returns The first UNL in the list of UNLs for the network.
  */
-function getFirstUNL(networkName: string): string {
+async function getFirstUNL(networkName: string): Promise<string> {
+  const networks = await getNetworks()
   const network = networks.filter((ntwk) => ntwk.network === networkName)[0]
   return network.unls[0]
 }
@@ -84,7 +85,7 @@ export async function handleManifest(
 export async function updateUNLManifests(): Promise<void> {
   try {
     log.info('Fetching UNL...')
-    const unl: UNLBlob = await fetchValidatorList(getFirstUNL('main'))
+    const unl: UNLBlob = await fetchValidatorList(await getFirstUNL('main'))
     const promises: Array<Promise<void>> = []
 
     unl.validators.forEach((validator: UNLValidator) => {
@@ -176,7 +177,7 @@ export async function updateUnls(): Promise<void> {
           return res.map((idx: { signing_key: string }) => idx.signing_key)
         })
 
-      const networkUNL = getFirstUNL(name)
+      const networkUNL = await getFirstUNL(name)
       await query('validators')
         .whereIn('signing_key', keys)
         .update({ unl: networkUNL })
