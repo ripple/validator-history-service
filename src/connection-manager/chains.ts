@@ -1,6 +1,8 @@
-import { saveValidatorChains } from '../shared/database'
+import { QueryBuilder } from 'knex'
+
+import { query } from '../shared/database'
 import { Ledger, ValidationRaw, Chain } from '../shared/types'
-import { overlaps } from '../shared/utils'
+import { getLists, overlaps } from '../shared/utils'
 import logger from '../shared/utils/logger'
 
 const log = logger({ name: 'chains' })
@@ -29,6 +31,39 @@ function addLedgerToChain(ledger: Ledger, chain: Chain): void {
 
   chain.current = ledger.ledger_index
   chain.updated = ledger.first_seen
+}
+
+/**
+ * Saves the chain id for each validator known to be in a given chain.
+ *
+ * @param chain - A chain object.
+ * @returns Void.
+ */
+async function saveValidatorChains(chain: Chain): Promise<void> {
+  let id = chain.id
+  const lists = await getLists().catch((err) => {
+    log.error('Error getting validator lists', err)
+    return undefined
+  })
+  if (lists != null) {
+    Object.entries(lists).forEach(([network, set]) => {
+      if (overlaps(chain.validators, set)) {
+        id = network
+      }
+    })
+  }
+
+  const promises: QueryBuilder[] = []
+  chain.validators.forEach((signing_key) => {
+    promises.push(
+      query('validators').where({ signing_key }).update({ chain: id }),
+    )
+  })
+  try {
+    await Promise.all(promises)
+  } catch (err: unknown) {
+    log.error('Error saving validator chains', err)
+  }
 }
 
 /**

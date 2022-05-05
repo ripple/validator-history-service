@@ -1,14 +1,10 @@
-import { QueryBuilder } from 'knex'
-
 import {
   Node,
   DatabaseManifest,
   DatabaseValidator,
   Validator,
   Location,
-  Chain,
 } from '../types'
-import { getLists, overlaps } from '../utils'
 import logger from '../utils/logger'
 import { Network } from '../utils/networks'
 
@@ -26,14 +22,6 @@ import { db, tearDown, query, destroy } from './utils'
 
 const log = logger({ name: 'database' })
 const IP_REGEX = /\b\d{1,3}\.\d{1,3}\.\d{1,3}\.\d{1,3}\b/u
-
-let lists: Record<string, Set<string>> | undefined
-
-getLists()
-  .then((ret) => {
-    lists = ret
-  })
-  .catch((err) => log.error('Error getting validator lists', err))
 
 /**
  * Get the list of networks.
@@ -253,35 +241,6 @@ export async function purgeHourlyAgreementScores(): Promise<void> {
     .delete('*')
     .where('start', '<', thirtyDaysAgo)
     .catch((err) => log.error('Error Purging Hourly Agreement Scores', err))
-}
-
-/**
- * Saves the chain id for each validator known to be in a given chain.
- *
- * @param chain - A chain object.
- * @returns Void.
- */
-export async function saveValidatorChains(chain: Chain): Promise<void> {
-  let id = chain.id
-  if (lists != null) {
-    Object.entries(lists).forEach(([network, set]) => {
-      if (overlaps(chain.validators, set)) {
-        id = network
-      }
-    })
-  }
-
-  const promises: QueryBuilder[] = []
-  chain.validators.forEach((signing_key) => {
-    promises.push(
-      query('validators').where({ signing_key }).update({ chain: id }),
-    )
-  })
-  try {
-    await Promise.all(promises)
-  } catch (err: unknown) {
-    log.error('Error saving validator chains', err)
-  }
 }
 
 export {
