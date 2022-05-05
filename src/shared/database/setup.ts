@@ -1,4 +1,9 @@
-import { db } from './utils'
+import logger from '../utils/logger'
+import networks from '../utils/networks'
+
+import { db, query } from './utils'
+
+const log = logger({ name: 'database' })
 
 /**
  * Setup tables in database.
@@ -13,6 +18,7 @@ export default async function setupTables(): Promise<void> {
   await setupValidatorsTable()
   await setupHourlyAgreementTable()
   await setupDailyAgreementTable()
+  await setupNetworksTable()
 }
 
 async function setupCrawlsTable(): Promise<void> {
@@ -144,5 +150,25 @@ async function setupDailyAgreementTable(): Promise<void> {
       table.json('agreement')
       table.primary(['main_key', 'day'])
     })
+  }
+}
+
+async function setupNetworksTable(): Promise<void> {
+  const hasNetworks = await db().schema.hasTable('networks')
+  if (!hasNetworks) {
+    await db().schema.createTable('networks', (table) => {
+      table.string('entry')
+      table.string('network')
+      table.primary(['entry'])
+    })
+    networks.forEach((network) => {
+      query('networks')
+        .insert({
+          entry: network.entry,
+          network: network.network,
+        })
+        .catch((err: Error) => log.error(err.message))
+    })
+    // TODO: populate with default network data
   }
 }
