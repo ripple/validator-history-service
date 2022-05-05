@@ -1,11 +1,11 @@
 import axios, { AxiosRequestConfig } from 'axios'
 import { normalizeManifest } from 'xrpl-validator-domains'
 
+import { getNetworks } from '../database'
 import { UNL, UNLBlob, UNLValidator } from '../types'
 
 import config from './config'
 import logger from './logger'
-import networks from './networks'
 
 const log = logger({ name: 'utils' })
 
@@ -94,6 +94,7 @@ function blobToValidators(blob: UNLBlob): Set<string> {
 export async function getLists(): Promise<Record<string, Set<string>>> {
   const lists = {}
   const promises: Array<Promise<void>> = []
+  const networks = await getNetworks()
   networks.forEach(async (network) => {
     promises.push(
       fetchValidatorList(network.unls[0]).then((blob) => {
