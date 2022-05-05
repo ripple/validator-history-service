@@ -157,8 +157,10 @@ async function setupNetworksTable(): Promise<void> {
   const hasNetworks = await db().schema.hasTable('networks')
   if (!hasNetworks) {
     await db().schema.createTable('networks', (table) => {
-      table.string('entry')
       table.string('network')
+      table.string('entry')
+      table.integer('port')
+      table.string('unls')
       table.primary(['entry'])
     })
     networks.forEach((network) => {
@@ -166,6 +168,8 @@ async function setupNetworksTable(): Promise<void> {
         .insert({
           entry: network.entry,
           network: network.network,
+          port: network.port,
+          unls: network.unls.join(','),
         })
         .catch((err: Error) => log.error(err.message))
     })

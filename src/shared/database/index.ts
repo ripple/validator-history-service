@@ -10,6 +10,7 @@ import {
 } from '../types'
 import { getLists, overlaps } from '../utils'
 import logger from '../utils/logger'
+import { Network } from '../utils/networks'
 
 import {
   saveHourlyAgreement,
@@ -33,6 +34,17 @@ getLists()
     lists = ret
   })
   .catch((err) => log.error('Error getting validator lists', err))
+
+/**
+ * Get the list of networks.
+ *
+ * @returns The list of networks.
+ */
+export async function getNetworks(): Promise<Network[]> {
+  return query('networks')
+    .select('*')
+    .then((resp: Network[]) => resp)
+}
 
 /**
  * Saves a Node to database.
