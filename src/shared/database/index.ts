@@ -4,6 +4,7 @@ import {
   DatabaseValidator,
   Validator,
   Location,
+  DatabaseNetwork,
 } from '../types'
 import logger from '../utils/logger'
 import { Network } from '../utils/networks'
@@ -31,7 +32,14 @@ const IP_REGEX = /\b\d{1,3}\.\d{1,3}\.\d{1,3}\.\d{1,3}\b/u
 export async function getNetworks(): Promise<Network[]> {
   return query('networks')
     .select('*')
-    .then((resp: Network[]) => resp)
+    .then((resp: DatabaseNetwork[]) => {
+      return resp.map((network) => {
+        return {
+          ...network,
+          unls: network.unls.split(','),
+        }
+      })
+    })
 }
 
 /**

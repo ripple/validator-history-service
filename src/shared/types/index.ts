@@ -102,6 +102,13 @@ interface DatabaseValidator extends Validator {
   updated: string
 }
 
+interface DatabaseNetwork {
+  network: string
+  port?: number
+  entry: string
+  unls: string
+}
+
 // This is the shape returned by vl.ripple.com
 interface UNL {
   public_key: string
@@ -160,6 +167,7 @@ export {
   UNLBlob,
   UNLValidator,
   DatabaseManifest,
+  DatabaseNetwork,
   HourlyAgreement,
   DatabaseValidator,
   Validator,
