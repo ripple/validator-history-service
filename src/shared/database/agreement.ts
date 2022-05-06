@@ -4,8 +4,11 @@ import {
   AgreementScore,
   ValidatorKeys,
 } from '../types'
+import logger from '../utils/logger'
 
 import { query } from './utils'
+
+const log = logger({ name: 'database-agreement' })
 
 /**
  * Saves an hourly agreement score to agreement table.
