@@ -173,6 +173,5 @@ async function setupNetworksTable(): Promise<void> {
         })
         .catch((err: Error) => log.error(err.message))
     })
-    // TODO: populate with default network data
   }
 }
