@@ -1,30 +1,11 @@
-import knex, { QueryBuilder } from 'knex'
-
-import config from '../utils/config'
-
-let knexDb: knex | undefined
-
-/**
- * Gets an instance of knex connection.
- *
- * @returns Knex instance.
- */
-export function db(): knex {
-  if (knexDb) {
-    return knexDb
-  }
-
-  knexDb = knex(config.db)
-
-  return knexDb
-}
+import { db } from './utils'
 
 /**
  * Setup tables in database.
  *
  * @returns Promise that creates tables in database.
  */
-export async function setupTables(): Promise<void> {
+export default async function setupTables(): Promise<void> {
   await setupCrawlsTable()
   await setupLocationTable()
   await setupManifestTable()
@@ -164,35 +145,4 @@ async function setupDailyAgreementTable(): Promise<void> {
       table.primary(['main_key', 'day'])
     })
   }
-}
-
-/**
- * Deletes tables in Database.
- *
- * @returns Promise that resolves to void.
- */
-export async function tearDown(): Promise<void> {
-  await db()
-    .schema.dropTableIfExists('location')
-    .dropTableIfExists('crawls')
-    .dropTableIfExists('manifests')
-}
-
-/**
- * Query the database.
- *
- * @param tbName - Name of table to query.
- * @returns Knex query builder.
- */
-export function query(tbName: string): QueryBuilder {
-  return db()(tbName)
-}
-
-/**
- * Destroy database connection.
- *
- * @returns Promise that destroys database connection.
- */
-export async function destroy(): Promise<void> {
-  return db().destroy()
 }
