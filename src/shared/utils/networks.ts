@@ -36,7 +36,7 @@ const networks: Network[] = [
   },
   {
     network: 'dev',
-    entry: 's.devnet.ripple.test.net',
+    entry: 's.devnet.rippletest.net',
     port: 51235,
     unls: ['vl.devnet.rippletest.net'],
   },
