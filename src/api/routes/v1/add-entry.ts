@@ -1,18 +1,13 @@
 import { Request, Response } from 'express'
 
+import crawlNetwork from '../../../crawler'
+import Crawler from '../../../crawler/crawl'
 import crawlNode from '../../../crawler/network'
 import { query } from '../../../shared/database'
 import { Crawl } from '../../../shared/types'
-import networks from '../../../shared/utils/networks'
+import networks, { Network } from '../../../shared/utils/networks'
 
 const CRAWL_PORTS = [51235, 2459, 30001]
-
-/**
- * @param value
- */
-function isNumeric(value) {
-  return /^-?\d+$/.test(value)
-}
 
 /**
  * @param host
@@ -61,13 +56,19 @@ async function addNode(url: string, unl: string | null): Promise<void> {
     .orderBy('network')
   const maxNetwork =
     currentNetworks[currentNetworks.length - networks.length - 1]?.network ?? 0
-  console.log(currentNetworks, maxNetwork)
-  await query('networks').insert({
-    network: Number(maxNetwork) + 1,
+  const network: Network = {
+    network: (Number(maxNetwork) + 1).toString(),
     entry: url,
     port: 51235,
-    unls: unl ?? '',
+    unls: unl ? [unl] : [],
+  }
+  await query('networks').insert({
+    ...network,
+    unls: network.unls.join(','),
   })
+
+  const crawler = new Crawler()
+  void crawler.crawl(network)
 }
 
 /**

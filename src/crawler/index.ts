@@ -49,4 +49,6 @@ async function main(): Promise<void> {
   }, LOCATE_INTERVAL)
 }
 
-main().catch((err: Error) => log.error(`${err.message}`))
+if (typeof require !== 'undefined' && require.main === module) {
+  main().catch((err: Error) => log.error(`${err.message}`))
+}
