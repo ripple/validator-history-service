@@ -1,6 +1,5 @@
 import { Request, Response } from 'express'
 
-import crawlNetwork from '../../../crawler'
 import Crawler from '../../../crawler/crawl'
 import crawlNode from '../../../crawler/network'
 import { query } from '../../../shared/database'
@@ -10,7 +9,11 @@ import networks, { Network } from '../../../shared/utils/networks'
 const CRAWL_PORTS = [51235, 2459, 30001]
 
 /**
- * @param host
+ * Fetches the crawl data for the node.
+ *
+ * @param host - The host URL to crawl.
+ * @returns The crawl data from the node.
+ * @throws If none of the possible crawl ports work.
  */
 async function fetchCrawls(host: string): Promise<Crawl> {
   const promises = []
@@ -27,7 +30,10 @@ async function fetchCrawls(host: string): Promise<Crawl> {
 }
 
 /**
- * @param unl
+ * Checks whether the UNL of the node is recorded in the networks table.
+ *
+ * @param unl - The UNL of the node.
+ * @returns Whether the UNL of the node has been seen before.
  */
 async function isUnlRecorded(unl: string): Promise<boolean> {
   const result = await query('networks')
@@ -37,7 +43,10 @@ async function isUnlRecorded(unl: string): Promise<boolean> {
 }
 
 /**
- * @param publicKey
+ * Checks whether the public key of the node is recorded in the crawls table.
+ *
+ * @param publicKey - The public key of the node.
+ * @returns Whether the public key of the node has been seen before.
  */
 async function isPublicKeyRecorded(publicKey: string): Promise<boolean> {
   const result = await query('crawls')
@@ -47,8 +56,10 @@ async function isPublicKeyRecorded(publicKey: string): Promise<boolean> {
 }
 
 /**
- * @param url
- * @param unl
+ * Adds the node (and its corresponding network) to the networks table.
+ *
+ * @param url - The URL endpoint of the node.
+ * @param unl - The UNL of the node.
  */
 async function addNode(url: string, unl: string | null): Promise<void> {
   const currentNetworks = await query('networks')
@@ -76,6 +87,7 @@ async function addNode(url: string, unl: string | null): Promise<void> {
  *
  * @param req - Express request.
  * @param res - Express response.
+ * @returns The Express response.
  */
 export default async function addEntry(
   req: Request,
@@ -86,7 +98,6 @@ export default async function addEntry(
 
     // fetch crawl
     const crawl = await fetchCrawls(entryUrl)
-    console.log(crawl.this_node)
 
     // check UNL
     const { node_unl } = crawl

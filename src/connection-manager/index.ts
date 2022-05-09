@@ -23,4 +23,6 @@ async function start(): Promise<void> {
   agreement.start()
 }
 
-void start()
+if (typeof require !== 'undefined' && require.main === module) {
+  void start()
+}
