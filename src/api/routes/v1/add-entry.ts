@@ -60,13 +60,13 @@ async function addNode(url: string, unl: string | null): Promise<void> {
     .select('network')
     .orderBy('network')
   const maxNetwork =
-    currentNetworks[currentNetworks.length - networks.length - 1].network
+    currentNetworks[currentNetworks.length - networks.length - 1]?.network ?? 0
   console.log(currentNetworks, maxNetwork)
   await query('networks').insert({
     network: Number(maxNetwork) + 1,
     entry: url,
     port: 51235,
-    unls: unl,
+    unls: unl ?? '',
   })
 }
 
@@ -92,7 +92,7 @@ export default async function addEntry(
     if (node_unl != null && (await isUnlRecorded(node_unl))) {
       return res.send({
         result: 'error',
-        message: 'node part of an existing network',
+        message: 'node UNL part of an existing network',
       })
     }
 
@@ -101,7 +101,7 @@ export default async function addEntry(
     if (await isPublicKeyRecorded(public_key)) {
       return res.send({
         result: 'error',
-        message: 'node part of an existing network2',
+        message: 'node public key part of an existing network',
       })
     }
     // add node to networks list
