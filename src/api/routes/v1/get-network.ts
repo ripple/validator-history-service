@@ -11,6 +11,10 @@ const CRAWL_PORTS = [51235, 2459, 30001]
 /**
  * An implementation of `Promise.any`. Returns the first promise to resolve.
  * Ignores errors, unless they all error.
+ * This method is used to improve performance of this API call - since the API
+ * call checks multiple possible ports for the `/crawl` endpoint, it should
+ * return the first one to succeed. The other ones will probably fail, but will
+ * take several seconds to fail.
  * Modified from https://stackoverflow.com/a/57599519.
  *
  * @param promises - The crawl Promises that are waiting.
@@ -78,7 +82,6 @@ async function any(
  *
  * @param host - The host URL to crawl.
  * @returns The crawl data from the node.
- * @throws If none of the possible crawl ports work.
  */
 async function fetchCrawls(host: string): Promise<Crawl> {
   const promises: Array<Promise<Crawl | undefined>> = []
@@ -89,7 +92,8 @@ async function fetchCrawls(host: string): Promise<Crawl> {
 }
 
 /**
- * Checks whether the UNL of the node is recorded in the networks table.
+ * Checks whether the UNL of the node is recorded in the networks table. If so,
+ * then it returns the network associated with the UNL.
  *
  * @param unl - The UNL of the node.
  * @returns Whether the UNL of the node has been seen before.
@@ -102,10 +106,12 @@ async function getNetworkFromUNL(unl: string): Promise<string | undefined> {
 }
 
 /**
- * Checks whether the public key of the node is recorded in the crawls table.
+ * Checks whether the public key of the node is recorded in the crawls table. If
+ * so, then it returns the network associated with the public key.
  *
  * @param publicKey - The public key of the node.
- * @returns Whether the public key of the node has been seen before.
+ * @returns The network associated with the public key of the node. Undefined
+ * if the public key has not been seen by the network.
  */
 async function getNetworkFromPublicKey(
   publicKey: string,
