@@ -3,8 +3,8 @@ import { Request, Response } from 'express'
 import Crawler from '../../../crawler/crawl'
 import crawlNode from '../../../crawler/network'
 import { query } from '../../../shared/database'
+import networks, { Network } from '../../../shared/database/networks'
 import { Crawl } from '../../../shared/types'
-import networks, { Network } from '../../../shared/utils/networks'
 
 const CRAWL_PORTS = [51235, 2459, 30001]
 
