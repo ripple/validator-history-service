@@ -89,7 +89,7 @@ async function addNode(url: string, unl: string | null): Promise<void> {
  * @param res - Express response.
  * @returns The Express response.
  */
-export default async function addEntry(
+export default async function getNetwork(
   req: Request,
   res: Response,
 ): Promise<Response> {

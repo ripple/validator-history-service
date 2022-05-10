@@ -1,7 +1,7 @@
 import { Router as createRouter } from 'express'
 
-import addEntry from './add-entry'
 import handleDailyScores from './daily-report'
+import getNetwork from './get-network'
 import handleHealth from './health'
 import handleValidatorManifest from './manifests'
 import { handleNode, handleNodes, handleTopology } from './nodes'
@@ -12,7 +12,7 @@ const api = createRouter()
 
 api.use('/health', handleHealth)
 api.use('/network/validator_reports', handleDailyScores)
-api.use('/network/add/:entryUrl', addEntry)
+api.use('/network/get_network/:entryUrl', getNetwork)
 
 api.use('/network/topology/nodes/:network', handleNodes)
 api.use('/network/topology/nodes', handleNodes)
