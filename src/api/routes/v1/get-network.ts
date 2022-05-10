@@ -9,6 +9,71 @@ import { Crawl } from '../../../shared/types'
 const CRAWL_PORTS = [51235, 2459, 30001]
 
 /**
+ * An implementation of `Promise.any`. Returns the first promise to resolve.
+ * Ignores errors, unless they all error.
+ * Modified from https://stackoverflow.com/a/57599519.
+ *
+ * @param promises - The crawl Promises that are waiting.
+ * @returns The first promise to resolve.
+ */
+async function any(
+  promises: Array<Promise<Crawl | undefined>>,
+): Promise<Crawl> {
+  return new Promise((resolve, reject) => {
+    let errors: Error[] = []
+    let undefinedValues = 0
+    let resolved: boolean
+
+    /**
+     * Helper method when a promise is fulfilled.
+     *
+     * @param value - The resolved value.
+     */
+    function onFulfill(value: Crawl | undefined): void {
+      // skip if already resolved
+      if (resolved) {
+        return
+      }
+      // if the value is undefined (which is returned if an error occurs)
+      if (value == null) {
+        undefinedValues += 1
+        // reject promise combinator if all promises are failed/undefined
+        if (undefinedValues + errors.length === promises.length) {
+          reject(errors)
+        }
+        return
+      }
+      resolved = true
+
+      // resolve with the first available value
+      resolve(value)
+    }
+
+    /**
+     * Helper method when a promise is rejected.
+     *
+     * @param error - The error.
+     */
+    function onError(error: Error): void {
+      // skip if already resolved
+      if (resolved) {
+        return
+      }
+
+      // collect error
+      errors = errors.concat(error)
+
+      // reject promise combinator if all promises are failed/undefined
+      if (undefinedValues + errors.length === promises.length) {
+        reject(errors)
+      }
+    }
+
+    promises.forEach(async (promise) => promise.then(onFulfill, onError))
+  })
+}
+
+/**
  * Fetches the crawl data for the node.
  *
  * @param host - The host URL to crawl.
@@ -16,17 +81,11 @@ const CRAWL_PORTS = [51235, 2459, 30001]
  * @throws If none of the possible crawl ports work.
  */
 async function fetchCrawls(host: string): Promise<Crawl> {
-  const promises = []
+  const promises: Array<Promise<Crawl | undefined>> = []
   for (const port of CRAWL_PORTS) {
     promises.push(crawlNode(host, port))
   }
-  const results = await Promise.all(promises)
-  for (const result of results) {
-    if (result != null) {
-      return result
-    }
-  }
-  throw new Error('node could not be crawled')
+  return any(promises)
 }
 
 /**
