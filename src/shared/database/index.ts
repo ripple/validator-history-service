@@ -7,7 +7,6 @@ import {
   DatabaseNetwork,
 } from '../types'
 import logger from '../utils/logger'
-import { Network } from '../utils/networks'
 
 import {
   saveHourlyAgreement,
@@ -18,6 +17,7 @@ import {
   update24HourValidatorAgreement,
   update30DayValidatorAgreement,
 } from './agreement'
+import { Network } from './networks'
 import setupTables from './setup'
 import { db, tearDown, query, destroy } from './utils'
 

@@ -1,4 +1,4 @@
-import config from './config'
+import config from '../utils/config'
 
 interface Network {
   network: string

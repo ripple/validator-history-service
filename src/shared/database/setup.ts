@@ -1,6 +1,6 @@
 import logger from '../utils/logger'
-import networks from '../utils/networks'
 
+import networks from './networks'
 import { db, query } from './utils'
 
 const log = logger({ name: 'database' })
