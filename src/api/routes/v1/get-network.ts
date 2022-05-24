@@ -100,9 +100,9 @@ async function fetchCrawls(host: string): Promise<Crawl> {
  */
 async function getNetworkFromUNL(unl: string): Promise<string | undefined> {
   const result = await query('networks')
-    .select('network')
+    .select('id')
     .where('unls', 'like', `%${unl}%`)
-  return result.length > 0 ? result[0].network : undefined
+  return result.length > 0 ? result[0].id : undefined
 }
 
 /**
@@ -130,14 +130,12 @@ async function getNetworkFromPublicKey(
  * @returns The ID of the new network.
  */
 async function addNode(url: string, unl: string | null): Promise<string> {
-  const currentNetworks = await query('networks')
-    .select('network')
-    .orderBy('network')
+  const currentNetworks = await query('networks').select('id').orderBy('id')
   const maxNetwork =
     currentNetworks[currentNetworks.length - networks.length - 1]?.network ?? 0
   const newNetwork = (Number(maxNetwork) + 1).toString()
   const network: Network = {
-    network: newNetwork,
+    id: newNetwork,
     entry: url,
     port: 51235,
     unls: unl ? [unl] : [],
