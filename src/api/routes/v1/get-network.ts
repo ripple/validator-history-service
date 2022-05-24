@@ -210,7 +210,6 @@ export default async function getNetwork(
         return res.send({
           result: 'success',
           network: unlNetwork,
-          created: false,
         })
       }
     }
@@ -222,7 +221,6 @@ export default async function getNetwork(
       return res.send({
         result: 'success',
         network: publicKeyNetwork,
-        created: false,
       })
     }
     // add node to networks list
@@ -231,7 +229,6 @@ export default async function getNetwork(
     return res.send({
       result: 'success',
       network: newNetwork,
-      created: true,
     })
   } catch (err) {
     log.error(err.stack)
