@@ -185,7 +185,7 @@ async function addNode(url: string, unl: string | null): Promise<string> {
 }
 
 /**
- * Add entry to new network.
+ * Fetch network ID from network entry. If the network doesn't exist, adds it with a new ID.
  *
  * @param req - Express request.
  * @param res - Express response.
