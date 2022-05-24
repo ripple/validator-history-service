@@ -34,7 +34,7 @@ let jobsStarted = false
  */
 async function getFirstUNL(networkName: string): Promise<string> {
   const networks = await getNetworks()
-  const network = networks.filter((ntwk) => ntwk.network === networkName)[0]
+  const network = networks.filter((ntwk) => ntwk.id === networkName)[0]
   return network.unls[0]
 }
 

@@ -103,7 +103,7 @@ class Crawler {
     log.info(`Starting crawl at ${network.entry}:${port}`)
 
     await this.crawlEndpoint(network.entry, port, network.unls)
-    await this.saveConnections(network.network)
+    await this.saveConnections(network.id)
   }
 
   /**

@@ -103,9 +103,9 @@ interface DatabaseValidator extends Validator {
 }
 
 interface DatabaseNetwork {
-  network: string
-  port?: number
+  id: string
   entry: string
+  port?: number
   unls: string
 }
 
