@@ -3,10 +3,37 @@ import { Request, Response } from 'express'
 import Crawler from '../../../crawler/crawl'
 import crawlNode from '../../../crawler/network'
 import { query } from '../../../shared/database'
-import networks, { Network } from '../../../shared/database/networks'
+import { Network } from '../../../shared/database/networks'
 import { Crawl } from '../../../shared/types'
+import logger from '../../../shared/utils/logger'
+
+const log = logger({ name: 'api-get-network' })
 
 const CRAWL_PORTS = [51235, 2459, 30001]
+
+let maxNetwork: number
+
+async function getMaxNetwork(): Promise<void> {
+  const currentNetworks = await query('networks').select('id')
+  const currentNetworkNumbers = currentNetworks.reduce(
+    (filtered: number[], network: { id: string }) => {
+      const { id } = network
+      if (!Number.isNaN(Number(id))) {
+        filtered.push(Number(id))
+      }
+      return filtered
+    },
+    [],
+  )
+  maxNetwork = Math.max(...currentNetworkNumbers)
+  if (maxNetwork === -Infinity) {
+    maxNetwork = 0
+  }
+}
+
+void getMaxNetwork()
+// double check that the max network is accurate every hour
+setInterval(getMaxNetwork, 60 * 60 * 1000)
 
 /**
  * An implementation of `Promise.any`. Returns the first promise to resolve.
@@ -28,6 +55,13 @@ async function any(
     let undefinedValues = 0
     let resolved: boolean
 
+    function sendReject(): void {
+      if (errors.length > 0) {
+        reject(errors)
+      }
+      reject(new Error('crawl attempts all failed'))
+    }
+
     /**
      * Helper method when a promise is fulfilled.
      *
@@ -43,7 +77,7 @@ async function any(
         undefinedValues += 1
         // reject promise combinator if all promises are failed/undefined
         if (undefinedValues + errors.length === promises.length) {
-          reject(errors)
+          sendReject()
         }
         return
       }
@@ -69,7 +103,7 @@ async function any(
 
       // reject promise combinator if all promises are failed/undefined
       if (undefinedValues + errors.length === promises.length) {
-        reject(errors)
+        sendReject()
       }
     }
 
@@ -130,10 +164,9 @@ async function getNetworkFromPublicKey(
  * @returns The ID of the new network.
  */
 async function addNode(url: string, unl: string | null): Promise<string> {
-  const currentNetworks = await query('networks').select('id').orderBy('id')
-  const maxNetwork =
-    currentNetworks[currentNetworks.length - networks.length - 1]?.network ?? 0
   const newNetwork = (Number(maxNetwork) + 1).toString()
+  maxNetwork += 1
+
   const network: Network = {
     id: newNetwork,
     entry: url,
@@ -201,6 +234,7 @@ export default async function getNetwork(
       created: true,
     })
   } catch (err) {
+    log.error(err.stack)
     return res.send({ result: 'error', message: err.message })
   }
 }
