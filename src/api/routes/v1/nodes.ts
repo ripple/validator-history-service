@@ -205,7 +205,7 @@ export async function handleNodes(req: Request, res: Response): Promise<void> {
       // eslint-disable-next-line @typescript-eslint/no-unnecessary-condition -- Necessary here
       network == null
         ? cache.nodes
-        : cache.nodes.filter((node) => node.networks?.includes(network))
+        : cache.nodes.filter((node) => node.networks === network)
 
     res.send({
       result: 'success',

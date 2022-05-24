@@ -31,7 +31,7 @@ function mock(): void {
 
 async function crawl(ip: string): Promise<void> {
   await new Crawler().crawl({
-    network: 'main',
+    id: 'main',
     entry: ip,
     unls: ['vl.fake.example.com'],
   })

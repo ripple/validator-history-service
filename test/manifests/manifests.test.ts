@@ -12,8 +12,8 @@ import {
   setupTables,
   tearDown,
 } from '../../src/shared/database'
+import networks from '../../src/shared/database/networks'
 import config from '../../src/shared/utils/config'
-import networks from '../../src/shared/utils/networks'
 
 import unl1 from './fixtures/unl-response1.json'
 import unl2 from './fixtures/unl-response2.json'

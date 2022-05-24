@@ -1,8 +1,7 @@
 import 'dotenv/config'
 
 import Crawler from '../crawler/crawl'
-import { setupTables } from '../shared/database'
-import networks from '../shared/utils/networks'
+import { setupTables, getNetworks } from '../shared/database'
 
 import agreement from './agreement'
 import startConnections from './connections'
@@ -13,9 +12,10 @@ async function start(): Promise<void> {
   // Migrate manifests from the legacy database. This will be removed once the service has collected enough manifests.
   // await migrate()
   const promises = []
-  for (const entry of networks) {
+  const networks = await getNetworks()
+  for (const network of networks) {
     const crawler = new Crawler()
-    promises.push(crawler.crawl(entry))
+    promises.push(crawler.crawl(network))
   }
   await Promise.all(promises)
   await startConnections()

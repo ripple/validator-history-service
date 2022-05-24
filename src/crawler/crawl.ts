@@ -2,9 +2,9 @@ import moment, { Moment } from 'moment'
 import { encodeNodePublic } from 'ripple-address-codec'
 
 import { query, saveNode } from '../shared/database'
+import { Network } from '../shared/database/networks'
 import { Crawl } from '../shared/types'
 import logger from '../shared/utils/logger'
-import { Network } from '../shared/utils/networks'
 
 import crawlNode from './network'
 
@@ -103,7 +103,7 @@ class Crawler {
     log.info(`Starting crawl at ${network.entry}:${port}`)
 
     await this.crawlEndpoint(network.entry, port, network.unls)
-    await this.saveConnections(network.network)
+    await this.saveConnections(network.id)
   }
 
   /**

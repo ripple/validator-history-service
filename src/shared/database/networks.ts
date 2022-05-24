@@ -1,7 +1,7 @@
-import config from './config'
+import config from '../utils/config'
 
 interface Network {
-  network: string
+  id: string
   port?: number
   entry: string
   unls: string[]
@@ -23,25 +23,25 @@ if (config.mainnet_unl == null) {
 
 const networks: Network[] = [
   {
-    network: 'main',
+    id: 'main',
     entry: config.mainnet_p2p_server,
     port: 51235,
     unls: mainnetUnls,
   },
   {
-    network: 'test',
+    id: 'test',
     entry: 's.altnet.rippletest.net',
     port: 51235,
     unls: ['vl.altnet.rippletest.net'],
   },
   {
-    network: 'dev',
-    entry: 's.devnet.ripple.test.net',
+    id: 'dev',
+    entry: 's.devnet.rippletest.net',
     port: 51235,
     unls: ['vl.devnet.rippletest.net'],
   },
   {
-    network: 'nft-dev',
+    id: 'nft-dev',
     entry: 'xls20-sandbox.rippletest.net',
     port: 51235,
     unls: ['nftvalidators.s3.us-west-2.amazonaws.com/index.json'],
