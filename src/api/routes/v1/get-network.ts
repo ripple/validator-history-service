@@ -13,7 +13,7 @@ const CRAWL_PORTS = [51235, 2459, 30001]
 
 let maxNetwork: number
 
-async function getMaxNetwork(): Promise<void> {
+async function updateMaxNetwork(): Promise<void> {
   const currentNetworks = await query('networks').select('id')
   const currentNetworkNumbers = currentNetworks.reduce(
     (filtered: number[], network: { id: string }) => {
@@ -31,9 +31,9 @@ async function getMaxNetwork(): Promise<void> {
   }
 }
 
-void getMaxNetwork()
+void updateMaxNetwork()
 // double check that the max network is accurate every hour
-setInterval(getMaxNetwork, 60 * 60 * 1000)
+setInterval(updateMaxNetwork, 60 * 60 * 1000)
 
 /**
  * An implementation of `Promise.any`. Returns the first promise to resolve.
@@ -164,7 +164,7 @@ async function getNetworkFromPublicKey(
  * @returns The ID of the new network.
  */
 async function addNode(url: string, unl: string | null): Promise<string> {
-  const newNetwork = (Number(maxNetwork) + 1).toString()
+  const newNetwork = (maxNetwork + 1).toString()
   maxNetwork += 1
 
   const network: Network = {
@@ -191,7 +191,7 @@ async function addNode(url: string, unl: string | null): Promise<string> {
  * @param res - Express response.
  * @returns The Express response.
  */
-export default async function getNetwork(
+export default async function getNetworkOrAdd(
   req: Request,
   res: Response,
 ): Promise<Response> {
