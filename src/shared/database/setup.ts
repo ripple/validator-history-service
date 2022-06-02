@@ -139,6 +139,11 @@ async function setupHourlyAgreementTable(): Promise<void> {
       table.primary(['main_key', 'start'])
     })
   }
+  if (await db().schema.hasColumn('hourly_agreement', 'master_key')) {
+    await db().schema.alterTable('hourly_agreement', (table) => {
+      table.renameColumn('master_key', 'main_key')
+    })
+  }
 }
 
 async function setupDailyAgreementTable(): Promise<void> {
@@ -149,6 +154,11 @@ async function setupDailyAgreementTable(): Promise<void> {
       table.dateTime('day')
       table.json('agreement')
       table.primary(['main_key', 'day'])
+    })
+  }
+  if (await db().schema.hasColumn('daily_agreement', 'master_key')) {
+    await db().schema.alterTable('daily_agreement', (table) => {
+      table.renameColumn('master_key', 'main_key')
     })
   }
 }
