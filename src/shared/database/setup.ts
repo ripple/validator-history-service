@@ -156,8 +156,8 @@ async function setupDailyAgreementTable(): Promise<void> {
       table.primary(['main_key', 'day'])
     })
   }
-  if (await db().schema.hasColumn('daily_agreemenet', 'master_key')) {
-    await db().schema.alterTable('daily_agreemenet', (table) => {
+  if (await db().schema.hasColumn('daily_agreement', 'master_key')) {
+    await db().schema.alterTable('daily_agreement', (table) => {
       table.renameColumn('master_key', 'main_key')
     })
   }
