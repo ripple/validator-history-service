@@ -27,9 +27,9 @@ const info = {
       example: 'https://data.xrpl.org/v1/network/validators',
     },
     {
-      action: 'Get Validators By Network',
-      route: '/v2/network/validators/{network}',
-      example: 'https://data.xrpl.org/v1/network/validators/{network}',
+      action: 'Get Validators By UNL',
+      route: '/v2/network/validators/{unl}',
+      example: 'https://data.xrpl.org/v1/network/validators/{unl}',
     },
     {
       action: 'Get Validator',
