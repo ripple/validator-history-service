@@ -252,7 +252,10 @@ export async function handleValidator(
 }
 
 /**
- * @param unl
+ * Get the chains associated with the given UNL.
+ *
+ * @param unl - The UNL of the chain.
+ * @returns The chains associated with that UNL.
  */
 async function getChains(
   unl: string | undefined,
