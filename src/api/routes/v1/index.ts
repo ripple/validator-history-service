@@ -21,8 +21,8 @@ api.use('/network/topology', handleTopology)
 
 api.use('/network/validator/:publicKey/reports', handleValidatorReport)
 api.use('/network/validator/:publicKey/manifests', handleValidatorManifest)
-api.use('/network/validators/:network', handleValidators)
 api.use('/network/validator/:publicKey', handleValidator)
+api.use('/network/validators/:unl', handleValidators)
 api.use('/network/validators', handleValidators)
 
 export default api

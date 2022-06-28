@@ -252,6 +252,18 @@ export async function handleValidator(
 }
 
 /**
+ * @param unl
+ */
+async function getChains(
+  unl: string | undefined,
+): Promise<string[] | undefined> {
+  if (unl == null) {
+    return undefined
+  }
+  return query('validators').select('chain').distinct().where({ unl })
+}
+
+/**
  * Handles Validators Request.
  *
  * @param req - Express request.
@@ -266,12 +278,14 @@ export async function handleValidators(
       await cacheValidators()
     }
 
-    const { network } = req.params
+    const { unl } = req.params
+    const chains = await getChains(unl)
     const validators =
-      // eslint-disable-next-line @typescript-eslint/no-unnecessary-condition -- Necessary here
-      network == null
+      chains == null
         ? cache.validators
-        : cache.validators.filter((validator) => validator.chain === network)
+        : cache.validators.filter((validator) =>
+            chains.includes(validator.chain),
+          )
 
     const response: ValidatorsResponse = {
       result: 'success',
