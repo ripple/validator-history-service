@@ -263,7 +263,8 @@ async function getChains(
   if (unl == null) {
     return undefined
   }
-  return query('validators').select('chain').distinct().where({ unl })
+  const results = await query('validators').select('chain').distinct().where({ unl })
+  return results.map(result => result.chain)
 }
 
 /**
