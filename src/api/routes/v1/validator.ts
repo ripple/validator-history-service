@@ -252,6 +252,25 @@ export async function handleValidator(
 }
 
 /**
+ * Get the chains associated with the given UNL.
+ *
+ * @param unl - The UNL of the chain.
+ * @returns The chains associated with that UNL.
+ */
+async function getChains(
+  unl: string | undefined,
+): Promise<string[] | undefined> {
+  if (unl == null) {
+    return undefined
+  }
+  const results = await query('validators')
+    .select('chain')
+    .distinct()
+    .where({ unl })
+  return results.map((result) => result.chain as string)
+}
+
+/**
  * Handles Validators Request.
  *
  * @param req - Express request.
@@ -266,12 +285,14 @@ export async function handleValidators(
       await cacheValidators()
     }
 
-    const { network } = req.params
+    const { unl } = req.params
+    const chains = await getChains(unl)
     const validators =
-      // eslint-disable-next-line @typescript-eslint/no-unnecessary-condition -- Necessary here
-      network == null
+      chains == null
         ? cache.validators
-        : cache.validators.filter((validator) => validator.chain === network)
+        : cache.validators.filter((validator) =>
+            chains.includes(validator.chain),
+          )
 
     const response: ValidatorsResponse = {
       result: 'success',
