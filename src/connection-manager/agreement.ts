@@ -103,6 +103,82 @@ async function updateDailyAgreement(
 }
 
 /**
+ * Updates agreement for a validator.
+ *
+ * @param ledger_index - Index of current ledger.
+ * @returns Boolean.
+ */
+function preceedFlagLedger(ledger_index: string): boolean {
+  return parseInt(ledger_index, 10) % 256 === 255
+}
+
+/**
+ * Classify release version type.
+ *
+ * @param beta - Extracted 8-bit beta identifier.
+ * @throws InvalidVersionException.
+ * @returns String.
+ */
+function extractReleaseVersionType(beta: number): string {
+  if (beta >> 6 === 0) {
+    throw new Error('Unknown release type')
+  }
+
+  const isBeta = beta >> 6 === 1
+  const isRC = beta >> 6 === 2
+  const isRelease = beta >> 6 === 3
+
+  const prefix = isRelease ? '' : '-'
+  const releaseType = isBeta ? 'b' : isRC ? 'rc' : ''
+
+  const releaseNum = !isRelease ? beta & 0x3f : ''
+
+  const betaString = `${prefix}${releaseType}${releaseNum}`
+  return betaString
+}
+
+/**
+ * Decode server software version.
+ *
+ * @param server_version - Software server version in 64 bits integer.
+ * @throws InvalidVersionException.
+ * @returns String.
+ */
+function decodeReleaseVersion(server_version?: string): string {
+  if (!server_version) {
+    return ''
+  }
+
+  const num = BigInt(server_version)
+
+  const buf = Buffer.alloc(8)
+
+  buf.writeBigInt64BE(num)
+
+  if (buf.length !== 8) {
+    throw new Error('Size must be 8')
+  }
+
+  if (buf[0] !== 0x18 || buf[1] !== 0x3b) {
+    throw new Error('Unknown implimentation')
+  }
+
+  if (buf[7] !== 0 || buf[6] !== 0) {
+    throw new Error('Unkown Format')
+  }
+
+  const major = buf[2]
+  const minor = buf[3]
+  const patch = buf[4]
+  const beta = buf[5]
+
+  const betaString = extractReleaseVersionType(beta)
+
+  const version = `${major}.${minor}.${patch}${betaString}`
+  return version
+}
+
+/**
  *
  */
 class Agreement {
@@ -169,6 +245,7 @@ class Agreement {
     if (!hashes.has(validation.ledger_hash)) {
       hashes.set(validation.ledger_hash, Date.now())
       this.validationsByPublicKey.set(signing_key, hashes)
+      const release_version = decodeReleaseVersion(validation.server_version)
       const validator = {
         master_key: validation.master_key,
         signing_key,
@@ -176,6 +253,8 @@ class Agreement {
         current_index: Number(validation.ledger_index),
         partial: !validation.full,
         last_ledger_time: new Date(),
+        ...(preceedFlagLedger(validation.ledger_index) &&
+          release_version && { version: release_version }),
       }
 
       chains.updateLedgers(validation)

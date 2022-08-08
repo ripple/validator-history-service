@@ -121,6 +121,7 @@ async function setupValidatorsTable(): Promise<void> {
       table.string('unl')
       table.string('domain')
       table.boolean('domain_verified')
+      table.string('version')
       table.dateTime('last_ledger_time')
       table.json('agreement_1hour')
       table.json('agreement_24hour')

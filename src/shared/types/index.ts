@@ -69,6 +69,7 @@ interface ValidationRaw {
   signing_time: number
   type: string
   validation_public_key: string
+  server_version?: string
   // The validation_public_key is the same as the signing_key in StreamManifest
 }
 
@@ -100,6 +101,7 @@ interface DatabaseValidator extends Validator {
   agreement_24hour: Agreement
   agreement_30day: Agreement
   updated: string
+  version: string
 }
 
 interface DatabaseNetwork {
