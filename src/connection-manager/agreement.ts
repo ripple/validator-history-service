@@ -105,7 +105,7 @@ async function updateDailyAgreement(
 }
 
 /**
- * Updates agreement for a validator.
+ * Detect the ledger before a flagged ledger, which will contain server version information.
  *
  * @param ledger_index - Index of current ledger.
  * @returns Boolean.
