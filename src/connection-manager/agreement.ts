@@ -1,3 +1,7 @@
+/* eslint-disable no-negated-condition -- Negation is used for release version decoding. */
+/* eslint-disable no-nested-ternary -- Nested ternary is used for release version decoding. */
+/* eslint-disable no-bitwise -- Bitwise operation is used for release version decoding. */
+
 import {
   getAgreementScores,
   saveHourlyAgreement,
