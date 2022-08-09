@@ -101,7 +101,7 @@ interface DatabaseValidator extends Validator {
   agreement_24hour: Agreement
   agreement_30day: Agreement
   updated: string
-  version: string
+  server_version: string
 }
 
 interface DatabaseNetwork {

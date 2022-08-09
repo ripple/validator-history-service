@@ -1,6 +1,4 @@
-/* eslint-disable no-negated-condition -- Negation is used for release version decoding. */
-/* eslint-disable no-nested-ternary -- Nested ternary is used for release version decoding. */
-/* eslint-disable no-bitwise -- Bitwise operation is used for release version decoding. */
+/* eslint-disable no-negated-condition, no-nested-ternary, no-bitwise -- Manipulations used for server version decoding. */
 
 import {
   getAgreementScores,
@@ -117,13 +115,13 @@ function preceedFlagLedger(ledger_index: string): boolean {
 }
 
 /**
- * Classify release version type.
+ * Classify server version type.
  *
  * @param beta - Extracted 8-bit beta identifier.
  * @throws InvalidVersionException.
  * @returns String.
  */
-function extractReleaseVersionType(beta: number): string {
+function extractServerVersionType(beta: number): string {
   if (beta >> 6 === 0) {
     throw new Error('Unknown release type')
   }
@@ -148,7 +146,7 @@ function extractReleaseVersionType(beta: number): string {
  * @throws InvalidVersionException.
  * @returns String.
  */
-function decodeReleaseVersion(server_version?: string): string {
+function decodeServerVersion(server_version?: string): string {
   if (!server_version) {
     return ''
   }
@@ -176,7 +174,7 @@ function decodeReleaseVersion(server_version?: string): string {
   const patch = buf[4]
   const beta = buf[5]
 
-  const betaString = extractReleaseVersionType(beta)
+  const betaString = extractServerVersionType(beta)
 
   const version = `${major}.${minor}.${patch}${betaString}`
   return version
@@ -249,7 +247,9 @@ class Agreement {
     if (!hashes.has(validation.ledger_hash)) {
       hashes.set(validation.ledger_hash, Date.now())
       this.validationsByPublicKey.set(signing_key, hashes)
-      const release_version = decodeReleaseVersion(validation.server_version)
+      const server_version =
+        preceedFlagLedger(validation.ledger_index) &&
+        decodeServerVersion(validation.server_version)
       const validator = {
         master_key: validation.master_key,
         signing_key,
@@ -257,8 +257,7 @@ class Agreement {
         current_index: Number(validation.ledger_index),
         partial: !validation.full,
         last_ledger_time: new Date(),
-        ...(preceedFlagLedger(validation.ledger_index) &&
-          release_version && { version: release_version }),
+        ...(server_version && { server_version }),
       }
 
       chains.updateLedgers(validation)
