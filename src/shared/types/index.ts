@@ -86,6 +86,7 @@ interface Validator {
   current_index: number
   partial: boolean
   last_ledger_time: Date
+  server_version?: string
 }
 
 interface DatabaseValidator extends Validator {
@@ -101,7 +102,6 @@ interface DatabaseValidator extends Validator {
   agreement_24hour: Agreement
   agreement_30day: Agreement
   updated: string
-  server_version: string
 }
 
 interface DatabaseNetwork {

@@ -225,3 +225,73 @@ export async function update30DayValidatorAgreement(
       )
   }
 }
+
+/**
+ * Classify server version type.
+ *
+ * @param beta - Extracted 8-bit beta identifier.
+ * @throws InvalidVersionException.
+ * @returns Release version type (basic, beta, rc, etc.).
+ */
+function extractServerVersionType(beta: number): string | null {
+  // eslint-disable-next-line no-bitwise -- Use bit shifts to extract the first 2 bits that contain release version type.
+  const typeBits = beta >> 6
+  if (typeBits === 0) {
+    return null
+  }
+
+  const isBeta = typeBits === 1
+  const isRC = typeBits === 2
+  const isRelease = typeBits === 3
+
+  const prefix = isRelease ? '' : '-'
+  // eslint-disable-next-line no-nested-ternary -- Nested tenary is used to determine release type based on 2 conditions.
+  const releaseType = isBeta ? 'b' : isRC ? 'rc' : ''
+
+  // eslint-disable-next-line no-bitwise -- Bit mask is used to extract release number from 8-bit beta.
+  const releaseNum = isRelease ? '' : beta & 0x3f
+
+  return `${prefix}${releaseType}${releaseNum}`
+}
+
+/**
+ * Decode server software version.
+ *
+ * @param server_version - Software server version in 64 bits integer.
+ * @throws InvalidVersionException.
+ * @returns Decoded server version in standard format.
+ */
+export function decodeServerVersion(server_version?: string): string | null {
+  if (!server_version) {
+    return null
+  }
+
+  const num = BigInt(server_version)
+
+  const buf = Buffer.alloc(8)
+
+  buf.writeBigInt64BE(num)
+
+  if (
+    buf.length !== 8 ||
+    buf[0] !== 0x18 ||
+    buf[1] !== 0x3b ||
+    buf[7] !== 0 ||
+    buf[6] !== 0
+  ) {
+    return null
+  }
+
+  const major = buf[2]
+  const minor = buf[3]
+  const patch = buf[4]
+  const beta = buf[5]
+
+  const betaString = extractServerVersionType(beta)
+
+  if (betaString === null) {
+    return null
+  }
+
+  return `${major}.${minor}.${patch}${betaString}`
+}

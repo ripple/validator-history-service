@@ -16,6 +16,7 @@ import {
   update1HourValidatorAgreement,
   update24HourValidatorAgreement,
   update30DayValidatorAgreement,
+  decodeServerVersion,
 } from './agreement'
 import { Network } from './networks'
 import setupTables from './setup'
@@ -264,4 +265,5 @@ export {
   update1HourValidatorAgreement,
   update24HourValidatorAgreement,
   update30DayValidatorAgreement,
+  decodeServerVersion,
 }

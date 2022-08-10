@@ -1,5 +1,3 @@
-/* eslint-disable no-negated-condition, no-nested-ternary, no-bitwise -- Manipulations used for server version decoding. */
-
 import {
   getAgreementScores,
   saveHourlyAgreement,
@@ -10,8 +8,14 @@ import {
   update30DayValidatorAgreement,
   purgeHourlyAgreementScores,
   signingToMaster,
+  decodeServerVersion,
 } from '../shared/database'
-import { AgreementScore, ValidationRaw, ValidatorKeys } from '../shared/types'
+import {
+  AgreementScore,
+  Validator,
+  ValidationRaw,
+  ValidatorKeys,
+} from '../shared/types'
 import logger from '../shared/utils/logger'
 
 import chains from './chains'
@@ -115,72 +119,6 @@ function preceedFlagLedger(ledger_index: string): boolean {
 }
 
 /**
- * Classify server version type.
- *
- * @param beta - Extracted 8-bit beta identifier.
- * @throws InvalidVersionException.
- * @returns String.
- */
-function extractServerVersionType(beta: number): string {
-  if (beta >> 6 === 0) {
-    throw new Error('Unknown release type')
-  }
-
-  const isBeta = beta >> 6 === 1
-  const isRC = beta >> 6 === 2
-  const isRelease = beta >> 6 === 3
-
-  const prefix = isRelease ? '' : '-'
-  const releaseType = isBeta ? 'b' : isRC ? 'rc' : ''
-
-  const releaseNum = !isRelease ? beta & 0x3f : ''
-
-  const betaString = `${prefix}${releaseType}${releaseNum}`
-  return betaString
-}
-
-/**
- * Decode server software version.
- *
- * @param server_version - Software server version in 64 bits integer.
- * @throws InvalidVersionException.
- * @returns String.
- */
-function decodeServerVersion(server_version?: string): string {
-  if (!server_version) {
-    return ''
-  }
-
-  const num = BigInt(server_version)
-
-  const buf = Buffer.alloc(8)
-
-  buf.writeBigInt64BE(num)
-
-  if (buf.length !== 8) {
-    throw new Error('Size must be 8')
-  }
-
-  if (buf[0] !== 0x18 || buf[1] !== 0x3b) {
-    throw new Error('Unknown implimentation')
-  }
-
-  if (buf[7] !== 0 || buf[6] !== 0) {
-    throw new Error('Unkown Format')
-  }
-
-  const major = buf[2]
-  const minor = buf[3]
-  const patch = buf[4]
-  const beta = buf[5]
-
-  const betaString = extractServerVersionType(beta)
-
-  const version = `${major}.${minor}.${patch}${betaString}`
-  return version
-}
-
-/**
  *
  */
 class Agreement {
@@ -244,20 +182,25 @@ class Agreement {
 
     const hashes = this.validationsByPublicKey.get(signing_key) ?? new Map()
 
+    console.log(validation)
+
     if (!hashes.has(validation.ledger_hash)) {
       hashes.set(validation.ledger_hash, Date.now())
       this.validationsByPublicKey.set(signing_key, hashes)
       const server_version =
         preceedFlagLedger(validation.ledger_index) &&
         decodeServerVersion(validation.server_version)
-      const validator = {
+      const validator: Validator = {
         master_key: validation.master_key,
         signing_key,
         ledger_hash: validation.ledger_hash,
         current_index: Number(validation.ledger_index),
         partial: !validation.full,
         last_ledger_time: new Date(),
-        ...(server_version && { server_version }),
+      }
+
+      if (server_version) {
+        validator.server_version = server_version
       }
 
       chains.updateLedgers(validation)
