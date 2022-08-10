@@ -182,8 +182,6 @@ class Agreement {
 
     const hashes = this.validationsByPublicKey.get(signing_key) ?? new Map()
 
-    console.log(validation)
-
     if (!hashes.has(validation.ledger_hash)) {
       hashes.set(validation.ledger_hash, Date.now())
       this.validationsByPublicKey.set(signing_key, hashes)
