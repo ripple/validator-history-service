@@ -129,7 +129,7 @@ async function setupValidatorsTable(): Promise<void> {
     })
   }
   if (!(await db().schema.hasColumn('validators', 'server_version'))) {
-    await db().schema.table('validators', (table) => {
+    await db().schema.alterTable('validators', (table) => {
       table.string('server_version').after('domain_verified')
     })
   }
