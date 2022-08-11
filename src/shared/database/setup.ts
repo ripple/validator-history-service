@@ -128,6 +128,11 @@ async function setupValidatorsTable(): Promise<void> {
       table.json('agreement_30day')
     })
   }
+  if (!(await db().schema.hasColumn('validators', 'server_version'))) {
+    await db().schema.table('validators', (table) => {
+      table.string('server_version').after('domain_verified')
+    })
+  }
 }
 
 async function setupHourlyAgreementTable(): Promise<void> {
