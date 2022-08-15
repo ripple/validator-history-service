@@ -231,7 +231,7 @@ export async function update30DayValidatorAgreement(
  *
  * @param beta - Extracted 8-bit beta identifier.
  * @throws InvalidVersionException.
- * @returns Empty if a release version, -b<beta version> if a beta version, -rc<release candidate version> if a release candidate.
+ * @returns Empty if a release version, -b(beta version) if a beta version, -rc(release candidate version) if a release candidate.
  */
 function extractServerVersionType(beta: number): string | null {
   // eslint-disable-next-line no-bitwise -- Use bit shifts to extract the first 2 bits that contain release version type.
