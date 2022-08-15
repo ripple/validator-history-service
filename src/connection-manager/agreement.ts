@@ -114,7 +114,7 @@ async function updateDailyAgreement(
  * @param ledger_index - Index of current ledger.
  * @returns Boolean.
  */
-function preceedFlagLedger(ledger_index: string): boolean {
+function isPreceedingFlagLedger(ledger_index: string): boolean {
   return parseInt(ledger_index, 10) % 256 === 255
 }
 
@@ -186,7 +186,7 @@ class Agreement {
       hashes.set(validation.ledger_hash, Date.now())
       this.validationsByPublicKey.set(signing_key, hashes)
       const server_version =
-        preceedFlagLedger(validation.ledger_index) &&
+        isPreceedingFlagLedger(validation.ledger_index) &&
         decodeServerVersion(validation.server_version)
       const validator: Validator = {
         master_key: validation.master_key,
