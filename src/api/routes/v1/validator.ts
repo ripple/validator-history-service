@@ -19,7 +19,7 @@ interface ValidatorResponse {
   domain: string
   chain: string
   current_index: number
-  server_version: string | null
+  server_version?: string
   agreement_1h: {
     missed: number
     total: number
@@ -69,7 +69,7 @@ interface dbResponse {
   current_index: string
   domain: string
   chain: string
-  server_version: string | null
+  server_version?: string
   master_key?: string
   signing_key: string
   revoked?: boolean
