@@ -8,8 +8,14 @@ import {
   update30DayValidatorAgreement,
   purgeHourlyAgreementScores,
   signingToMaster,
+  decodeServerVersion,
 } from '../shared/database'
-import { AgreementScore, ValidationRaw, ValidatorKeys } from '../shared/types'
+import {
+  AgreementScore,
+  Validator,
+  ValidationRaw,
+  ValidatorKeys,
+} from '../shared/types'
 import logger from '../shared/utils/logger'
 
 import chains from './chains'
@@ -103,6 +109,16 @@ async function updateDailyAgreement(
 }
 
 /**
+ * Detect the ledger before a flagged ledger, which will contain server version information.
+ *
+ * @param ledger_index - Index of current ledger.
+ * @returns Boolean.
+ */
+function isPreceedingFlagLedger(ledger_index: string): boolean {
+  return parseInt(ledger_index, 10) % 256 === 255
+}
+
+/**
  *
  */
 class Agreement {
@@ -169,13 +185,20 @@ class Agreement {
     if (!hashes.has(validation.ledger_hash)) {
       hashes.set(validation.ledger_hash, Date.now())
       this.validationsByPublicKey.set(signing_key, hashes)
-      const validator = {
+      const server_version =
+        isPreceedingFlagLedger(validation.ledger_index) &&
+        decodeServerVersion(validation.server_version)
+      const validator: Validator = {
         master_key: validation.master_key,
         signing_key,
         ledger_hash: validation.ledger_hash,
         current_index: Number(validation.ledger_index),
         partial: !validation.full,
         last_ledger_time: new Date(),
+      }
+
+      if (server_version) {
+        validator.server_version = server_version
       }
 
       chains.updateLedgers(validation)

@@ -121,10 +121,16 @@ async function setupValidatorsTable(): Promise<void> {
       table.string('unl')
       table.string('domain')
       table.boolean('domain_verified')
+      table.string('server_version')
       table.dateTime('last_ledger_time')
       table.json('agreement_1hour')
       table.json('agreement_24hour')
       table.json('agreement_30day')
+    })
+  }
+  if (!(await db().schema.hasColumn('validators', 'server_version'))) {
+    await db().schema.alterTable('validators', (table) => {
+      table.string('server_version').after('domain_verified')
     })
   }
 }
