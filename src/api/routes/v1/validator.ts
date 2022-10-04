@@ -268,11 +268,11 @@ async function getChains(
   if (unl == null) {
     return undefined
   }
-  const results = await query('networks')
-    .select('id')
+  const results = await query('validators')
+    .select('chain')
     .distinct()
-    .where('unls', '~*', `(%,)?${unl}(,%)?`)
-  return results.map((result) => result.id as string)
+    .where({ unl })
+  return results.map((result) => result.chain as string)
 }
 
 /**
