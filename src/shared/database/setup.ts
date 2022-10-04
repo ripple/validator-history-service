@@ -190,4 +190,21 @@ async function setupNetworksTable(): Promise<void> {
         .catch((err: Error) => log.error(err.message))
     })
   }
+
+  const networksCount = await query('networks').countDistinct('id')
+  const networksIds = await query('networks').pluck('id')
+  if (networksCount[0].count < networks.length) {
+    networks.forEach((network) => {
+      if (!networksIds.includes(network.id)) {
+        query('networks')
+          .insert({
+            id: network.id,
+            entry: network.entry,
+            port: network.port,
+            unls: network.unls.join(','),
+          })
+          .catch((err: Error) => log.error(err.message))
+      }
+    })
+  }
 }
