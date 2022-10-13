@@ -3,13 +3,7 @@ import {
   verifyValidatorDomain,
 } from 'xrpl-validator-domains'
 
-import {
-  saveManifest,
-  getValidatorSigningKeys,
-  query,
-  db,
-  getNetworks,
-} from '../shared/database'
+import { saveManifest, query, db, getNetworks } from '../shared/database'
 import {
   StreamManifest,
   Manifest,
@@ -17,7 +11,7 @@ import {
   UNLValidator,
   DatabaseManifest,
 } from '../shared/types'
-import { fetchValidatorList, fetchRpcManifest, getLists } from '../shared/utils'
+import { fetchValidatorList, getLists } from '../shared/utils'
 import logger from '../shared/utils/logger'
 
 import hard_dunl from './fixtures/unl-hard.json'
@@ -82,54 +76,24 @@ export async function handleManifest(
  *
  * @returns A promise that resolves to void once all UNL validators are saved.
  */
-export async function updateUNLManifests(): Promise<void> {
+async function updateUNLManifests(): Promise<void> {
   try {
     log.info('Fetching UNL...')
-    const unl: UNLBlob = await fetchValidatorList(await getFirstUNL('main'))
-    const promises: Array<Promise<void>> = []
+    const networks = await getNetworks()
+    networks.forEach(async (network) => {
+      const unl: UNLBlob = await fetchValidatorList(network.unls[0])
+      const promises: Array<Promise<void>> = []
 
-    unl.validators.forEach((validator: UNLValidator) => {
-      const manifestHex = Buffer.from(validator.manifest, 'base64')
-        .toString('hex')
-        .toUpperCase()
-      promises.push(handleManifest(manifestHex))
+      unl.validators.forEach((validator: UNLValidator) => {
+        const manifestHex = Buffer.from(validator.manifest, 'base64')
+          .toString('hex')
+          .toUpperCase()
+        promises.push(handleManifest(manifestHex))
+      })
+      await Promise.all(promises)
     })
-    await Promise.all(promises)
   } catch (err) {
     log.error('Error updating UNL manifests', err)
-  }
-}
-
-/**
- * This function loops through all signing keys in the validators table and queries rippled
- * to find the most recent manifest available.
- *
- * @returns A promise that resolves to void once all of the latest manifests have been saved.
- */
-export async function updateManifestsFromRippled(): Promise<void> {
-  try {
-    log.info('Getting latest Manifests...')
-    const keys = await getValidatorSigningKeys()
-
-    const manifestPromises: Array<Promise<string | undefined>> = []
-
-    keys.forEach((key) => {
-      manifestPromises.push(fetchRpcManifest(key))
-    })
-
-    const manifests = await Promise.all(manifestPromises)
-
-    const handleManifestPromises: Array<Promise<void>> = []
-    for (const manifestHex of manifests) {
-      // eslint-disable-next-line max-depth -- necessary depth
-      if (manifestHex) {
-        handleManifestPromises.push(handleManifest(manifestHex))
-      }
-    }
-    await Promise.all(handleManifestPromises)
-    log.info('Manifests updated')
-  } catch (err) {
-    log.error(`Error updating manifests from rippled`, err)
   }
 }
 
@@ -272,7 +236,6 @@ async function updateHardCodedUnls(): Promise<void> {
 
 async function jobs(): Promise<void> {
   await updateUNLManifests()
-  await updateManifestsFromRippled()
   await updateValidatorDomainsFromManifests()
   await updateUnls()
   await updateValidatorMasterKeys()
