@@ -76,7 +76,7 @@ export async function handleManifest(
  *
  * @returns A promise that resolves to void once all UNL validators are saved.
  */
-async function updateUNLManifests(): Promise<void> {
+export async function updateUNLManifests(): Promise<void> {
   try {
     log.info('Fetching UNL...')
     const networks = await getNetworks()
