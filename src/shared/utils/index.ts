@@ -1,10 +1,9 @@
-import axios, { AxiosRequestConfig } from 'axios'
+import axios from 'axios'
 import { normalizeManifest } from 'xrpl-validator-domains'
 
 import { getNetworks } from '../database'
 import { UNL, UNLBlob, UNLValidator } from '../types'
 
-import config from './config'
 import logger from './logger'
 
 const log = logger({ name: 'utils' })
@@ -25,44 +24,6 @@ export async function fetchValidatorList(url: string): Promise<UNLBlob> {
   } catch (err: unknown) {
     log.error('Error fetching validator List', err)
     return Promise.reject()
-  }
-}
-
-/**
- * Fetches the manifest for the public key (master or signing) from rippled.
- *
- * @param key - The public key being queried.
- * @returns A promise that resolves the a hex string representation of the manifest.
- * @throws When http request fails.
- */
-export async function fetchRpcManifest(
-  key: string,
-): Promise<string | undefined> {
-  const data = JSON.stringify({
-    method: 'manifest',
-    params: [{ public_key: `${key}` }],
-  })
-  const params: AxiosRequestConfig = {
-    method: 'post',
-    url: `${config.rippled_rpc_admin_server}`,
-    headers: {
-      'Content-Type': 'application/json',
-    },
-    data,
-  }
-
-  try {
-    const response = await axios(params)
-    const manifestB64 = response.data.result?.manifest
-    if (manifestB64) {
-      const manifestHex = Buffer.from(manifestB64, 'base64')
-        .toString('hex')
-        .toUpperCase()
-      return manifestHex
-    }
-    return undefined
-  } catch {
-    return Promise.resolve(undefined)
   }
 }
 
