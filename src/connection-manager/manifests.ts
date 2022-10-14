@@ -79,7 +79,7 @@ export async function handleManifest(
 // eslint-disable-next-line @typescript-eslint/no-invalid-void-type -- For nested callbacks.
 export async function updateUNLManifests(): Promise<void[][]> {
   try {
-    log.info('Fetching UNL...')
+    log.info('Fetching Manifests from UNLs...')
     const networks = await getNetworks()
     return await Promise.all(
       networks.map(async (network) => {

@@ -71,7 +71,7 @@ describe('manifest ingest', () => {
     })
   })
 
-  test('updateUnlManifests', async () => {
+  test('update Manifests', async () => {
     jest.setTimeout(50000)
     await updateUNLManifests()
     const saved_manifest = await query('manifests')
@@ -92,7 +92,7 @@ describe('manifest ingest', () => {
     })
   })
 
-  test('updates unls', async () => {
+  test('Updates Manifests using UNLs', async () => {
     // Mock validator list contains a single validator
     nock(`http://${VALIDATOR_URL}`).get('/').reply(200, unl1)
     await query('validators').insert({
