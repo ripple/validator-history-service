@@ -72,21 +72,23 @@ describe('manifest ingest', () => {
   })
 
   test('updateUnlManifests', async () => {
-    nock(`http://${VALIDATOR_URL}`).get('/').reply(200, unl1)
+    jest.setTimeout(40000)
     await updateUNLManifests()
-    const saved_manifest = await query('manifests').select('*')
+    const saved_manifest = await query('manifests')
+      .select('*')
+      .orderBy('master_key')
 
     expect(saved_manifest[0]).toEqual({
-      master_key: 'nHBtDzdRDykxiuv7uSMPTcGexNm879RUUz5GW4h1qgjbtyvWZ1LE',
-      signing_key: 'n9LCf7NtwcyXVc5fYB6UVByRoQZqJDhrMUoKnr3GQB6mFqpcmMzg',
+      master_key: 'nHB1bWCNCzBb8Amvcpc7bpgrNDsZRt1wY13nZWmx9FBdsAuQsPJM',
+      signing_key: 'n9KQE1euaUTv6a1Jqwsp66ZaQd846F9kYXp5JsGubzz1D64m6P4m',
       master_signature:
-        'BF0EE69D3CDE683828A2FCB997CC694A9D833B89D06B5AD65C9458F72D4CF0B1635DF95F02BE9C901D16C21414D27D30F8E7A429928D857355AE8CE7F9C07002',
+        '85D888A4B3942D50E615F186F9EC52D6DA590DA34C0AD8CC8AE287423F7C6570CD02847C7690E70457E311E6AE67E18C78C2D52B526469DD21A2C2F8C190770A',
       signature:
-        '3045022100B9558D709F8B2FE6B57056B0DB7BEEDE2329C344069455F33BFE4A953994287402205AF2FA3CC71A6F89895FE33746FA74210763A07E441964F3073ADEC2697CD781',
+        '3044022004B009914B671B89DD6C0012FFD687C2081732667C5DEE9924776528B90BD688022000996992549379F5D5C186ADAB82C6AD85E1038089E247D875C08E0E205BAFFD',
       revoked: false,
       domain: null,
       domain_verified: false,
-      seq: '1',
+      seq: '19',
     })
   })
 

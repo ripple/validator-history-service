@@ -76,24 +76,31 @@ export async function handleManifest(
  *
  * @returns A promise that resolves to void once all UNL validators are saved.
  */
-export async function updateUNLManifests(): Promise<void> {
+// eslint-disable-next-line @typescript-eslint/no-invalid-void-type -- For nested callbacks.
+export async function updateUNLManifests(): Promise<void[][]> {
   try {
     log.info('Fetching UNL...')
     const networks = await getNetworks()
-    networks.forEach(async (network) => {
-      const unl: UNLBlob = await fetchValidatorList(network.unls[0])
-      const promises: Array<Promise<void>> = []
-
-      unl.validators.forEach((validator: UNLValidator) => {
-        const manifestHex = Buffer.from(validator.manifest, 'base64')
-          .toString('hex')
-          .toUpperCase()
-        promises.push(handleManifest(manifestHex))
-      })
-      await Promise.all(promises)
-    })
+    return await Promise.all(
+      networks.map(async (network) => {
+        return fetchValidatorList(network.unls[0]).then(
+          async (unl: UNLBlob) => {
+            return Promise.all(
+              // eslint-disable-next-line max-nested-callbacks -- Nested callbacks needed to ensure function fully executed.
+              unl.validators.map(async (validator: UNLValidator) => {
+                const manifestHex = Buffer.from(validator.manifest, 'base64')
+                  .toString('hex')
+                  .toUpperCase()
+                return handleManifest(manifestHex)
+              }),
+            )
+          },
+        )
+      }),
+    )
   } catch (err) {
     log.error('Error updating UNL manifests', err)
+    return Promise.reject(err)
   }
 }
 
