@@ -1,15 +1,17 @@
+import async from 'async'
 import {
   normalizeManifest,
   verifyValidatorDomain,
 } from 'xrpl-validator-domains'
 
 import { saveManifest, query, db, getNetworks } from '../shared/database'
+import { Network } from '../shared/database/networks'
 import {
   StreamManifest,
   Manifest,
-  UNLBlob,
   UNLValidator,
   DatabaseManifest,
+  UNLBlob,
 } from '../shared/types'
 import { fetchValidatorList, getLists } from '../shared/utils'
 import logger from '../shared/utils/logger'
@@ -76,31 +78,23 @@ export async function handleManifest(
  *
  * @returns A promise that resolves to void once all UNL validators are saved.
  */
-// eslint-disable-next-line @typescript-eslint/no-invalid-void-type -- Special void type for nested callbacks.
-export async function updateUNLManifests(): Promise<void[][]> {
+export async function updateUNLManifests(): Promise<void> {
   try {
     log.info('Fetching Manifests from UNLs...')
     const networks = await getNetworks()
-    return await Promise.all(
-      networks.map(async (network) => {
-        return fetchValidatorList(network.unls[0]).then(
-          async (unl: UNLBlob) => {
-            return Promise.all(
-              // eslint-disable-next-line max-nested-callbacks -- Nested callbacks needed to ensure function fully executed.
-              unl.validators.map(async (validator: UNLValidator) => {
-                const manifestHex = Buffer.from(validator.manifest, 'base64')
-                  .toString('hex')
-                  .toUpperCase()
-                return handleManifest(manifestHex)
-              }),
-            )
-          },
-        )
-      }),
-    )
+
+    await async.map(networks, async (network: Network) => {
+      const unl: UNLBlob = await fetchValidatorList(network.unls[0])
+      await async.map(unl.validators, async (validator: UNLValidator) => {
+        const manifestHex = Buffer.from(validator.manifest, 'base64')
+          .toString('hex')
+          .toUpperCase()
+        return handleManifest(manifestHex)
+      })
+    })
+    return
   } catch (err) {
     log.error('Error updating UNL manifests', err)
-    return Promise.reject(err)
   }
 }
 
