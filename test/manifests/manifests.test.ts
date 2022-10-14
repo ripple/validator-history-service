@@ -72,7 +72,7 @@ describe('manifest ingest', () => {
   })
 
   test('updateUnlManifests', async () => {
-    jest.setTimeout(40000)
+    jest.setTimeout(50000)
     await updateUNLManifests()
     const saved_manifest = await query('manifests')
       .select('*')
