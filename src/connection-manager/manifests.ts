@@ -76,7 +76,7 @@ export async function handleManifest(
  *
  * @returns A promise that resolves to void once all UNL validators are saved.
  */
-// eslint-disable-next-line @typescript-eslint/no-invalid-void-type -- For nested callbacks.
+// eslint-disable-next-line @typescript-eslint/no-invalid-void-type -- Special void type for nested callbacks.
 export async function updateUNLManifests(): Promise<void[][]> {
   try {
     log.info('Fetching Manifests from UNLs...')
