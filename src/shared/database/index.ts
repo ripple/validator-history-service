@@ -166,6 +166,22 @@ export async function saveManifest(manifest: DatabaseManifest): Promise<void> {
 }
 
 /**
+ * Returns all validator signing keys.
+ *
+ * @returns An array of all master keys.
+ */
+export async function getValidatorSigningKeys(): Promise<string[]> {
+  return query('validators')
+    .select('signing_key')
+    .then(async (keys) => {
+      return keys.map((key: { signing_key: string }) => {
+        return key.signing_key
+      })
+    })
+    .catch((err) => log.error('Error getting validator signing keys', err))
+}
+
+/**
  * Saves a Location to database.
  *
  * @param location - Location to write to database.
