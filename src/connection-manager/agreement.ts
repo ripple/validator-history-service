@@ -195,6 +195,7 @@ class Agreement {
         current_index: Number(validation.ledger_index),
         partial: !validation.full,
         last_ledger_time: new Date(),
+        networks: validation.networks,
       }
 
       if (server_version) {

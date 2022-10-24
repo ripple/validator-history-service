@@ -70,6 +70,7 @@ interface ValidationRaw {
   type: string
   validation_public_key: string
   server_version?: string
+  networks?: string
   // The validation_public_key is the same as the signing_key in StreamManifest
 }
 
@@ -87,6 +88,7 @@ interface Validator {
   partial: boolean
   last_ledger_time: Date
   server_version?: string
+  networks?: string
 }
 
 interface DatabaseValidator extends Validator {
