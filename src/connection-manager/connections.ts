@@ -13,6 +13,7 @@ const connections: Map<string, WebSocket> = new Map()
 const CM_INTERVAL = 60 * 60 * 1000
 const WS_TIMEOUT = 10000
 const REPORTING_INTERVAL = 15 * 60 * 1000
+const LEDGER_HASHES_SIZE = 10
 let cmStarted = false
 
 /**
@@ -25,7 +26,7 @@ function subscribe(ws: WebSocket): void {
     JSON.stringify({
       id: 2,
       command: 'subscribe',
-      streams: ['manifests', 'validations'],
+      streams: ['manifests', 'validations', 'ledger'],
     }),
   )
 }
@@ -43,6 +44,7 @@ async function setHandlers(
   ws: WebSocket,
   networks: string | undefined,
 ): Promise<void> {
+  const ledger_hashes: string[] = []
   return new Promise(function setHandlersPromise(resolve, _reject) {
     ws.on('open', () => {
       if (connections.has(ip)) {
@@ -63,10 +65,17 @@ async function setHandlers(
         return
       }
       if (data?.type === 'validationReceived') {
-        data.networks = networks
+        if (ledger_hashes.includes(data.ledger_hash)) {
+          data.networks = networks
+        }
         void agreement.handleValidation(data)
       } else if (data?.type === 'manifestReceived') {
         void handleManifest(data)
+      } else if (data?.type.includes('ledger')) {
+        ledger_hashes.push(data.ledger_hash)
+        if (ledger_hashes.length > LEDGER_HASHES_SIZE) {
+          ledger_hashes.shift()
+        }
       }
     })
     ws.on('close', () => {
