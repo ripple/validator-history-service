@@ -1,6 +1,7 @@
 import WebSocket from 'ws'
 
 import { query, saveNodeWsUrl, clearConnectionsDb } from '../shared/database'
+import { StreamLedger, StreamManifest, ValidationRaw } from '../shared/types'
 import logger from '../shared/utils/logger'
 
 import agreement from './agreement'
@@ -29,6 +30,34 @@ function subscribe(ws: WebSocket): void {
       streams: ['manifests', 'validations', 'ledger'],
     }),
   )
+}
+
+/**
+ * Handles a WebSocket message received.
+ *
+ * @param data - The WebSocket message received from connection.
+ * @param ledger_hashes - The list of recent ledger hashes.
+ * @param networks - The networks of subscribed node.
+ * @returns Void.
+ */
+async function handleWsMessageTypes(
+  data: ValidationRaw | StreamManifest | StreamLedger,
+  ledger_hashes: string[],
+  networks: string | undefined,
+): Promise<void> {
+  if (data.type === 'validationReceived') {
+    if (ledger_hashes.includes((data as ValidationRaw).ledger_hash)) {
+      ;(data as ValidationRaw).networks = networks
+    }
+    void agreement.handleValidation(data as ValidationRaw)
+  } else if (data.type === 'manifestReceived') {
+    void handleManifest(data as StreamManifest)
+  } else if (data.type.includes('ledger')) {
+    ledger_hashes.push((data as StreamLedger).ledger_hash)
+    if (ledger_hashes.length > LEDGER_HASHES_SIZE) {
+      ledger_hashes.shift()
+    }
+  }
 }
 
 /**
@@ -64,19 +93,7 @@ async function setHandlers(
         log.error('Error parsing validation message', error)
         return
       }
-      if (data?.type === 'validationReceived') {
-        if (ledger_hashes.includes(data.ledger_hash)) {
-          data.networks = networks
-        }
-        void agreement.handleValidation(data)
-      } else if (data?.type === 'manifestReceived') {
-        void handleManifest(data)
-      } else if (data?.type.includes('ledger')) {
-        ledger_hashes.push(data.ledger_hash)
-        if (ledger_hashes.length > LEDGER_HASHES_SIZE) {
-          ledger_hashes.shift()
-        }
-      }
+      void handleWsMessageTypes(data, ledger_hashes, networks)
     })
     ws.on('close', () => {
       if (connections.get(ip)?.url === ws.url) {

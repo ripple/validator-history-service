@@ -17,6 +17,18 @@ interface Ledger {
   first_seen: number
 }
 
+interface StreamLedger {
+  fee_base: number
+  fee_ref: number
+  ledger_hash: string
+  ledger_index: number
+  ledger_time: number
+  reserve_base: number
+  reserve_inc: number
+  txn_id: number
+  type: string
+}
+
 interface Node {
   public_key: string
   complete_ledgers?: string
@@ -179,6 +191,7 @@ export {
   AgreementScore,
   Location,
   Ledger,
+  StreamLedger,
   Chain,
   ValidatorKeys,
 }
