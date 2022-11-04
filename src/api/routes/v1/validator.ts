@@ -18,6 +18,7 @@ interface ValidatorResponse {
   revoked?: boolean
   domain: string
   chain: string
+  networks?: string
   current_index: number
   server_version?: string
   agreement_1h: {
@@ -69,6 +70,7 @@ interface dbResponse {
   current_index: string
   domain: string
   chain: string
+  networks?: string
   server_version?: string
   master_key?: string
   signing_key: string
@@ -96,6 +98,7 @@ async function getValidators(): Promise<ValidatorResponse[]> {
       'current_index',
       'domain',
       'chain',
+      'networks',
       'server_version',
       'master_key',
       'signing_key',
@@ -174,6 +177,7 @@ function formatResponse(resp: dbResponse): ValidatorResponse {
     domain: resp.domain,
     chain: resp.chain,
     server_version: resp.server_version,
+    networks: resp.networks,
     current_index: Number(resp.current_index),
     agreement_1h: hour1_score,
     agreement_24h: hour24_score,
@@ -204,6 +208,7 @@ async function findInDatabase(
       'domain',
       'chain',
       'server_version',
+      'networks',
       'master_key',
       'signing_key',
       'master_key',
