@@ -32,6 +32,11 @@ const info = {
       example: 'https://data.xrpl.org/v1/network/validators/{unl}',
     },
     {
+      action: 'Get Validators By Networks',
+      route: '/v2/network/validators/{networks}',
+      example: 'https://data.xrpl.org/v1/network/validators/{networks}',
+    },
+    {
       action: 'Get Validator',
       route: '/v2/network/validator/{pubkey}',
       example: 'https://data.xrpl.org/v1/network/validator/{pubkey}',

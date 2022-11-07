@@ -1,6 +1,6 @@
 import { Request, Response } from 'express'
 
-import { query } from '../../../shared/database'
+import { getNetworks, query } from '../../../shared/database'
 import { AgreementScore } from '../../../shared/types'
 import logger from '../../../shared/utils/logger'
 
@@ -264,19 +264,28 @@ export async function handleValidator(
 /**
  * Get the chains associated with the given UNL.
  *
- * @param unl - The UNL of the chain.
+ * @param param - The UNL/Networks of the chain.
  * @returns The chains associated with that UNL.
  */
 async function getChains(
-  unl: string | undefined,
+  param: string | undefined,
 ): Promise<string[] | undefined> {
-  if (unl == null) {
+  if (param == null) {
     return undefined
   }
+  const networksDb = await getNetworks()
+  const networks = networksDb.map((network) => network.id)
+  let requestedField
+  if (networks.includes(param)) {
+    requestedField = 'networks'
+  } else {
+    requestedField = 'unl'
+  }
+  console.log(requestedField)
   const results = await query('validators')
     .select('chain')
     .distinct()
-    .where({ unl })
+    .where(requestedField, param)
   return results.map((result) => result.chain as string)
 }
 
@@ -295,8 +304,9 @@ export async function handleValidators(
       await cacheValidators()
     }
 
-    const { unl } = req.params
-    const chains = await getChains(unl)
+    const { param } = req.params
+    console.log(param)
+    const chains = await getChains(param)
     const validators =
       chains == null
         ? cache.validators
