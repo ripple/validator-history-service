@@ -281,7 +281,6 @@ async function getChains(
   } else {
     requestedField = 'unl'
   }
-  console.log(requestedField)
   const results = await query('validators')
     .select('chain')
     .distinct()
@@ -305,7 +304,6 @@ export async function handleValidators(
     }
 
     const { param } = req.params
-    console.log(param)
     const chains = await getChains(param)
     const validators =
       chains == null
