@@ -73,26 +73,6 @@ This table keeps track of how reliable validators have been, on an hourly level.
 | `start`              |The time that the data starts.         |
 | `agreement`          |Data about the reliability of the node.|
 
-
-<!--
-### `ledgers`
-
-This table does not appear to be used at all.
-
-| Key                  | Definition                                              |
-|----------------------|---------------------------------------------------------|
-| `ledger_hash`        |The hash of the ledger.                                  |
-| `ledger_index`       |The index of the ledger.                                 |
-| `full`               |                                                         |
-| `main`               |                                                         |
-| `altnet`             |                                                         |
-| `partial`            |                                                         |
-| `missing`            |                                                         |
-| `avg_load_fee`       |                                                         |
-| `avg_sign_time`      |                                                         |
-| `updated`            |                                                         |
--->
-
 ### `location`
 
 This table keeps track of the physical location of all of the nodes that the network is aware of.
