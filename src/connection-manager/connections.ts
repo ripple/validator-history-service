@@ -46,8 +46,9 @@ async function handleWsMessageTypes(
   networks: string | undefined,
 ): Promise<void> {
   if (data.type === 'validationReceived') {
-    if (ledger_hashes.includes((data as ValidationRaw).ledger_hash)) {
-      ;(data as ValidationRaw).networks = networks
+    const validationData = data as ValidationRaw
+    if (ledger_hashes.includes(validationData.ledger_hash)) {
+      validationData.networks = networks
     }
     void agreement.handleValidation(data as ValidationRaw)
   } else if (data.type === 'manifestReceived') {
