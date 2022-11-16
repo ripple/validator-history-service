@@ -1,7 +1,7 @@
 import axios, { AxiosRequestConfig } from 'axios'
 import { normalizeManifest } from 'xrpl-validator-domains'
 
-import { getNetworks } from '../database'
+import { getNetworks, query } from '../database'
 import { UNL, UNLBlob, UNLValidator } from '../types'
 
 import config from './config'
@@ -29,6 +29,26 @@ export async function fetchValidatorList(url: string): Promise<UNLBlob> {
 }
 
 /**
+ * Get the network entry node's url for a validator.
+ *
+ * @param key - The public key of the validator.
+ * @returns A promise that resolves to the network entry url string.
+ */
+async function getNetworksEntryUrl(key: string): Promise<string | null> {
+  const networkDb = await query('validators')
+    .select('networks')
+    .where('signing_key', key)
+  const network = networkDb[0]?.networks
+  if (network !== null) {
+    const entry = await query('networks')
+      .select('entry', 'port')
+      .where('id', network)
+    return `https://${entry[0]?.entry as string}:${entry[0]?.port as string}`
+  }
+  return null
+}
+
+/**
  * Fetches the manifest for the public key (master or signing) from rippled.
  *
  * @param key - The public key being queried.
@@ -38,6 +58,8 @@ export async function fetchValidatorList(url: string): Promise<UNLBlob> {
 export async function fetchRpcManifest(
   key: string,
 ): Promise<string | undefined> {
+  const url = await getNetworksEntryUrl(key)
+  console.log(url)
   const data = JSON.stringify({
     method: 'manifest',
     params: [{ public_key: `${key}` }],
