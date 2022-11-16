@@ -93,7 +93,7 @@ describe('manifest ingest', () => {
   })
 
   test('updateManifestsFromRippled', async () => {
-    jest.setTimeout(20000)
+    jest.setTimeout(10000)
     nock('https://p2p.livenet.ripple.com:51234')
       .post('/')
       .reply(200, {
@@ -129,6 +129,7 @@ describe('manifest ingest', () => {
     await handleManifest(manifest)
     await updateManifestsFromRippled()
     const manifests = await query('manifests').select('*')
+    console.log(manifests)
     expect(manifests[1]).toEqual({
       master_key: 'nHUpcmNsxAw47yt2ADDoNoQrzLyTJPgnyq16u6Qx2kRPA17oUNHz',
       signing_key: 'n9Ls4GcrofTvLvymKh1wCqxw1aLzXUumyBBD9fAtbkk9WtdQ4TUH',
