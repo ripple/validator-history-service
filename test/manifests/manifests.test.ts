@@ -93,7 +93,7 @@ describe('manifest ingest', () => {
   })
 
   test('updateManifestsFromRippled', async () => {
-    jest.setTimeout(10000)
+    jest.setTimeout(20000)
     nock('https://p2p.livenet.ripple.com:51234')
       .post('/')
       .reply(200, {
