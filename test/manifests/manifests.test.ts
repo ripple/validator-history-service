@@ -117,10 +117,6 @@ describe('manifest ingest', () => {
       networks: 'main',
     })
 
-    const validators = await query('validators').select('*')
-    // eslint-disable-next-line no-console -- For testing.
-    console.log(validators)
-
     const manifest = {
       master_key: 'nHUpcmNsxAw47yt2ADDoNoQrzLyTJPgnyq16u6Qx2kRPA17oUNHz',
       master_signature:
@@ -133,8 +129,6 @@ describe('manifest ingest', () => {
     await handleManifest(manifest)
     await updateManifestsFromRippled()
     const manifests = await query('manifests').select('*')
-    // eslint-disable-next-line no-console -- For testing.
-    console.log(manifests)
     expect(manifests[1]).toEqual({
       master_key: 'nHUpcmNsxAw47yt2ADDoNoQrzLyTJPgnyq16u6Qx2kRPA17oUNHz',
       signing_key: 'n9Ls4GcrofTvLvymKh1wCqxw1aLzXUumyBBD9fAtbkk9WtdQ4TUH',
