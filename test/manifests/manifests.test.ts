@@ -117,6 +117,10 @@ describe('manifest ingest', () => {
       networks: 'main',
     })
 
+    const validators = await query('validators').select('*')
+    // eslint-disable-next-line no-console -- For testing.
+    console.log(validators)
+
     const manifest = {
       master_key: 'nHUpcmNsxAw47yt2ADDoNoQrzLyTJPgnyq16u6Qx2kRPA17oUNHz',
       master_signature:
