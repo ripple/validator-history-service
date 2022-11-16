@@ -94,7 +94,7 @@ describe('manifest ingest', () => {
 
   test('updateManifestsFromRippled', async () => {
     jest.setTimeout(10000)
-    nock('https://s.altnet.rippletest.net:51234')
+    nock('https://s.devnet.rippletest.net:51234')
       .post('/')
       .reply(200, {
         result: {
@@ -114,7 +114,7 @@ describe('manifest ingest', () => {
 
     await query('validators').insert({
       signing_key: 'n94D6X6oFGyuvWpSjGwv3rmGSPSi5gNEVCDwnEc8arLC6HnqfEhn',
-      networks: 'test',
+      networks: 'dev',
     })
 
     const manifest = {
