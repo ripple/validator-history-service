@@ -4,10 +4,10 @@ import { normalizeManifest } from 'xrpl-validator-domains'
 import { getNetworks, query } from '../database'
 import { UNL, UNLBlob, UNLValidator } from '../types'
 
-import config from './config'
 import logger from './logger'
 
 const log = logger({ name: 'utils' })
+const HTTPS_PORT = 51234
 
 /**
  * Fetches the UNL.
@@ -40,10 +40,8 @@ async function getNetworksEntryUrl(key: string): Promise<string | null> {
     .where('signing_key', key)
   const network = networkDb[0]?.networks
   if (network !== null) {
-    const entry = await query('networks')
-      .select('entry', 'port')
-      .where('id', network)
-    return `https://${entry[0]?.entry as string}:${entry[0]?.port as string}`
+    const entry = await query('networks').select('entry').where('id', network)
+    return `https://${entry[0]?.entry as string}:${HTTPS_PORT}`
   }
   return null
 }
@@ -59,14 +57,16 @@ export async function fetchRpcManifest(
   key: string,
 ): Promise<string | undefined> {
   const url = await getNetworksEntryUrl(key)
-  console.log(url)
+  if (url === null) {
+    return undefined
+  }
   const data = JSON.stringify({
     method: 'manifest',
     params: [{ public_key: `${key}` }],
   })
   const params: AxiosRequestConfig = {
     method: 'post',
-    url: `${config.rippled_rpc_admin_server}`,
+    url,
     headers: {
       'Content-Type': 'application/json',
     },
