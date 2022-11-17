@@ -40,9 +40,6 @@ async function getNetworksEntryUrl(key: string): Promise<string | null> {
     .select('networks')
     .where('signing_key', key)
   const network = networkDb[0]?.networks
-  if (network === 'main') {
-    return `${config.rippled_rpc_admin_server}`
-  }
   if (network !== null) {
     const entry = await query('networks').select('entry').where('id', network)
     return `https://${entry[0]?.entry as string}:${HTTPS_PORT}`
