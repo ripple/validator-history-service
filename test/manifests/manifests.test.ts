@@ -93,7 +93,7 @@ describe('manifest ingest', () => {
   })
 
   test('updateManifestsFromRippled', async () => {
-    jest.setTimeout(10000)
+    jest.setTimeout(15000)
     nock(`${config.rippled_rpc_admin_server}`)
       .post('/')
       .reply(200, {
@@ -111,6 +111,12 @@ describe('manifest ingest', () => {
           status: 'success',
         },
       })
+
+    const mainnet_server = await query('networks')
+      .select('entry')
+      .where('id', 'main')
+    // eslint-disable-next-line no-console -- for testing.
+    console.log(mainnet_server)
 
     await query('validators').insert({
       signing_key: 'n94D6X6oFGyuvWpSjGwv3rmGSPSi5gNEVCDwnEc8arLC6HnqfEhn',
