@@ -57,6 +57,8 @@ export async function fetchRpcManifest(
   key: string,
 ): Promise<string | undefined> {
   const url = await getNetworksEntryUrl(key)
+  // eslint-disable-next-line no-console -- For testing.
+  console.log(url)
   if (url === null) {
     return undefined
   }
@@ -74,7 +76,11 @@ export async function fetchRpcManifest(
   }
 
   try {
+    // eslint-disable-next-line no-console -- For testing.
+    console.log('heree')
     const response = await axios(params)
+    // eslint-disable-next-line no-console -- For testing.
+    console.log(response)
     const manifestB64 = response.data.result?.manifest
     if (manifestB64) {
       const manifestHex = Buffer.from(manifestB64, 'base64')
@@ -84,6 +90,8 @@ export async function fetchRpcManifest(
     }
     return undefined
   } catch {
+    // eslint-disable-next-line no-console -- For testing.
+    console.log('failedd')
     return Promise.resolve(undefined)
   }
 }
