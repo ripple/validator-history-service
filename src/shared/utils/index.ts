@@ -4,6 +4,7 @@ import { normalizeManifest } from 'xrpl-validator-domains'
 import { getNetworks, query } from '../database'
 import { UNL, UNLBlob, UNLValidator } from '../types'
 
+import config from './config'
 import logger from './logger'
 
 const log = logger({ name: 'utils' })
@@ -39,6 +40,9 @@ async function getNetworksEntryUrl(key: string): Promise<string | null> {
     .select('networks')
     .where('signing_key', key)
   const network = networkDb[0]?.networks
+  if (network === 'main') {
+    return `${config.rippled_rpc_admin_server}`
+  }
   if (network !== null) {
     const entry = await query('networks').select('entry').where('id', network)
     return `https://${entry[0]?.entry as string}:${HTTPS_PORT}`
@@ -57,8 +61,6 @@ export async function fetchRpcManifest(
   key: string,
 ): Promise<string | undefined> {
   const url = await getNetworksEntryUrl(key)
-  // eslint-disable-next-line no-console -- For testing.
-  console.log(url)
   if (url === null) {
     return undefined
   }
@@ -76,11 +78,7 @@ export async function fetchRpcManifest(
   }
 
   try {
-    // eslint-disable-next-line no-console -- For testing.
-    console.log('heree')
     const response = await axios(params)
-    // eslint-disable-next-line no-console -- For testing.
-    console.log(response)
     const manifestB64 = response.data.result?.manifest
     if (manifestB64) {
       const manifestHex = Buffer.from(manifestB64, 'base64')
@@ -90,8 +88,6 @@ export async function fetchRpcManifest(
     }
     return undefined
   } catch {
-    // eslint-disable-next-line no-console -- For testing.
-    console.log('failedd')
     return Promise.resolve(undefined)
   }
 }

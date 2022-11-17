@@ -13,6 +13,7 @@ import {
   tearDown,
 } from '../../src/shared/database'
 import networks from '../../src/shared/database/networks'
+import config from '../../src/shared/utils/config'
 // import config from '../../src/shared/utils/config'
 
 import unl1 from './fixtures/unl-response1.json'
@@ -94,7 +95,7 @@ describe('manifest ingest', () => {
 
   test('updateManifestsFromRippled', async () => {
     jest.setTimeout(10000)
-    nock('https://p2p.livenet.ripple.com:51234')
+    nock(`${config.rippled_rpc_admin_server}`)
       .post('/')
       .reply(200, {
         result: {
