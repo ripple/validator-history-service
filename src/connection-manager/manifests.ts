@@ -6,10 +6,10 @@ import {
 
 import {
   saveManifest,
+  getValidatorSigningKeys,
   query,
   db,
   getNetworks,
-  getValidatorSigningKeys,
 } from '../shared/database'
 import { Network } from '../shared/database/networks'
 import {
