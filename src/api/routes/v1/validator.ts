@@ -1,3 +1,4 @@
+/* eslint-disable max-lines -- This file contains interfaces which consume many line. */
 import { Request, Response } from 'express'
 
 import { getNetworks, query } from '../../../shared/database'
@@ -279,6 +280,7 @@ async function getChains(
   networksDb.forEach((network) => {
     unls.push(...network.unls)
   })
+
   let requestedField
   if (networks.includes(param)) {
     requestedField = 'networks'
@@ -287,6 +289,7 @@ async function getChains(
   } else {
     return []
   }
+
   const results = await query('validators')
     .select('chain')
     .distinct()
