@@ -84,9 +84,7 @@ describe('manifest ingest', () => {
       unls: [VALIDATOR_URL, 'vl.xrplf.org', 'vl.coil.com'].join(','),
     })
     await updateUNLManifests()
-    const saved_manifest = await query('manifests')
-      .select('*')
-      .orderBy('master_key')
+    const saved_manifest = await query('manifests').select('*')
     expect(saved_manifest[0]).toEqual({
       master_key: 'nHBtDzdRDykxiuv7uSMPTcGexNm879RUUz5GW4h1qgjbtyvWZ1LE',
       signing_key: 'n9LCf7NtwcyXVc5fYB6UVByRoQZqJDhrMUoKnr3GQB6mFqpcmMzg',
