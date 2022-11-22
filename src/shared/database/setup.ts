@@ -165,7 +165,10 @@ async function setupNetworksTable(): Promise<void> {
       table.string('unls')
       table.primary(['entry'])
     })
-    networks.forEach((network) => {
+  }
+  const networksIds = await query('networks').pluck('id')
+  networks.forEach((network) => {
+    if (!networksIds.includes(network.id)) {
       query('networks')
         .insert({
           id: network.id,
@@ -174,6 +177,6 @@ async function setupNetworksTable(): Promise<void> {
           unls: network.unls.join(','),
         })
         .catch((err: Error) => log.error(err.message))
-    })
-  }
+    }
+  })
 }
