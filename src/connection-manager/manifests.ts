@@ -98,7 +98,6 @@ export async function updateUNLManifests(): Promise<void> {
         return handleManifest(manifestHex)
       })
     })
-    return
   } catch (err) {
     log.error('Error updating UNL manifests', err)
   }
