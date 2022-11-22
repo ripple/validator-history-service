@@ -275,11 +275,17 @@ async function getChains(
   }
   const networksDb = await getNetworks()
   const networks = networksDb.map((network) => network.id)
+  const unls: string[] = []
+  networksDb.forEach((network) => {
+    unls.push(...network.unls)
+  })
   let requestedField
   if (networks.includes(param)) {
     requestedField = 'networks'
-  } else {
+  } else if (unls.includes(param)) {
     requestedField = 'unl'
+  } else {
+    return []
   }
   const results = await query('validators')
     .select('chain')
