@@ -104,6 +104,7 @@ async function setupValidatorsTable(): Promise<void> {
       table.integer('load_fee')
       table.boolean('partial')
       table.string('chain')
+      table.string('networks')
       table.string('unl')
       table.string('domain')
       table.boolean('domain_verified')
@@ -117,6 +118,11 @@ async function setupValidatorsTable(): Promise<void> {
   if (!(await db().schema.hasColumn('validators', 'server_version'))) {
     await db().schema.alterTable('validators', (table) => {
       table.string('server_version').after('domain_verified')
+    })
+  }
+  if (!(await db().schema.hasColumn('validators', 'networks'))) {
+    await db().schema.alterTable('validators', (table) => {
+      table.string('networks').after('chain')
     })
   }
 }

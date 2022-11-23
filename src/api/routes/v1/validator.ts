@@ -1,8 +1,9 @@
 import { Request, Response } from 'express'
 
 import { query } from '../../../shared/database'
-import { AgreementScore } from '../../../shared/types'
 import logger from '../../../shared/utils/logger'
+
+import { formatAgreementScore, getChains } from './utils'
 
 const log = logger({ name: 'api-validator' })
 
@@ -18,6 +19,7 @@ interface ValidatorResponse {
   revoked?: boolean
   domain: string
   chain: string
+  networks?: string
   current_index: number
   server_version?: string
   agreement_1h: {
@@ -69,6 +71,7 @@ interface dbResponse {
   current_index: string
   domain: string
   chain: string
+  networks?: string
   server_version?: string
   master_key?: string
   signing_key: string
@@ -96,6 +99,7 @@ async function getValidators(): Promise<ValidatorResponse[]> {
       'current_index',
       'domain',
       'chain',
+      'networks',
       'server_version',
       'master_key',
       'signing_key',
@@ -118,28 +122,6 @@ async function cacheValidators(): Promise<void> {
     cache.time = Date.now()
   } catch (err) {
     log.error(err.toString())
-  }
-}
-
-/**
- * Formats agreement score for response.
- *
- * @param agreement - Agreement Score.
- * @returns Response based on agreement score.
- */
-function formatAgreementScore(
-  agreement: AgreementScore,
-): { missed: number; total: number; score: string; incomplete: boolean } {
-  const { validated, missed, incomplete } = agreement
-  const total = missed + validated
-
-  const score = total === 0 ? 0 : validated / total
-
-  return {
-    missed,
-    total,
-    score: score.toFixed(5),
-    incomplete,
   }
 }
 
@@ -174,6 +156,7 @@ function formatResponse(resp: dbResponse): ValidatorResponse {
     domain: resp.domain,
     chain: resp.chain,
     server_version: resp.server_version,
+    networks: resp.networks,
     current_index: Number(resp.current_index),
     agreement_1h: hour1_score,
     agreement_24h: hour24_score,
@@ -204,6 +187,7 @@ async function findInDatabase(
       'domain',
       'chain',
       'server_version',
+      'networks',
       'master_key',
       'signing_key',
       'master_key',
@@ -257,25 +241,6 @@ export async function handleValidator(
 }
 
 /**
- * Get the chains associated with the given UNL.
- *
- * @param unl - The UNL of the chain.
- * @returns The chains associated with that UNL.
- */
-async function getChains(
-  unl: string | undefined,
-): Promise<string[] | undefined> {
-  if (unl == null) {
-    return undefined
-  }
-  const results = await query('validators')
-    .select('chain')
-    .distinct()
-    .where({ unl })
-  return results.map((result) => result.chain as string)
-}
-
-/**
  * Handles Validators Request.
  *
  * @param req - Express request.
@@ -290,8 +255,8 @@ export async function handleValidators(
       await cacheValidators()
     }
 
-    const { unl } = req.params
-    const chains = await getChains(unl)
+    const { param } = req.params
+    const chains = await getChains(param)
     const validators =
       chains == null
         ? cache.validators
