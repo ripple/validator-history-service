@@ -37,7 +37,8 @@ export async function fetchValidatorList(url: string): Promise<UNLBlob> {
 async function getNetworksEntryUrl(key: string): Promise<string | null> {
   const networkDb = await query('validators')
     .select('networks')
-    .where('signing_key', key)
+    .where('master_key', key)
+    .orWhere('signing_key', key)
   const network = networkDb[0]?.networks
   if (network !== null) {
     const entry = await query('networks').select('entry').where('id', network)

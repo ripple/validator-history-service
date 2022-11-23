@@ -166,17 +166,19 @@ export async function saveManifest(manifest: DatabaseManifest): Promise<void> {
 }
 
 /**
- * Returns all validator signing keys.
+ * Returns all validator master/signing keys.
  *
- * @returns An array of all master keys.
+ * @returns An array of all master/signing keys.
  */
-export async function getValidatorSigningKeys(): Promise<string[]> {
+export async function getValidatorKeys(): Promise<string[]> {
   return query('validators')
-    .select('signing_key')
+    .select('master_key', 'signing_key')
     .then(async (keys) => {
-      return keys.map((key: { signing_key: string }) => {
-        return key.signing_key
-      })
+      return keys.map(
+        (key: { master_key: string | null; signing_key: string }) => {
+          return key.master_key ?? key.signing_key
+        },
+      )
     })
     .catch((err) => log.error('Error getting validator signing keys', err))
 }
