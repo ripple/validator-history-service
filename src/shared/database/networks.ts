@@ -46,6 +46,12 @@ const networks: Network[] = [
     port: 51235,
     unls: ['nftvalidators.s3.us-west-2.amazonaws.com/index.json'],
   },
+  {
+    id: 'amm-dev',
+    entry: 'amm.devnet.rippletest.net',
+    port: 51235,
+    unls: ['vlamm.devnet.rippletest.net'],
+  },
 ]
 
 export default networks

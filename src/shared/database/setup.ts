@@ -89,21 +89,7 @@ async function setupManifestTable(): Promise<void> {
 }
 
 async function setupLedgersTable(): Promise<void> {
-  const hasLedgers = await db().schema.hasTable('ledgers')
-  if (!hasLedgers) {
-    await db().schema.createTable('ledgers', (table) => {
-      table.string('ledger_hash').primary()
-      table.integer('ledger_index').index()
-      table.integer('full')
-      table.integer('main')
-      table.integer('altnet')
-      table.json('partial')
-      table.json('missing')
-      table.double('avg_load_fee')
-      table.dateTime('avg_sign_time')
-      table.dateTime('updated')
-    })
-  }
+  await db().schema.dropTableIfExists('ledgers')
 }
 
 async function setupValidatorsTable(): Promise<void> {
@@ -185,7 +171,10 @@ async function setupNetworksTable(): Promise<void> {
       table.string('unls')
       table.primary(['entry'])
     })
-    networks.forEach((network) => {
+  }
+  const networksIds = await query('networks').pluck('id')
+  networks.forEach((network) => {
+    if (!networksIds.includes(network.id)) {
       query('networks')
         .insert({
           id: network.id,
@@ -194,6 +183,6 @@ async function setupNetworksTable(): Promise<void> {
           unls: network.unls.join(','),
         })
         .catch((err: Error) => log.error(err.message))
-    })
-  }
+    }
+  })
 }
