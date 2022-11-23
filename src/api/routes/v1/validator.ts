@@ -1,8 +1,9 @@
 import { Request, Response } from 'express'
 
-import { getNetworks, query } from '../../../shared/database'
-import { AgreementScore } from '../../../shared/types'
+import { query } from '../../../shared/database'
 import logger from '../../../shared/utils/logger'
+
+import { formatAgreementScore, getChains } from './utils'
 
 const log = logger({ name: 'api-validator' })
 
@@ -125,28 +126,6 @@ async function cacheValidators(): Promise<void> {
 }
 
 /**
- * Formats agreement score for response.
- *
- * @param agreement - Agreement Score.
- * @returns Response based on agreement score.
- */
-function formatAgreementScore(
-  agreement: AgreementScore,
-): { missed: number; total: number; score: string; incomplete: boolean } {
-  const { validated, missed, incomplete } = agreement
-  const total = missed + validated
-
-  const score = total === 0 ? 0 : validated / total
-
-  return {
-    missed,
-    total,
-    score: score.toFixed(5),
-    incomplete,
-  }
-}
-
-/**
  * Format response to be sent back to client.
  *
  * @param resp - Database response.
@@ -259,33 +238,6 @@ export async function handleValidator(
   } catch {
     res.send({ result: 'error', message: 'internal error' })
   }
-}
-
-/**
- * Get the chains associated with the given UNL.
- *
- * @param param - The UNL/Networks of the chain.
- * @returns The chains associated with that UNL.
- */
-async function getChains(
-  param: string | undefined,
-): Promise<string[] | undefined> {
-  if (param == null) {
-    return undefined
-  }
-  const networksDb = await getNetworks()
-  const networks = networksDb.map((network) => network.id)
-  let requestedField
-  if (networks.includes(param)) {
-    requestedField = 'networks'
-  } else {
-    requestedField = 'unl'
-  }
-  const results = await query('validators')
-    .select('chain')
-    .distinct()
-    .where(requestedField, param)
-  return results.map((result) => result.chain as string)
 }
 
 /**
