@@ -176,7 +176,7 @@ async function createConnections(): Promise<void> {
   networksDb.forEach((network) => {
     nodes.push({
       ip: network.entry,
-      ws: `ws://${network.entry}:51233`,
+      ws: '',
       networks: network.id,
     })
   })
