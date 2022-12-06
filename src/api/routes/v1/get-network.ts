@@ -11,6 +11,11 @@ const log = logger({ name: 'api-get-network' })
 
 const CRAWL_PORTS = [51235, 2459, 30001]
 
+interface NetworkInfo {
+  network: string
+  unl?: string[]
+}
+
 let maxNetwork: number
 
 async function updateMaxNetwork(): Promise<void> {
@@ -132,11 +137,19 @@ async function fetchCrawls(host: string): Promise<Crawl> {
  * @param unl - The UNL of the node.
  * @returns Whether the UNL of the node has been seen before.
  */
-async function getNetworkFromUNL(unl: string): Promise<string | undefined> {
+async function getNetworkInfoFromUNL(
+  unl: string,
+): Promise<NetworkInfo | undefined> {
   const result = await query('networks')
-    .select('id')
+    .select('id', 'unls')
     .where('unls', 'like', `%${unl}%`)
-  return result.length > 0 ? result[0].id : undefined
+  if (result.length > 0) {
+    return {
+      network: result[0].id,
+      unl: result[0].unls.split(',')[0],
+    }
+  }
+  return undefined
 }
 
 /**
@@ -147,13 +160,20 @@ async function getNetworkFromUNL(unl: string): Promise<string | undefined> {
  * @returns The network associated with the public key of the node. Undefined
  * if the public key has not been seen by the network.
  */
-async function getNetworkFromPublicKey(
+async function getNetworkInfoFromPublicKey(
   publicKey: string,
-): Promise<string | undefined> {
+): Promise<NetworkInfo | undefined> {
   const result = await query('crawls')
     .select('public_key', 'networks')
     .where('public_key', '=', publicKey)
-  return result.length > 0 ? result[0].networks : undefined
+  const networkIds = result.length > 0 ? result[0].networks : undefined
+  if (networkIds == null) {
+    return networkIds
+  }
+  const networkResult = await query('networks')
+    .select('id', 'unls')
+    .whereIn('id', networkIds.split(','))
+  return networkResult
 }
 
 /**
@@ -204,23 +224,23 @@ export default async function getNetworkOrAdd(
     // check UNL
     const { node_unl } = crawl
     if (node_unl != null) {
-      const unlNetwork = await getNetworkFromUNL(node_unl)
+      const unlNetwork = await getNetworkInfoFromUNL(node_unl)
       // eslint-disable-next-line max-depth -- Necessary here
       if (unlNetwork != null) {
         return res.send({
           result: 'success',
-          network: unlNetwork,
+          ...unlNetwork,
         })
       }
     }
 
     // check if node public key is already recorded
     const { public_key } = crawl.this_node
-    const publicKeyNetwork = await getNetworkFromPublicKey(public_key)
+    const publicKeyNetwork = await getNetworkInfoFromPublicKey(public_key)
     if (publicKeyNetwork != null) {
       return res.send({
         result: 'success',
-        network: publicKeyNetwork,
+        ...publicKeyNetwork,
       })
     }
     // add node to networks list
@@ -229,6 +249,7 @@ export default async function getNetworkOrAdd(
     return res.send({
       result: 'success',
       network: newNetwork,
+      unl: node_unl,
     })
   } catch (err) {
     log.error(err.stack)
