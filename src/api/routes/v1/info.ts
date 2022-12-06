@@ -44,12 +44,12 @@ const info = {
     {
       action: 'Get Validator Manifests',
       route: '/v1/network/validator/{pubkey}/manifests',
-      example: 'https://data.xrpl.org/v1/network/validators/{pubkey}/manifests',
+      example: 'https://data.xrpl.org/v1/network/validator/{pubkey}/manifests',
     },
     {
       action: 'Get Single Validator Report',
       route: '/v1/network/validator/{pubkey}/reports',
-      example: 'https://data.xrpl.org/v1/network/validators/{pubkey}/reports',
+      example: 'https://data.xrpl.org/v1/network/validator/{pubkey}/reports',
     },
     {
       action: 'Get Daily Validator Report',
