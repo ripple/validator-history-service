@@ -124,6 +124,7 @@ async function any(
  */
 async function fetchCrawls(host: string): Promise<Crawl> {
   const promises: Array<Promise<Crawl | undefined>> = []
+  log.info(`crawling ${host}...`)
   for (const port of CRAWL_PORTS) {
     promises.push(crawlNode(host, port))
   }
@@ -193,6 +194,7 @@ async function addNode(url: string, unl: string | null): Promise<string> {
     port: 51235,
     unls: unl ? [unl] : [],
   }
+  log.info(`adding new network ${JSON.stringify(network)}`)
   await query('networks').insert({
     ...network,
     unls: network.unls.join(','),
