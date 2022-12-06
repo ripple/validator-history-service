@@ -5,7 +5,7 @@ import {
 
 import {
   saveManifest,
-  getValidatorSigningKeys,
+  getValidatorKeys,
   query,
   db,
   getNetworks,
@@ -109,7 +109,7 @@ export async function updateUNLManifests(): Promise<void> {
 export async function updateManifestsFromRippled(): Promise<void> {
   try {
     log.info('Getting latest Manifests...')
-    const keys = await getValidatorSigningKeys()
+    const keys = await getValidatorKeys()
 
     const manifestPromises: Array<Promise<string | undefined>> = []
 

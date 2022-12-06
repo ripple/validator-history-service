@@ -13,7 +13,6 @@ import {
   tearDown,
 } from '../../src/shared/database'
 import networks from '../../src/shared/database/networks'
-import config from '../../src/shared/utils/config'
 
 import unl1 from './fixtures/unl-response1.json'
 import unl2 from './fixtures/unl-response2.json'
@@ -93,8 +92,12 @@ describe('manifest ingest', () => {
   })
 
   test('updateManifestsFromRippled', async () => {
-    jest.setTimeout(10000)
-    nock(`${config.rippled_rpc_admin_server}`)
+    jest.setTimeout(15000)
+    const mainnet_entry_db = await query('networks')
+      .select('entry')
+      .where('id', 'main')
+    const mainnet_entry = mainnet_entry_db[0].entry
+    nock(`https://${mainnet_entry as string}:51234`)
       .post('/')
       .reply(200, {
         result: {
@@ -114,6 +117,7 @@ describe('manifest ingest', () => {
 
     await query('validators').insert({
       signing_key: 'n94D6X6oFGyuvWpSjGwv3rmGSPSi5gNEVCDwnEc8arLC6HnqfEhn',
+      networks: 'main',
     })
 
     const manifest = {
