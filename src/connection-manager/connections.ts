@@ -1,6 +1,11 @@
 import WebSocket from 'ws'
 
-import { query, saveNodeWsUrl, clearConnectionsDb } from '../shared/database'
+import {
+  query,
+  saveNodeWsUrl,
+  clearConnectionsDb,
+  getNetworks,
+} from '../shared/database'
 import { StreamLedger, StreamManifest, ValidationRaw } from '../shared/types'
 import logger from '../shared/utils/logger'
 
@@ -166,6 +171,15 @@ async function createConnections(): Promise<void> {
     .select(['ip', 'ws_url', 'networks'])
     .whereNotNull('ip')
     .andWhere('start', '>', tenMinutesAgo)
+
+  const networksDb = await getNetworks()
+  networksDb.forEach((network) => {
+    nodes.push({
+      ip: network.entry,
+      ws_url: '',
+      networks: network.id,
+    })
+  })
 
   const promises: Array<Promise<void>> = []
   nodes.forEach((node: WsNode) => {
