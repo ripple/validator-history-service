@@ -1,7 +1,9 @@
 {
     "editor.tabSize": 2,
     "cSpell.words": [
-      "secp256k1"
+        "combinator",
+        "secp256k1",
+        "unls"
     ],
     "[javascript]": {
         "editor.defaultFormatter": "esbenp.prettier-vscode",
