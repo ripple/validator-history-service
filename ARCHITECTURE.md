@@ -36,7 +36,7 @@ This table keeps track of the nodes in the network, which it finds via crawling 
 | `public_key`         |The public key of the node.                                                          |
 | `start`              |When the node was first crawled.                                                     |
 | `complete_ledgers`   |The range of ledgers for which the node has data.                                    |
-| `compete_shards`     |The [history shards](https://xrpl.org/history-sharding.html) the node keeps track of.|
+| `complete_shards`     |The [history shards](https://xrpl.org/history-sharding.html) the node keeps track of.|
 | `ip`                 |The IP address of the node.                                                          |
 | `port`               |The peer port of the node.                                                           |
 | `ws_url`             |The WS URL of the node. Optional.                                                    |
