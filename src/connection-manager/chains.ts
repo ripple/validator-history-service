@@ -1,4 +1,4 @@
-import { QueryBuilder } from 'knex'
+import { Knex } from 'knex'
 
 import { query } from '../shared/database'
 import { Ledger, ValidationRaw, Chain } from '../shared/types'
@@ -53,7 +53,7 @@ async function saveValidatorChains(chain: Chain): Promise<void> {
     })
   }
 
-  const promises: QueryBuilder[] = []
+  const promises: Knex.QueryBuilder[] = []
   chain.validators.forEach((signing_key) => {
     promises.push(
       query('validators').where({ signing_key }).update({ chain: id }),
