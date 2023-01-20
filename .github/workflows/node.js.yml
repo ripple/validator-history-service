@@ -43,7 +43,7 @@ jobs:
       # TODO: remove the --legacy-peer-deps here
     - run: npm ci --legacy-peer-deps
     - run: npm run lint
-    - run: npx run build
+    - run: npm run build
     - run: npm test
       env:
         # The hostname used to communicate with the PostgreSQL service container
