@@ -1,15 +1,15 @@
-import knex, { QueryBuilder } from 'knex'
+import { knex, Knex } from 'knex'
 
 import config from '../utils/config'
 
-let knexDb: knex | undefined
+let knexDb: Knex | undefined
 
 /**
  * Gets an instance of knex connection.
  *
  * @returns Knex instance.
  */
-export function db(): knex {
+export function db(): Knex {
   if (knexDb) {
     return knexDb
   }
@@ -37,7 +37,7 @@ export async function tearDown(): Promise<void> {
  * @param tbName - Name of table to query.
  * @returns Knex query builder.
  */
-export function query(tbName: string): QueryBuilder {
+export function query(tbName: string): Knex.QueryBuilder {
   return db()(tbName)
 }
 
