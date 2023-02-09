@@ -13,9 +13,13 @@ const HTTPS_PORT = 51234
  * Fetches the UNL.
  *
  * @param url - The url of the validator list being fetched.
+ * @param networkId - The networkId corresponding to the url being fetched.
  * @returns A promise that resolves to a parsed UNLBlob.
  */
-export async function fetchValidatorList(url: string): Promise<UNLBlob> {
+export async function fetchValidatorList(
+  url: string,
+  networkId: string,
+): Promise<UNLBlob> {
   try {
     const resp = await axios.get(`http://${url}`)
     const unl: UNL = resp.data
@@ -23,7 +27,7 @@ export async function fetchValidatorList(url: string): Promise<UNLBlob> {
     const blobParsed: UNLBlob = JSON.parse(buf.toString('ascii'))
     return blobParsed
   } catch (err: unknown) {
-    log.error('Error fetching validator List', err)
+    log.error(`Error fetching validator List for network ${networkId}`, err)
     return Promise.reject()
   }
 }
@@ -120,7 +124,7 @@ export async function getLists(): Promise<Record<string, Set<string>>> {
   const networks = await getNetworks()
   networks.forEach(async (network) => {
     promises.push(
-      fetchValidatorList(network.unls[0]).then((blob) => {
+      fetchValidatorList(network.unls[0], network.id).then((blob) => {
         Object.assign(lists, {
           [network.id]: blobToValidators(blob),
         })
@@ -128,6 +132,7 @@ export async function getLists(): Promise<Record<string, Set<string>>> {
     )
   })
   await Promise.all(
+    // The error has already been logged in fetchValidatorList
     promises.map(async (promise) => promise.catch(async (err) => err)),
   )
   return lists
