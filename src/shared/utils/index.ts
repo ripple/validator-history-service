@@ -127,7 +127,9 @@ export async function getLists(): Promise<Record<string, Set<string>>> {
       }),
     )
   })
-  await Promise.all(promises)
+  await Promise.all(
+    promises.map(async (promise) => promise.catch(async (err) => err)),
+  )
   return lists
 }
 
