@@ -23,7 +23,7 @@ export async function fetchValidatorList(url: string): Promise<UNLBlob> {
     const blobParsed: UNLBlob = JSON.parse(buf.toString('ascii'))
     return blobParsed
   } catch (err: unknown) {
-    log.error('Error fetching validator List', err)
+    log.error(`Error fetching validator List for ${url}`, err)
     return Promise.reject()
   }
 }
@@ -119,6 +119,9 @@ export async function getLists(): Promise<Record<string, Set<string>>> {
   const promises: Array<Promise<void>> = []
   const networks = await getNetworks()
   networks.forEach(async (network) => {
+    if (!network.unls[0]) {
+      return
+    }
     promises.push(
       fetchValidatorList(network.unls[0]).then((blob) => {
         Object.assign(lists, {
@@ -127,7 +130,10 @@ export async function getLists(): Promise<Record<string, Set<string>>> {
       }),
     )
   })
-  await Promise.all(promises)
+  await Promise.all(
+    // The error has already been logged in fetchValidatorList
+    promises.map(async (promise) => promise.catch(async (err) => err)),
+  )
   return lists
 }
 
