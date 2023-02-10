@@ -85,10 +85,7 @@ export async function handleManifest(
 export async function updateUNLManifests(): Promise<void> {
   try {
     log.info('Fetching UNL...')
-    const unl: UNLBlob = await fetchValidatorList(
-      await getFirstUNL('main'),
-      'main',
-    )
+    const unl: UNLBlob = await fetchValidatorList(await getFirstUNL('main'))
     const promises: Array<Promise<void>> = []
 
     unl.validators.forEach((validator: UNLValidator) => {
