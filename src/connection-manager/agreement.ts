@@ -9,7 +9,6 @@ import {
   purgeHourlyAgreementScores,
   signingToMaster,
   decodeServerVersion,
-  query,
 } from '../shared/database'
 import {
   AgreementScore,
@@ -198,16 +197,8 @@ class Agreement {
         last_ledger_time: new Date(),
       }
 
-      // Comma-separated for testing purposes, will be removed
-      const dbNetworks = await query('validators')
-        .select('networks')
-        .where({ signing_key })
-        .catch((err) => log.error('Error retrieving networks', err))
-
-      const arr = dbNetworks[0]?.networks?.split(',') || []
       if (validation.networks) {
-        arr.push(validation.networks)
-        validator.networks = Array.from(new Set(arr)).join()
+        validator.networks = validation.networks
       }
 
       if (server_version) {
