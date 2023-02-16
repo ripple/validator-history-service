@@ -185,4 +185,10 @@ async function setupNetworksTable(): Promise<void> {
         .catch((err: Error) => log.error(err.message))
     }
   })
+  if (networksIds.includes('nft-dev')) {
+    query('networks')
+      .del()
+      .where('id', '=', 'nft-dev')
+      .catch((err: Error) => log.error(err.message))
+  }
 }
