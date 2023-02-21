@@ -125,6 +125,10 @@ async function setupValidatorsTable(): Promise<void> {
       table.string('networks').after('chain')
     })
   }
+  // Modifies nft-dev validators once, since they have been decomissioned.
+  await db().schema.raw(
+    "UPDATE validators SET chain = 'nft-dev', networks = 'nft-dev' WHERE unl LIKE '%nftvalidators.s3.us-west-2.amazonaws.com%'",
+  )
 }
 
 async function setupHourlyAgreementTable(): Promise<void> {
