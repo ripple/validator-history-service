@@ -41,12 +41,6 @@ const networks: Network[] = [
     unls: ['vl.devnet.rippletest.net'],
   },
   {
-    id: 'nft-dev',
-    entry: 'xls20-sandbox.rippletest.net',
-    port: 51235,
-    unls: ['nftvalidators.s3.us-west-2.amazonaws.com/index.json'],
-  },
-  {
     id: 'amm-dev',
     entry: 'amm.devnet.rippletest.net',
     port: 51235,
