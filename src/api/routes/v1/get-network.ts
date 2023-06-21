@@ -258,7 +258,8 @@ export default async function getNetworkOrAdd(
       result: 'success',
       network: newNetwork,
     })
-  } catch (err) {
+    // eslint-disable-next-line @typescript-eslint/no-explicit-any -- TODO: clean up
+  } catch (err: any) {
     log.error(err.stack)
     return res.send({ result: 'error', message: err.message })
   }
