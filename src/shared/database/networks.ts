@@ -46,6 +46,12 @@ const networks: Network[] = [
     port: 51235,
     unls: ['vlamm.devnet.rippletest.net'],
   },
+  {
+    id: 'hooks-test',
+    entry: '88.99.3.241',
+    port: 21338,
+    unls: ['vl3.beta.bithomp.com'],
+  },
 ]
 
 export default networks
