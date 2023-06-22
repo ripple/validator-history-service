@@ -8,7 +8,7 @@ interface Network {
 }
 
 // put the UNL you want to prioritize at the front
-const mainMainnetUnls = ['vl.ripple.com', 'vl.xrplf.org', 'vl.coil.com']
+const mainMainnetUnls = ['vl.ripple.com', 'vl.xrplf.org']
 let mainnetUnls
 if (config.mainnet_unl == null) {
   mainnetUnls = mainMainnetUnls
