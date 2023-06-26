@@ -48,8 +48,8 @@ const networks: Network[] = [
   },
   {
     id: 'hooks-test',
-    entry: '88.99.3.241',
-    port: 21338,
+    entry: 'hooks-testnet-v3.xrpl-labs.com',
+    port: 443,
     unls: ['vl3.beta.bithomp.com'],
   },
 ]

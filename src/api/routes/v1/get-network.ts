@@ -9,7 +9,7 @@ import logger from '../../../shared/utils/logger'
 
 const log = logger({ name: 'api-get-network' })
 
-const CRAWL_PORTS = [51235, 2459, 30001]
+const CRAWL_PORTS = [51235, 2459, 30001, 443]
 
 let maxNetwork: number
 
