@@ -120,7 +120,8 @@ async function cacheValidators(): Promise<void> {
   try {
     cache.validators = await getValidators()
     cache.time = Date.now()
-  } catch (err) {
+    // eslint-disable-next-line @typescript-eslint/no-explicit-any -- TODO: clean up
+  } catch (err: any) {
     log.error(err.toString())
   }
 }
