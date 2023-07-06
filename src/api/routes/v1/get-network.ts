@@ -9,7 +9,7 @@ import logger from '../../../shared/utils/logger'
 
 const log = logger({ name: 'api-get-network' })
 
-const CRAWL_PORTS = [51235, 2459, 30001]
+const CRAWL_PORTS = [51235, 2459, 30001, 443]
 
 let maxNetwork: number
 
@@ -258,7 +258,8 @@ export default async function getNetworkOrAdd(
       result: 'success',
       network: newNetwork,
     })
-  } catch (err) {
+    // eslint-disable-next-line @typescript-eslint/no-explicit-any -- TODO: clean up
+  } catch (err: any) {
     log.error(err.stack)
     return res.send({ result: 'error', message: err.message })
   }
