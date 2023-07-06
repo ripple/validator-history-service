@@ -57,7 +57,7 @@ async function updateLocation(nodes: Node[]): Promise<void> {
       resp = await geoClient.city(node.ip)
     } catch (err) {
       log.error('maxmind Error', err)
-      return
+      continue
     }
 
     const subdivision = resp.subdivisions
