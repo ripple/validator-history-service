@@ -146,7 +146,8 @@ async function cacheNodes(): Promise<void> {
   try {
     cache.nodes = await getNodes()
     cache.time = Date.now()
-  } catch (err) {
+    // eslint-disable-next-line @typescript-eslint/no-explicit-any -- TODO: clean up
+  } catch (err: any) {
     log.error(err.toString())
   }
 }
@@ -182,7 +183,8 @@ export async function handleNode(req: Request, res: Response): Promise<void> {
       ...node,
       result: 'success',
     })
-  } catch (err) {
+    // eslint-disable-next-line @typescript-eslint/no-explicit-any -- TODO: clean up
+  } catch (err: any) {
     log.error(err.toString())
     res.send({ result: 'error', message: 'internal error' })
   }

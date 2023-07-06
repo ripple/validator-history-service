@@ -7,9 +7,12 @@ import { AgreementScore } from '../../../shared/types'
  * @param agreement - Agreement Score.
  * @returns Response based on agreement score.
  */
-export function formatAgreementScore(
-  agreement: AgreementScore,
-): { missed: number; total: number; score: string; incomplete: boolean } {
+export function formatAgreementScore(agreement: AgreementScore): {
+  missed: number
+  total: number
+  score: string
+  incomplete: boolean
+} {
   const { validated, missed, incomplete } = agreement
   const total = missed + validated
 

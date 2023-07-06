@@ -219,16 +219,12 @@ class Chains {
       return
     }
 
-    const chainWithThisValidator:
-      | Chain
-      | undefined = this.chains
+    const chainWithThisValidator: Chain | undefined = this.chains
       .filter((chain) => overlaps(chain.validators, validators))
       .shift()
 
-    const chainWithLedger:
-      | Chain
-      | undefined = this.chains.find((chain: Chain) =>
-      chain.ledgers.has(ledger.ledger_hash),
+    const chainWithLedger: Chain | undefined = this.chains.find(
+      (chain: Chain) => chain.ledgers.has(ledger.ledger_hash),
     )
 
     if (chainWithThisValidator !== undefined) {
