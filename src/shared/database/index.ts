@@ -84,7 +84,7 @@ export async function saveNodeWsUrl(
       })
       .catch((err: Error) => log.error(err.message))
   } else {
-    log.warn('Invalid websocket url')
+    log.warn(`Invalid websocket url: ${url}`)
   }
 }
 

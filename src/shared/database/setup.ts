@@ -29,6 +29,7 @@ async function setupCrawlsTable(): Promise<void> {
       table.dateTime('start')
       table.string('complete_ledgers')
       table.text('complete_shards')
+      table.text('incomplete_shards')
       table.string('ip')
       table.integer('port')
       table.string('ws_url')
@@ -42,6 +43,11 @@ async function setupCrawlsTable(): Promise<void> {
       table.integer('io_latency_ms')
       table.string('load_factor_server')
       table.string('version')
+    })
+  }
+  if (!(await db().schema.hasColumn('crawls', 'incomplete_shards'))) {
+    await db().schema.alterTable('crawls', (table) => {
+      table.string('incomplete_shards').after('complete_shards')
     })
   }
 }

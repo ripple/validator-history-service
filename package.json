@@ -1,11 +1,12 @@
 {
   "name": "validator-history-service",
-  "version": "0.4.3",
+  "version": "0.5.0",
   "description": "Service for ingesting, aggregating, storing, and disbursing validation related data",
   "main": "./build/index.js",
   "scripts": {
     "build": "tsc --build tsconfig.build.json",
-    "lint": "eslint . --ext .ts --max-warnings 0",
+    "lint": "eslint . --ext .ts --max-warnings 0 --fix",
+    "lint:ci": "eslint . --ext .ts --max-warnings 0",
     "startCrawlerDev": "ts-node-dev --transpile-only ./src/crawler/index.ts | ./node_modules/.bin/bunyan ",
     "startApiDev": "ts-node-dev --transpile-only ./src/api/index.ts | ./node_modules/.bin/bunyan",
     "startConnectionsDev": "ts-node-dev --transpile-only ./src/connection-manager/index.ts | ./node_modules/.bin/bunyan",
