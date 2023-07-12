@@ -202,7 +202,7 @@ class Agreement {
           master_key: validation.master_key,
           signing_key,
           ledger_index: Number(validation.ledger_index),
-          amendments: validation.amendments?.toString(),
+          amendments: validation.amendments?.join(','),
           base_fee: validation.base_fee,
           reserve_base: validation.reserve_base,
           reserve_inc: validation.reserve_inc,
