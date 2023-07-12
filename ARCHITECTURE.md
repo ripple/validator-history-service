@@ -119,7 +119,7 @@ This table keeps track of the most current voting data for the validators.
 | `amendments`         |The amendments this validator wants to be added to the protocol.   |
 | `base_fee`           |The unscaled transaction cost this validator wants to set.         |
 | `reserve_base`       |The minimum reserve requirement this validator wants to set.       |
-| `reserve_inc`        |Whether the validation is a partial validation*.                   |
+| `reserve_inc`        |The increment in the reserve requirement this validator wants to set.|
 
 
 ### `validators`
