@@ -8,7 +8,7 @@ interface Network {
 }
 
 // put the UNL you want to prioritize at the front
-const mainMainnetUnls = ['vl.ripple.com', 'vl.xrplf.org', 'vl.coil.com']
+const mainMainnetUnls = ['vl.ripple.com', 'vl.xrplf.org']
 let mainnetUnls
 if (config.mainnet_unl == null) {
   mainnetUnls = mainMainnetUnls
@@ -48,8 +48,8 @@ const networks: Network[] = [
   },
   {
     id: 'hooks-test',
-    entry: '88.99.3.241',
-    port: 21338,
+    entry: 'hooks-testnet-v3.xrpl-labs.com',
+    port: 443,
     unls: ['vl3.beta.bithomp.com'],
   },
 ]
