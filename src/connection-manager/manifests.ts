@@ -83,9 +83,23 @@ export async function handleManifest(
  * @returns A promise that resolves to void once all UNL validators are saved.
  */
 export async function updateUNLManifests(): Promise<void> {
+  const networks = (await getNetworks()).map((network) => network.id)
+  const promises = networks.map(async (network) =>
+    updateUNLManifestNetwork(network),
+  )
+  await Promise.all(promises)
+}
+
+/**
+ * Saves manifests from the UNL.
+ *
+ * @param network - The network to update.
+ * @returns A promise that resolves to void once all UNL validators are saved.
+ */
+async function updateUNLManifestNetwork(network: string): Promise<void> {
   try {
     log.info('Fetching UNL...')
-    const unl: UNLBlob = await fetchValidatorList(await getFirstUNL('main'))
+    const unl: UNLBlob = await fetchValidatorList(await getFirstUNL(network))
     const promises: Array<Promise<void>> = []
 
     unl.validators.forEach((validator: UNLValidator) => {
@@ -152,7 +166,7 @@ async function updateValidatorDomainsFromManifests(): Promise<void> {
 }
 
 /**
- * Update the unl column if the validator is included in a validator list (main, testnet, or devnet).
+ * Update the unl column if the validator is included in a validator list for a network.
  * The unl column contains the domain where the validator list is served.
  *
  * @returns A promise that resolves to void once unl column is updated for all applicable validators.

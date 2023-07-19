@@ -73,7 +73,9 @@ describe('manifest ingest', () => {
   })
 
   test('updateUnlManifests', async () => {
-    nock(`http://${VALIDATOR_URL}`).get('/').reply(200, unl1)
+    networks.forEach((network) => {
+      nock(`http://${network.unls[0]}`).get('/').reply(200, unl1)
+    })
     await updateUNLManifests()
     const saved_manifest = await query('manifests').select('*')
 
