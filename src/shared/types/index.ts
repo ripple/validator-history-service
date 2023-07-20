@@ -99,7 +99,6 @@ interface Agreement {
 }
 
 interface Ballot {
-  master_key?: string
   signing_key: string
   ledger_index: number
   amendments?: string

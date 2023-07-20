@@ -199,7 +199,6 @@ class Agreement {
       if (isPreceedingFlagLedger(validation.ledger_index)) {
         server_version = decodeServerVersion(validation.server_version)
         const ballot: Ballot = {
-          master_key: validation.master_key,
           signing_key,
           ledger_index: Number(validation.ledger_index),
           amendments: validation.amendments?.join(','),

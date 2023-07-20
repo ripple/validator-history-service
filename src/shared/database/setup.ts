@@ -208,7 +208,6 @@ async function setupBallotTable(): Promise<void> {
   const hasBallot = await db().schema.hasTable('ballot')
   if (!hasBallot) {
     await db().schema.createTable('ballot', (table) => {
-      table.string('master_key')
       table.string('signing_key').unique()
       table.string('ledger_index')
       table.string('amendments', 10000)
