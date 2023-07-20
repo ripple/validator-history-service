@@ -203,9 +203,11 @@ class Agreement {
           signing_key,
           ledger_index: Number(validation.ledger_index),
           amendments: validation.amendments?.join(','),
-          base_fee: validation.base_fee,
-          reserve_base: validation.reserve_base,
-          reserve_inc: validation.reserve_inc,
+          base_fee: validation.base_fee ?? validation.ledger_fee?.fee_base,
+          reserve_base:
+            validation.reserve_base ?? validation.ledger_fee?.reserve_base,
+          reserve_inc:
+            validation.reserve_inc ?? validation.ledger_fee?.reserve_inc,
         }
         await saveBallot(ballot)
       }
