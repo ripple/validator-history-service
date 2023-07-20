@@ -113,7 +113,6 @@ This table keeps track of the most current voting data for the validators.
 
 | Key                  | Definition                                                        |
 |----------------------|-------------------------------------------------------------------|
-| `master_key`         |The master key of the validator.                                   |
 | `signing_key`        |The signing key of the validator.                                  |
 | `ledger_index`       |The most recent ledger index where voting data was retrieved.      |
 | `amendments`         |The amendments this validator wants to be added to the protocol.   |
