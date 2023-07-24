@@ -122,10 +122,8 @@ function isPreceedingFlagLedger(ledger_index: string): boolean {
  *
  */
 class Agreement {
-  private readonly validationsByPublicKey: Map<
-    string,
-    Map<string, number>
-  > = new Map()
+  private readonly validationsByPublicKey: Map<string, Map<string, number>> =
+    new Map()
 
   private reported_at = new Date()
 
@@ -195,6 +193,10 @@ class Agreement {
         current_index: Number(validation.ledger_index),
         partial: !validation.full,
         last_ledger_time: new Date(),
+      }
+
+      if (validation.networks) {
+        validator.networks = validation.networks
       }
 
       if (server_version) {

@@ -1,13 +1,13 @@
 import axios, { AxiosRequestConfig } from 'axios'
 import { normalizeManifest } from 'xrpl-validator-domains'
 
-import { getNetworks } from '../database'
+import { getNetworks, query } from '../database'
 import { UNL, UNLBlob, UNLValidator } from '../types'
 
-import config from './config'
 import logger from './logger'
 
 const log = logger({ name: 'utils' })
+const HTTPS_PORT = 51234
 
 /**
  * Fetches the UNL.
@@ -23,9 +23,28 @@ export async function fetchValidatorList(url: string): Promise<UNLBlob> {
     const blobParsed: UNLBlob = JSON.parse(buf.toString('ascii'))
     return blobParsed
   } catch (err: unknown) {
-    log.error('Error fetching validator List', err)
+    log.error(`Error fetching validator List for ${url}`, err)
     return Promise.reject()
   }
+}
+
+/**
+ * Get the network entry node's url for a validator.
+ *
+ * @param key - The public key of the validator.
+ * @returns A promise that resolves to the network entry url string.
+ */
+async function getNetworksEntryUrl(key: string): Promise<string | null> {
+  const networkDb = await query('validators')
+    .select('networks')
+    .where('master_key', key)
+    .orWhere('signing_key', key)
+  const network = networkDb[0]?.networks
+  if (network !== null) {
+    const entry = await query('networks').select('entry').where('id', network)
+    return `https://${entry[0]?.entry as string}:${HTTPS_PORT}`
+  }
+  return null
 }
 
 /**
@@ -38,13 +57,17 @@ export async function fetchValidatorList(url: string): Promise<UNLBlob> {
 export async function fetchRpcManifest(
   key: string,
 ): Promise<string | undefined> {
+  const url = await getNetworksEntryUrl(key)
+  if (url === null) {
+    return undefined
+  }
   const data = JSON.stringify({
     method: 'manifest',
     params: [{ public_key: `${key}` }],
   })
   const params: AxiosRequestConfig = {
     method: 'post',
-    url: `${config.rippled_rpc_admin_server}`,
+    url,
     headers: {
       'Content-Type': 'application/json',
     },
@@ -96,6 +119,9 @@ export async function getLists(): Promise<Record<string, Set<string>>> {
   const promises: Array<Promise<void>> = []
   const networks = await getNetworks()
   networks.forEach(async (network) => {
+    if (!network.unls[0]) {
+      return
+    }
     promises.push(
       fetchValidatorList(network.unls[0]).then((blob) => {
         Object.assign(lists, {
@@ -104,7 +130,10 @@ export async function getLists(): Promise<Record<string, Set<string>>> {
       }),
     )
   })
-  await Promise.all(promises)
+  await Promise.all(
+    // The error has already been logged in fetchValidatorList
+    promises.map(async (promise) => promise.catch(async (err) => err)),
+  )
   return lists
 }
 

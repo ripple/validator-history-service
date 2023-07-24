@@ -1,4 +1,4 @@
-import { QueryBuilder } from 'knex'
+import { Knex } from 'knex'
 
 import { query } from '../shared/database'
 import { Ledger, ValidationRaw, Chain } from '../shared/types'
@@ -53,7 +53,7 @@ async function saveValidatorChains(chain: Chain): Promise<void> {
     })
   }
 
-  const promises: QueryBuilder[] = []
+  const promises: Knex.QueryBuilder[] = []
   chain.validators.forEach((signing_key) => {
     promises.push(
       query('validators').where({ signing_key }).update({ chain: id }),
@@ -219,16 +219,12 @@ class Chains {
       return
     }
 
-    const chainWithThisValidator:
-      | Chain
-      | undefined = this.chains
+    const chainWithThisValidator: Chain | undefined = this.chains
       .filter((chain) => overlaps(chain.validators, validators))
       .shift()
 
-    const chainWithLedger:
-      | Chain
-      | undefined = this.chains.find((chain: Chain) =>
-      chain.ledgers.has(ledger.ledger_hash),
+    const chainWithLedger: Chain | undefined = this.chains.find(
+      (chain: Chain) => chain.ledgers.has(ledger.ledger_hash),
     )
 
     if (chainWithThisValidator !== undefined) {

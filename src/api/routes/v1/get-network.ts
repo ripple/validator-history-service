@@ -1,7 +1,7 @@
 import { Request, Response } from 'express'
 
 import Crawler from '../../../crawler/crawl'
-import crawlNode from '../../../crawler/network'
+import crawlNodeOriginal from '../../../crawler/network'
 import { query } from '../../../shared/database'
 import { Network } from '../../../shared/database/networks'
 import { Crawl } from '../../../shared/types'
@@ -9,9 +9,14 @@ import logger from '../../../shared/utils/logger'
 
 const log = logger({ name: 'api-get-network' })
 
-const CRAWL_PORTS = [51235, 2459, 30001]
+const CRAWL_PORTS = [51235, 2459, 30001, 443]
 
 let maxNetwork: number
+
+interface CrawlAndPort {
+  crawl: Crawl
+  port: number
+}
 
 async function updateMaxNetwork(): Promise<void> {
   const currentNetworks = await query('networks').select('id')
@@ -31,6 +36,24 @@ async function updateMaxNetwork(): Promise<void> {
   }
 }
 
+/**
+ * A wrapper for `crawlNode` that also returns the port.
+ *
+ * @param host - The host to crawl.
+ * @param port - The peer port guess.
+ * @returns The crawl result and the peer port.
+ */
+async function crawlNode(
+  host: string,
+  port: number,
+): Promise<{ crawl: Crawl; port: number } | undefined> {
+  const crawl = await crawlNodeOriginal(host, port)
+  if (crawl == null) {
+    return undefined
+  }
+  return { crawl, port }
+}
+
 void updateMaxNetwork()
 // double check that the max network is accurate every hour
 setInterval(updateMaxNetwork, 60 * 60 * 1000)
@@ -48,8 +71,8 @@ setInterval(updateMaxNetwork, 60 * 60 * 1000)
  * @returns The first promise to resolve.
  */
 async function any(
-  promises: Array<Promise<Crawl | undefined>>,
-): Promise<Crawl> {
+  promises: Array<Promise<CrawlAndPort | undefined>>,
+): Promise<CrawlAndPort> {
   return new Promise((resolve, reject) => {
     let errors: Error[] = []
     let undefinedValues = 0
@@ -67,7 +90,7 @@ async function any(
      *
      * @param value - The resolved value.
      */
-    function onFulfill(value: Crawl | undefined): void {
+    function onFulfill(value: CrawlAndPort | undefined): void {
       // skip if already resolved
       if (resolved) {
         return
@@ -117,8 +140,8 @@ async function any(
  * @param host - The host URL to crawl.
  * @returns The crawl data from the node.
  */
-async function fetchCrawls(host: string): Promise<Crawl> {
-  const promises: Array<Promise<Crawl | undefined>> = []
+async function fetchCrawls(host: string): Promise<CrawlAndPort> {
+  const promises: Array<Promise<CrawlAndPort | undefined>> = []
   for (const port of CRAWL_PORTS) {
     promises.push(crawlNode(host, port))
   }
@@ -161,16 +184,21 @@ async function getNetworkFromPublicKey(
  *
  * @param url - The URL endpoint of the node.
  * @param unl - The UNL of the node.
+ * @param port - The peer port of the node.
  * @returns The ID of the new network.
  */
-async function addNode(url: string, unl: string | null): Promise<string> {
+async function addNode(
+  url: string,
+  unl: string | null,
+  port: number,
+): Promise<string> {
   const newNetwork = (maxNetwork + 1).toString()
   maxNetwork += 1
 
   const network: Network = {
     id: newNetwork,
     entry: url,
-    port: 51235,
+    port,
     unls: unl ? [unl] : [],
   }
   await query('networks').insert({
@@ -199,7 +227,7 @@ export default async function getNetworkOrAdd(
     const { entryUrl } = req.params
 
     // fetch crawl
-    const crawl = await fetchCrawls(entryUrl)
+    const { crawl, port } = await fetchCrawls(entryUrl)
 
     // check UNL
     const { node_unl } = crawl
@@ -224,13 +252,14 @@ export default async function getNetworkOrAdd(
       })
     }
     // add node to networks list
-    const newNetwork = await addNode(entryUrl, node_unl)
+    const newNetwork = await addNode(entryUrl, node_unl, port)
 
     return res.send({
       result: 'success',
       network: newNetwork,
     })
-  } catch (err) {
+    // eslint-disable-next-line @typescript-eslint/no-explicit-any -- TODO: clean up
+  } catch (err: any) {
     log.error(err.stack)
     return res.send({ result: 'error', message: err.message })
   }

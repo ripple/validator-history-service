@@ -29,6 +29,7 @@ async function setupCrawlsTable(): Promise<void> {
       table.dateTime('start')
       table.string('complete_ledgers')
       table.text('complete_shards')
+      table.text('incomplete_shards')
       table.string('ip')
       table.integer('port')
       table.string('ws_url')
@@ -42,6 +43,11 @@ async function setupCrawlsTable(): Promise<void> {
       table.integer('io_latency_ms')
       table.string('load_factor_server')
       table.string('version')
+    })
+  }
+  if (!(await db().schema.hasColumn('crawls', 'incomplete_shards'))) {
+    await db().schema.alterTable('crawls', (table) => {
+      table.string('incomplete_shards').after('complete_shards')
     })
   }
 }
@@ -89,21 +95,7 @@ async function setupManifestTable(): Promise<void> {
 }
 
 async function setupLedgersTable(): Promise<void> {
-  const hasLedgers = await db().schema.hasTable('ledgers')
-  if (!hasLedgers) {
-    await db().schema.createTable('ledgers', (table) => {
-      table.string('ledger_hash').primary()
-      table.integer('ledger_index').index()
-      table.integer('full')
-      table.integer('main')
-      table.integer('altnet')
-      table.json('partial')
-      table.json('missing')
-      table.double('avg_load_fee')
-      table.dateTime('avg_sign_time')
-      table.dateTime('updated')
-    })
-  }
+  await db().schema.dropTableIfExists('ledgers')
 }
 
 async function setupValidatorsTable(): Promise<void> {
@@ -118,6 +110,7 @@ async function setupValidatorsTable(): Promise<void> {
       table.integer('load_fee')
       table.boolean('partial')
       table.string('chain')
+      table.string('networks')
       table.string('unl')
       table.string('domain')
       table.boolean('domain_verified')
@@ -133,6 +126,15 @@ async function setupValidatorsTable(): Promise<void> {
       table.string('server_version').after('domain_verified')
     })
   }
+  if (!(await db().schema.hasColumn('validators', 'networks'))) {
+    await db().schema.alterTable('validators', (table) => {
+      table.string('networks').after('chain')
+    })
+  }
+  // Modifies nft-dev validators once, since they have been decomissioned.
+  await db().schema.raw(
+    "UPDATE validators SET chain = 'nft-dev', networks = 'nft-dev' WHERE unl LIKE '%nftvalidators.s3.us-west-2.amazonaws.com%'",
+  )
 }
 
 async function setupHourlyAgreementTable(): Promise<void> {
@@ -179,7 +181,10 @@ async function setupNetworksTable(): Promise<void> {
       table.string('unls')
       table.primary(['entry'])
     })
-    networks.forEach((network) => {
+  }
+  const networksIds = await query('networks').pluck('id')
+  networks.forEach((network) => {
+    if (!networksIds.includes(network.id)) {
       query('networks')
         .insert({
           id: network.id,
@@ -188,6 +193,12 @@ async function setupNetworksTable(): Promise<void> {
           unls: network.unls.join(','),
         })
         .catch((err: Error) => log.error(err.message))
-    })
+    }
+  })
+  if (networksIds.includes('nft-dev')) {
+    query('networks')
+      .del()
+      .where('id', '=', 'nft-dev')
+      .catch((err: Error) => log.error(err.message))
   }
 }

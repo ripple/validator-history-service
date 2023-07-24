@@ -36,7 +36,7 @@ This table keeps track of the nodes in the network, which it finds via crawling 
 | `public_key`         |The public key of the node.                                                          |
 | `start`              |When the node was first crawled.                                                     |
 | `complete_ledgers`   |The range of ledgers for which the node has data.                                    |
-| `compete_shards`     |The [history shards](https://xrpl.org/history-sharding.html) the node keeps track of.|
+| `complete_shards`     |The [history shards](https://xrpl.org/history-sharding.html) the node keeps track of.|
 | `ip`                 |The IP address of the node.                                                          |
 | `port`               |The peer port of the node.                                                           |
 | `ws_url`             |The WS URL of the node. Optional.                                                    |
@@ -72,26 +72,6 @@ This table keeps track of how reliable validators have been, on an hourly level.
 | `master_key`         |The master key of the node.            |
 | `start`              |The time that the data starts.         |
 | `agreement`          |Data about the reliability of the node.|
-
-
-### `ledgers`
-
-This table does not appear to be used at all.
-
-<!--
-| Key                  | Definition                                              |
-|----------------------|---------------------------------------------------------|
-| `ledger_hash`        |The hash of the ledger.                                  |
-| `ledger_index`       |The index of the ledger.                                 |
-| `full`               |                                                         |
-| `main`               |                                                         |
-| `altnet`             |                                                         |
-| `partial`            |                                                         |
-| `missing`            |                                                         |
-| `avg_load_fee`       |                                                         |
-| `avg_sign_time`      |                                                         |
-| `updated`            |                                                         |
--->
 
 ### `location`
 

@@ -1,6 +1,12 @@
 import WebSocket from 'ws'
 
-import { query, saveNodeWsUrl, clearConnectionsDb } from '../shared/database'
+import {
+  query,
+  saveNodeWsUrl,
+  clearConnectionsDb,
+  getNetworks,
+} from '../shared/database'
+import { StreamLedger, StreamManifest, ValidationRaw } from '../shared/types'
 import logger from '../shared/utils/logger'
 
 import agreement from './agreement'
@@ -13,6 +19,7 @@ const connections: Map<string, WebSocket> = new Map()
 const CM_INTERVAL = 60 * 60 * 1000
 const WS_TIMEOUT = 10000
 const REPORTING_INTERVAL = 15 * 60 * 1000
+const LEDGER_HASHES_SIZE = 10
 let cmStarted = false
 
 /**
@@ -25,9 +32,38 @@ function subscribe(ws: WebSocket): void {
     JSON.stringify({
       id: 2,
       command: 'subscribe',
-      streams: ['manifests', 'validations'],
+      streams: ['manifests', 'validations', 'ledger'],
     }),
   )
+}
+
+/**
+ * Handles a WebSocket message received.
+ *
+ * @param data - The WebSocket message received from connection.
+ * @param ledger_hashes - The list of recent ledger hashes.
+ * @param networks - The networks of subscribed node.
+ * @returns Void.
+ */
+async function handleWsMessageTypes(
+  data: ValidationRaw | StreamManifest | StreamLedger,
+  ledger_hashes: string[],
+  networks: string | undefined,
+): Promise<void> {
+  if (data.type === 'validationReceived') {
+    const validationData = data as ValidationRaw
+    if (ledger_hashes.includes(validationData.ledger_hash)) {
+      validationData.networks = networks
+    }
+    void agreement.handleValidation(data as ValidationRaw)
+  } else if (data.type === 'manifestReceived') {
+    void handleManifest(data as StreamManifest)
+  } else if (data.type.includes('ledger')) {
+    ledger_hashes.push((data as StreamLedger).ledger_hash)
+    if (ledger_hashes.length > LEDGER_HASHES_SIZE) {
+      ledger_hashes.shift()
+    }
+  }
 }
 
 /**
@@ -35,9 +71,15 @@ function subscribe(ws: WebSocket): void {
  *
  * @param ip - The ip address of the node we are trying to reach.
  * @param ws - A WebSocket object.
+ * @param networks - The networks of the node we are trying to reach where it retrieves validations.
  * @returns A Promise that resolves to void once a connection has been created or timeout has occured.
  */
-async function setHandlers(ip: string, ws: WebSocket): Promise<void> {
+async function setHandlers(
+  ip: string,
+  ws: WebSocket,
+  networks: string | undefined,
+): Promise<void> {
+  const ledger_hashes: string[] = []
   return new Promise(function setHandlersPromise(resolve, _reject) {
     ws.on('open', () => {
       if (connections.has(ip)) {
@@ -57,11 +99,7 @@ async function setHandlers(ip: string, ws: WebSocket): Promise<void> {
         log.error('Error parsing validation message', error)
         return
       }
-      if (data?.type === 'validationReceived') {
-        void agreement.handleValidation(data)
-      } else if (data?.type === 'manifestReceived') {
-        void handleManifest(data)
-      }
+      void handleWsMessageTypes(data, ledger_hashes, networks)
     })
     ws.on('close', () => {
       if (connections.get(ip)?.url === ws.url) {
@@ -84,6 +122,7 @@ async function setHandlers(ip: string, ws: WebSocket): Promise<void> {
 interface WsNode {
   ip: string
   ws_url?: string
+  networks?: string
 }
 
 /**
@@ -103,7 +142,7 @@ async function findConnection(node: WsNode): Promise<void> {
 
   if (node.ws_url) {
     const ws = new WebSocket(node.ws_url, { handshakeTimeout: WS_TIMEOUT })
-    return setHandlers(node.ip, ws)
+    return setHandlers(node.ip, ws, node.networks)
   }
 
   const promises: Array<Promise<void>> = []
@@ -111,7 +150,7 @@ async function findConnection(node: WsNode): Promise<void> {
     for (const protocol of protocols) {
       const url = `${protocol}${node.ip}:${port}`
       const ws = new WebSocket(url, { handshakeTimeout: WS_TIMEOUT })
-      promises.push(setHandlers(node.ip, ws))
+      promises.push(setHandlers(node.ip, ws, node.networks))
     }
   }
   await Promise.all(promises)
@@ -129,9 +168,18 @@ async function createConnections(): Promise<void> {
   tenMinutesAgo.setMinutes(tenMinutesAgo.getMinutes() - 10)
 
   const nodes = await query('crawls')
-    .select(['ip', 'ws_url'])
+    .select(['ip', 'ws_url', 'networks'])
     .whereNotNull('ip')
     .andWhere('start', '>', tenMinutesAgo)
+
+  const networksDb = await getNetworks()
+  networksDb.forEach((network) => {
+    nodes.push({
+      ip: network.entry,
+      ws_url: '',
+      networks: network.id,
+    })
+  })
 
   const promises: Array<Promise<void>> = []
   nodes.forEach((node: WsNode) => {
