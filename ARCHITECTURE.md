@@ -106,6 +106,15 @@ This table keeps track of the manifests of the validators.
 | `revoked`            |Whether the manifest has been revoked.                      |
 | `seq`                |The sequence number of this manifest.                       |
 
+### `amendments_info`
+
+This table keeps track of the general information of all known amendments.
+
+| Key                  | Definition                                                 |
+|----------------------|------------------------------------------------------------|
+| `id`                 |The amendment id.                                           |
+| `name`               |The name of the amendment.                                  |
+| `rippled_version`    |The rippled version when the amendment is first enabled     |
 
 ### `validators`
 

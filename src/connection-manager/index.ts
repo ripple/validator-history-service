@@ -4,6 +4,7 @@ import Crawler from '../crawler/crawl'
 import { setupTables, getNetworks } from '../shared/database'
 
 import agreement from './agreement'
+import fetchAmendmentInfo from './amendments'
 import startConnections from './connections'
 import { doManifestJobs } from './manifests'
 
@@ -21,6 +22,7 @@ async function start(): Promise<void> {
   await startConnections()
   await doManifestJobs()
   agreement.start()
+  await fetchAmendmentInfo()
 }
 
 void start()
