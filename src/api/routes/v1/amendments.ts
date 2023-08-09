@@ -1,4 +1,4 @@
-import { Response } from 'express'
+import { Request, Response } from 'express'
 
 import { staleAmendmentsData } from '../../../connection-manager/amendments'
 import { query } from '../../../shared/database'
@@ -18,7 +18,7 @@ interface Cache {
   time: number
 }
 
-const log = logger({ name: 'api-validator' })
+const log = logger({ name: 'api-amendments' })
 
 const cache: Cache = {
   amendments: [],
@@ -43,7 +43,7 @@ async function cacheAmendmentsInfo(): Promise<void> {
 void cacheAmendmentsInfo()
 
 /**
- * Handles Validators Request.
+ * Handles Amendment Info request.
  *
  * @param _u - Unused express request.
  * @param res - Express response.

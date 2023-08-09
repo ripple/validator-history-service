@@ -14,6 +14,8 @@ const api = createRouter()
 
 api.use('/health', handleHealth)
 api.use('/network/validator_reports', handleDailyScores)
+api.use('/network/amendments/info', handleAmendmentsInfo)
+
 api.use('/network/get_network/:entryUrl', getNetworkOrAdd)
 
 api.use('/network/topology/nodes/:network', handleNodes)
@@ -26,7 +28,5 @@ api.use('/network/validator/:publicKey/manifests', handleValidatorManifest)
 api.use('/network/validator/:publicKey', handleValidator)
 api.use('/network/validators/:param', handleValidators)
 api.use('/network/validators', handleValidators)
-
-api.use('/network/amendments/info', handleAmendmentsInfo)
 
 export default api
