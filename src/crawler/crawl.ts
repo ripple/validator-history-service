@@ -113,19 +113,12 @@ class Crawler {
    */
   public async saveConnections(network: string): Promise<void> {
     for (const [key, connections] of this.connections) {
-      const dbNetworks = await query('crawls')
-        .select('networks')
-        .where({ public_key: key })
-
-      const arr = dbNetworks[0]?.networks?.split(',') || []
-      arr.push(network)
-      const networks = Array.from(new Set(arr)).join()
       void query('crawls')
         .where({ public_key: key })
         .update({
           inbound_count: connections.in.size,
           outbound_count: connections.out.size,
-          networks,
+          networks: network,
         })
         .catch((err) =>
           log.error('Error updating crawls inbound outbound', err),
