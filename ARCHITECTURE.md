@@ -23,6 +23,7 @@ There are 3 folders in `src`, corresponding to the 3 processes that the VHS runs
   * `/network/validator/:publicKey`: Returns information about a specific validator.
   * `/network/validator/:publicKey/manifests`: Returns the manifests of a specific validator.
   * `/network/validator/:publicKey/reports`: Returns more detailed information about the reliability of a specific validator.
+  * `/network/amendments/info`: Returns general information about known amendments.
 
 
 ## SQL Table Schemas
