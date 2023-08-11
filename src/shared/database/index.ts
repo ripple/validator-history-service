@@ -240,6 +240,25 @@ export async function saveValidator(
 }
 
 /**
+ * Saves list of amendments enabled on a network to the database.
+ *
+ * @param amendments - The list of amendments to be saved.
+ * @param networks - The networks to be saved.
+ */
+export async function saveAmendmentsEnabled(
+  amendments: string[],
+  networks: string | undefined,
+): Promise<void> {
+  amendments.forEach(async (amendment) => {
+    await query('amendments_enabled')
+      .insert({ amendment_id: amendment, networks })
+      .onConflict(['amendment_id', 'networks'])
+      .merge()
+      .catch((err) => log.error('Error Saving Enabled Amendment', err))
+  })
+}
+
+/**
  * Deletes old hourly scores.
  *
  * @returns Deletes hourly scores older that 30 days.

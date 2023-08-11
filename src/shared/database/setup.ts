@@ -19,6 +19,7 @@ export default async function setupTables(): Promise<void> {
   await setupHourlyAgreementTable()
   await setupDailyAgreementTable()
   await setupNetworksTable()
+  await setupAmendmentsEnabledTable()
 }
 
 async function setupCrawlsTable(): Promise<void> {
@@ -200,5 +201,16 @@ async function setupNetworksTable(): Promise<void> {
       .del()
       .where('id', '=', 'nft-dev')
       .catch((err: Error) => log.error(err.message))
+  }
+}
+
+async function setupAmendmentsEnabledTable(): Promise<void> {
+  const hasAmendmentsEnabled = await db().schema.hasTable('amendments_enabled')
+  if (!hasAmendmentsEnabled) {
+    await db().schema.createTable('amendments_enabled', (table) => {
+      table.string('amendment_id')
+      table.string('networks')
+      table.primary(['amendment_id', 'networks'])
+    })
   }
 }
