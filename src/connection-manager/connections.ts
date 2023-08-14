@@ -46,7 +46,7 @@ function subscribe(ws: WebSocket): void {
 }
 
 /**
- * Subscribes a WebSocket to manifests and validations streams.
+ * Sends a ledger_entry WebSocket request to retrieve amendments enabled on a network.
  *
  * @param ws - A WebSocket object.
  */
