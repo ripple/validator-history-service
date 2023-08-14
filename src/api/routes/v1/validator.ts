@@ -42,6 +42,10 @@ interface ValidatorResponse {
   } | null
   partial: boolean
   unl: boolean
+  amendments?: string
+  base_fee?: number
+  reserve_base?: number
+  reserve_inc?: number
 }
 
 interface ValidatorsResponse {
@@ -76,6 +80,10 @@ interface dbResponse {
   master_key?: string
   signing_key: string
   revoked?: boolean
+  amendments?: string
+  base_fee?: number
+  reserve_base?: number
+  reserve_inc?: number
 }
 
 const cache: Cache = {
@@ -90,24 +98,29 @@ const cache: Cache = {
  */
 async function getValidators(): Promise<ValidatorResponse[]> {
   return query('validators')
+    .join('ballot', 'validators.signing_key', 'ballot.signing_key')
     .select([
-      'partial',
-      'unl',
-      'agreement_1hour',
-      'agreement_24hour',
-      'agreement_30day',
-      'current_index',
-      'domain',
-      'chain',
-      'networks',
-      'server_version',
-      'master_key',
-      'signing_key',
-      'master_key',
-      'revoked',
+      'validators.partial',
+      'validators.unl',
+      'validators.agreement_1hour',
+      'validators.agreement_24hour',
+      'validators.agreement_30day',
+      'validators.current_index',
+      'validators.domain',
+      'validators.chain',
+      'validators.networks',
+      'validators.server_version',
+      'validators.master_key',
+      'validators.signing_key',
+      'validators.master_key',
+      'validators.revoked',
+      'ballot.amendments',
+      'ballot.base_fee',
+      'ballot.reserve_base',
+      'ballot.reserve_inc',
     ])
-    .where('revoked', '=', 'false')
-    .orderBy(['master_key', 'signing_key'])
+    .where('validators.revoked', '=', 'false')
+    .orderBy(['validators.master_key', 'validators.signing_key'])
     .then((res: dbResponse[]) => res.map(formatResponse))
 }
 
@@ -165,6 +178,10 @@ function formatResponse(resp: dbResponse): ValidatorResponse {
     partial: resp.partial,
     unl: resp.unl ?? false,
     revoked: resp.revoked,
+    amendments: resp.amendments,
+    base_fee: resp.base_fee,
+    reserve_base: resp.reserve_base,
+    reserve_inc: resp.reserve_inc,
   }
 }
 
@@ -178,20 +195,26 @@ async function findInDatabase(
   public_key: string,
 ): Promise<ValidatorResponse | undefined> {
   const result: dbResponse[] = await query('validators')
+    .join('ballot', 'validators.signing_key', 'ballot.signing_key')
     .select([
-      'partial',
-      'unl',
-      'agreement_1hour',
-      'agreement_24hour',
-      'agreement_30day',
-      'current_index',
-      'domain',
-      'chain',
-      'server_version',
-      'networks',
-      'master_key',
-      'signing_key',
-      'master_key',
+      'validators.partial',
+      'validators.unl',
+      'validators.agreement_1hour',
+      'validators.agreement_24hour',
+      'validators.agreement_30day',
+      'validators.current_index',
+      'validators.domain',
+      'validators.chain',
+      'validators.networks',
+      'validators.server_version',
+      'validators.master_key',
+      'validators.signing_key',
+      'validators.master_key',
+      'validators.revoked',
+      'ballot.amendments',
+      'ballot.base_fee',
+      'ballot.reserve_base',
+      'ballot.reserve_inc',
     ])
     .where({ master_key: public_key })
     .orWhere({ signing_key: public_key })
