@@ -194,6 +194,12 @@ interface DailyAgreement {
   agreement: AgreementScore
 }
 
+interface AmendmentsInfo {
+  id: string
+  name: string
+  rippled_version?: string
+}
+
 export {
   Node,
   Crawl,
@@ -217,4 +223,5 @@ export {
   StreamLedger,
   Chain,
   ValidatorKeys,
+  AmendmentsInfo,
 }

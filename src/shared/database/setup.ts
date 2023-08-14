@@ -20,6 +20,7 @@ export default async function setupTables(): Promise<void> {
   await setupDailyAgreementTable()
   await setupNetworksTable()
   await setupBallotTable()
+  await setupAmendmentsInfoTable()
 }
 
 async function setupCrawlsTable(): Promise<void> {
@@ -214,6 +215,18 @@ async function setupBallotTable(): Promise<void> {
       table.integer('base_fee')
       table.integer('reserve_base')
       table.integer('reserve_inc')
+    })
+  }
+}
+
+async function setupAmendmentsInfoTable(): Promise<void> {
+  const hasAmendmentsInfo = await db().schema.hasTable('amendments_info')
+  if (!hasAmendmentsInfo) {
+    await db().schema.createTable('amendments_info', (table) => {
+      table.string('id')
+      table.string('name')
+      table.string('rippled_version')
+      table.primary(['id'])
     })
   }
 }
