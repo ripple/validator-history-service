@@ -21,6 +21,7 @@ export default async function setupTables(): Promise<void> {
   await setupNetworksTable()
   await setupBallotTable()
   await setupAmendmentsInfoTable()
+  await setupAmendmentsEnabledTable()
 }
 
 async function setupCrawlsTable(): Promise<void> {
@@ -227,6 +228,17 @@ async function setupAmendmentsInfoTable(): Promise<void> {
       table.string('name')
       table.string('rippled_version')
       table.primary(['id'])
+    })
+  }
+}
+
+async function setupAmendmentsEnabledTable(): Promise<void> {
+  const hasAmendmentsEnabled = await db().schema.hasTable('amendments_enabled')
+  if (!hasAmendmentsEnabled) {
+    await db().schema.createTable('amendments_enabled', (table) => {
+      table.string('amendment_id')
+      table.string('networks')
+      table.primary(['amendment_id', 'networks'])
     })
   }
 }

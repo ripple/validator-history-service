@@ -29,6 +29,37 @@ interface StreamLedger {
   type: string
 }
 
+interface LedgerEntryWarning {
+  id: number
+  message: string
+}
+
+interface LedgerEntryMajority {
+  Majority: {
+    Amendment: string
+    CloseTime: number
+  }
+}
+
+interface LedgerEntryAmendments {
+  result: {
+    index: string
+    ledger_hash: string
+    ledger_index: number
+    node: {
+      Amendments: string[]
+      Flags: number
+      LedgerEntryType: string
+      Majorities: LedgerEntryMajority[]
+      index: string
+    }
+    validated: boolean
+    warnings: LedgerEntryWarning[]
+  }
+  status: string
+  type: string
+}
+
 interface Node {
   public_key: string
   complete_ledgers?: string
@@ -224,4 +255,5 @@ export {
   Chain,
   ValidatorKeys,
   AmendmentsInfo,
+  LedgerEntryAmendments,
 }

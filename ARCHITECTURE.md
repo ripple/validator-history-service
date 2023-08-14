@@ -107,16 +107,6 @@ This table keeps track of the manifests of the validators.
 | `revoked`            |Whether the manifest has been revoked.                      |
 | `seq`                |The sequence number of this manifest.                       |
 
-### `amendments_info`
-
-This table keeps track of the general information of all known amendments.
-
-| Key                  | Definition                                                 |
-|----------------------|------------------------------------------------------------|
-| `id`                 |The amendment id.                                           |
-| `name`               |The name of the amendment.                                  |
-| `rippled_version`    |The rippled version when the amendment is first enabled     |
-
 ### `ballot`
 
 This table keeps track of the most current voting data for the validators.
@@ -130,6 +120,25 @@ This table keeps track of the most current voting data for the validators.
 | `reserve_base`       |The minimum reserve requirement this validator wants to set.       |
 | `reserve_inc`        |The increment in the reserve requirement this validator wants to set.|
 
+### `amendments_info`
+
+This table keeps track of the general information of all known amendments.
+
+| Key                  | Definition                                                 |
+|----------------------|------------------------------------------------------------|
+| `id`                 |The amendment id.                                           |
+| `name`               |The name of the amendment.                                  |
+| `rippled_version`    |The rippled version when the amendment is first enabled     |
+
+
+### `amendments_enabled`
+
+This table keeps track of the amendments enabled on each network.
+
+| Key                  | Definition                                              |
+|----------------------|---------------------------------------------------------|
+| `amendment_id`       |The amendment id.                                        |
+| `networks`           |The network where the amendment has been enabled.        |
 
 ### `validators`
 

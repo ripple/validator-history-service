@@ -5,10 +5,12 @@ import {
   saveNodeWsUrl,
   clearConnectionsDb,
   getNetworks,
+  saveAmendmentsEnabled,
 } from '../shared/database'
 import {
   DatabaseValidator,
   Fee,
+  LedgerEntryAmendments,
   StreamLedger,
   StreamManifest,
   ValidationRaw,
@@ -27,6 +29,8 @@ const CM_INTERVAL = 60 * 60 * 1000
 const WS_TIMEOUT = 10000
 const REPORTING_INTERVAL = 15 * 60 * 1000
 const LEDGER_HASHES_SIZE = 10
+const AMENDMENT_LEDGER_ENTRY_INDEX =
+  '7DB0788C020F02780A673DC74757F23823FA3014C1866E72CC4CD8B226CD6EF4'
 let cmStarted = false
 
 /**
@@ -45,6 +49,21 @@ function subscribe(ws: WebSocket): void {
 }
 
 /**
+ * Sends a ledger_entry WebSocket request to retrieve amendments enabled on a network.
+ *
+ * @param ws - A WebSocket object.
+ */
+function ledger_entry(ws: WebSocket): void {
+  ws.send(
+    JSON.stringify({
+      command: 'ledger_entry',
+      index: AMENDMENT_LEDGER_ENTRY_INDEX,
+      ledger_index: 'validated',
+    }),
+  )
+}
+
+/**
  * Handles a WebSocket message received.
  *
  * @param data - The WebSocket message received from connection.
@@ -53,7 +72,7 @@ function subscribe(ws: WebSocket): void {
  * @returns Void.
  */
 async function handleWsMessageTypes(
-  data: ValidationRaw | StreamManifest | StreamLedger,
+  data: ValidationRaw | StreamManifest | StreamLedger | LedgerEntryAmendments,
   ledger_hashes: string[],
   networks: string | undefined,
 ): Promise<void> {
@@ -90,6 +109,15 @@ async function handleWsMessageTypes(
     if (ledger_hashes.length > LEDGER_HASHES_SIZE) {
       ledger_hashes.shift()
     }
+    // eslint-disable-next-line no-prototype-builtins -- Safeguards against some strange streams data.
+  } else if (!data.hasOwnProperty('id')) {
+    const ledgerEntryData = data as LedgerEntryAmendments
+    if (ledgerEntryData.result.node.LedgerEntryType === 'Amendments') {
+      await saveAmendmentsEnabled(
+        ledgerEntryData.result.node.Amendments,
+        networks,
+      )
+    }
   }
 }
 
@@ -99,12 +127,14 @@ async function handleWsMessageTypes(
  * @param ip - The ip address of the node we are trying to reach.
  * @param ws - A WebSocket object.
  * @param networks - The networks of the node we are trying to reach where it retrieves validations.
+ * @param entry - Whether source node is an entry node for the network.
  * @returns A Promise that resolves to void once a connection has been created or timeout has occured.
  */
 async function setHandlers(
   ip: string,
   ws: WebSocket,
   networks: string | undefined,
+  entry = false,
 ): Promise<void> {
   const ledger_hashes: string[] = []
   return new Promise(function setHandlersPromise(resolve, _reject) {
@@ -116,6 +146,9 @@ async function setHandlers(
       void saveNodeWsUrl(ws.url, true)
       connections.set(ip, ws)
       subscribe(ws)
+      if (entry) {
+        ledger_entry(ws)
+      }
       resolve()
     })
     ws.on('message', function handleMessage(message: string) {
@@ -159,6 +192,7 @@ interface WsNode {
  * @returns A promise that resolves to void once a valid endpoint to the node has been found or timeout occurs.
  */
 async function findConnection(node: WsNode): Promise<void> {
+  const networkEntryIps = (await getNetworks()).map((network) => network.entry)
   if (!node.ip || node.ip.search(':') !== -1) {
     return Promise.resolve()
   }
@@ -177,7 +211,14 @@ async function findConnection(node: WsNode): Promise<void> {
     for (const protocol of protocols) {
       const url = `${protocol}${node.ip}:${port}`
       const ws = new WebSocket(url, { handshakeTimeout: WS_TIMEOUT })
-      promises.push(setHandlers(node.ip, ws, node.networks))
+      promises.push(
+        setHandlers(
+          node.ip,
+          ws,
+          node.networks,
+          networkEntryIps.includes(node.ip),
+        ),
+      )
     }
   }
   await Promise.all(promises)
