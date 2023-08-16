@@ -64,6 +64,32 @@ function ledger_entry(ws: WebSocket): void {
 }
 
 /**
+ * Handles ledger stream.
+ *
+ * @param current_ledger - The current ledger received from stream.
+ * @param ledger_hashes - The list of recent ledger hashes.
+ * @param networks - The networks of subscribed node.
+ */
+function handleLedger(
+  current_ledger: StreamLedger,
+  ledger_hashes: string[],
+  networks: string | undefined,
+): void {
+  ledger_hashes.push(current_ledger.ledger_hash)
+  if (networks) {
+    const fee: Fee = {
+      fee_base: current_ledger.fee_base,
+      reserve_base: current_ledger.reserve_base,
+      reserve_inc: current_ledger.reserve_inc,
+    }
+    network_fee.set(networks, fee)
+  }
+  if (ledger_hashes.length > LEDGER_HASHES_SIZE) {
+    ledger_hashes.shift()
+  }
+}
+
+/**
  * Handles a WebSocket message received.
  *
  * @param data - The WebSocket message received from connection.
@@ -96,19 +122,7 @@ async function handleWsMessageTypes(
   } else if (data.type === 'manifestReceived') {
     void handleManifest(data as StreamManifest)
   } else if (data.type.includes('ledger')) {
-    const current_ledger = data as StreamLedger
-    ledger_hashes.push(current_ledger.ledger_hash)
-    if (networks) {
-      const fee: Fee = {
-        fee_base: current_ledger.fee_base,
-        reserve_base: current_ledger.reserve_base,
-        reserve_inc: current_ledger.reserve_inc,
-      }
-      network_fee.set(networks, fee)
-    }
-    if (ledger_hashes.length > LEDGER_HASHES_SIZE) {
-      ledger_hashes.shift()
-    }
+    void handleLedger(data as StreamLedger, ledger_hashes, networks)
     // eslint-disable-next-line no-prototype-builtins -- Safeguards against some strange streams data.
   } else if (!data.hasOwnProperty('id')) {
     const ledgerEntryData = data as LedgerEntryAmendments

@@ -1,6 +1,6 @@
 import { Router as createRouter } from 'express'
 
-import handleAmendmentsInfo from './amendments'
+import { handleAmendmentsInfo, handleAmendmentsVote } from './amendments'
 import handleDailyScores from './daily-report'
 import getNetworkOrAdd from './get-network'
 import handleHealth from './health'
@@ -15,6 +15,7 @@ const api = createRouter()
 api.use('/health', handleHealth)
 api.use('/network/validator_reports', handleDailyScores)
 api.use('/network/amendments/info', handleAmendmentsInfo)
+api.use('/network/amendments/vote/:network', handleAmendmentsVote)
 
 api.use('/network/get_network/:entryUrl', getNetworkOrAdd)
 

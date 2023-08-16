@@ -251,9 +251,10 @@ export async function saveBallot(ballot: Ballot): Promise<void> {
     .onConflict('signing_key')
     .merge()
     .catch((err) => log.error('Error Saving Ballot', err))
-  }
+}
 
-/** Saves list of amendments enabled on a network to the database.
+/**
+ * Saves list of amendments enabled on a network to the database.
  *
  * @param amendments - The list of amendments to be saved.
  * @param networks - The networks to be saved.
