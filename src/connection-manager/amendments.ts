@@ -102,7 +102,10 @@ async function fetchMinRippledVersions(): Promise<void> {
     text.split('\n').forEach((line: string) => {
       const found = regex.exec(line)
       if (found) {
-        cachedRippledVersions.set(found[1], found[2])
+        cachedRippledVersions.set(
+          found[1],
+          found[2].startsWith('v') ? found[2].slice(1) : found[2],
+        )
       }
     })
   } catch (err) {

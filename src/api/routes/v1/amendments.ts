@@ -3,6 +3,7 @@ import { Request, Response } from 'express'
 import { staleAmendmentsData } from '../../../connection-manager/amendments'
 import { getNetworks, query } from '../../../shared/database'
 import { AmendmentsInfo } from '../../../shared/types'
+import { isEarlierVersion } from '../../../shared/utils'
 import logger from '../../../shared/utils/logger'
 
 interface AmendmentsInfoResponse {
@@ -72,6 +73,12 @@ const cacheVote: CacheVote = {
 async function cacheAmendmentsInfo(): Promise<void> {
   try {
     cacheInfo.amendments = await query('amendments_info').select('*')
+    cacheInfo.amendments.sort((prev: AmendmentsInfo, next: AmendmentsInfo) => {
+      if (isEarlierVersion(prev.rippled_version, next.rippled_version)) {
+        return 1
+      }
+      return -1
+    })
     cacheInfo.time = Date.now()
     // eslint-disable-next-line @typescript-eslint/no-explicit-any -- TODO: clean up
   } catch (err: any) {
@@ -112,7 +119,7 @@ function parseAmendmentVote(
   votingAmendments: {
     [key: string]: {
       name: string
-      rippled_version: string | undefined
+      rippled_version: string | undefined | null
       validators: Array<{ signing_key: string; ledger_index: string }>
     }
   },
@@ -147,7 +154,7 @@ async function getVotingAmendments(id: string): Promise<AmendmentInVoting[]> {
   const votingAmendments: {
     [key: string]: {
       name: string
-      rippled_version: string | undefined
+      rippled_version: string | undefined | null
       validators: Array<{ signing_key: string; ledger_index: string }>
     }
   } = {}
