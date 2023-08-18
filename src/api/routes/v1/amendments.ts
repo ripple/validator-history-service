@@ -3,6 +3,7 @@ import { Request, Response } from 'express'
 import { staleAmendmentsData } from '../../../connection-manager/amendments'
 import { query } from '../../../shared/database'
 import { AmendmentsInfo } from '../../../shared/types'
+import { isEarlierVersion } from '../../../shared/utils'
 import logger from '../../../shared/utils/logger'
 
 interface AmendmentsInfoResponse {
@@ -33,6 +34,12 @@ const cache: Cache = {
 async function cacheAmendmentsInfo(): Promise<void> {
   try {
     cache.amendments = await query('amendments_info').select('*')
+    cache.amendments.sort((prev: AmendmentsInfo, next: AmendmentsInfo) => {
+      if (isEarlierVersion(prev.rippled_version, next.rippled_version)) {
+        return 1
+      }
+      return -1
+    })
     cache.time = Date.now()
     // eslint-disable-next-line @typescript-eslint/no-explicit-any -- TODO: clean up
   } catch (err: any) {
