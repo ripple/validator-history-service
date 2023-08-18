@@ -66,6 +66,24 @@ const cacheVote: CacheVote = {
 }
 
 /**
+ * Sort by rippled version callback function.
+ *
+ * @param prev - First callback param.
+ * @param next - Second callback param.
+ *
+ * @returns 1 or -1.
+ */
+function sortByVersion(
+  prev: AmendmentsInfo | AmendmentInVoting,
+  next: AmendmentsInfo | AmendmentInVoting,
+): number {
+  if (isEarlierVersion(prev.rippled_version, next.rippled_version)) {
+    return 1
+  }
+  return -1
+}
+
+/**
  * Updates amendments in info cache.
  *
  * @returns Void.
@@ -73,12 +91,9 @@ const cacheVote: CacheVote = {
 async function cacheAmendmentsInfo(): Promise<void> {
   try {
     cacheInfo.amendments = await query('amendments_info').select('*')
-    cacheInfo.amendments.sort((prev: AmendmentsInfo, next: AmendmentsInfo) => {
-      if (isEarlierVersion(prev.rippled_version, next.rippled_version)) {
-        return 1
-      }
-      return -1
-    })
+    cacheInfo.amendments.sort((prev: AmendmentsInfo, next: AmendmentsInfo) =>
+      sortByVersion(prev, next),
+    )
     cacheInfo.time = Date.now()
     // eslint-disable-next-line @typescript-eslint/no-explicit-any -- TODO: clean up
   } catch (err: any) {
@@ -95,7 +110,7 @@ void cacheAmendmentsInfo()
  * @returns List of enabled amendments.
  */
 async function getEnabledAmendments(id: string): Promise<AmendmentsInfo[]> {
-  return query('amendments_enabled')
+  const enabled = await query('amendments_enabled')
     .leftJoin(
       'amendments_info',
       'amendments_enabled.amendment_id',
@@ -107,6 +122,12 @@ async function getEnabledAmendments(id: string): Promise<AmendmentsInfo[]> {
       'amendments_info.rippled_version',
     )
     .where('amendments_enabled.networks', id)
+
+  enabled.sort((prev: AmendmentsInfo, next: AmendmentsInfo) =>
+    sortByVersion(prev, next),
+  )
+
+  return enabled
 }
 /**
  * Adds a ballot into the amendments mapping.
@@ -187,6 +208,10 @@ async function getVotingAmendments(id: string): Promise<AmendmentInVoting[]> {
       },
     })
   }
+
+  res.sort((prev: AmendmentInVoting, next: AmendmentInVoting) =>
+    sortByVersion(prev, next),
+  )
 
   return res
 }
