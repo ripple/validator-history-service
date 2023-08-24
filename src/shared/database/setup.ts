@@ -210,7 +210,13 @@ async function setupAmendmentsEnabledTable(): Promise<void> {
     await db().schema.createTable('amendments_enabled', (table) => {
       table.string('amendment_id')
       table.string('networks')
+      table.dateTime('date')
       table.primary(['amendment_id', 'networks'])
+    })
+  }
+  if (!(await db().schema.hasColumn('amendments_enabled', 'date'))) {
+    await db().schema.alterTable('amendments_enabled', (table) => {
+      table.datetime('date').after('networks')
     })
   }
 }
