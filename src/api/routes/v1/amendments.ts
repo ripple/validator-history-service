@@ -65,6 +65,8 @@ const cacheVote: CacheVote = {
   time: Date.now(),
 }
 
+const cacheEnabled = new Set()
+
 /**
  * Sort by rippled version callback function.
  *
@@ -126,6 +128,9 @@ async function getEnabledAmendments(id: string): Promise<AmendmentsInfo[]> {
   enabled.sort((prev: AmendmentsInfo, next: AmendmentsInfo) =>
     sortByVersion(prev, next),
   )
+  enabled.forEach((amendment: AmendmentsInfo) => {
+    cacheEnabled.add(amendment.id)
+  })
 
   return enabled
 }
@@ -160,6 +165,7 @@ function parseAmendmentVote(
     })
   })
 }
+
 /**
  * Retrieves amendments enabled on a network.
  *
@@ -198,15 +204,17 @@ async function getVotingAmendments(id: string): Promise<AmendmentInVoting[]> {
   const res: AmendmentInVoting[] = []
 
   for (const [key, value] of Object.entries(votingAmendments)) {
-    res.push({
-      id: key,
-      name: value.name,
-      rippled_version: value.rippled_version,
-      voted: {
-        count: value.validators.length,
-        validators: value.validators,
-      },
-    })
+    if (!cacheEnabled.has(key)) {
+      res.push({
+        id: key,
+        name: value.name,
+        rippled_version: value.rippled_version,
+        voted: {
+          count: value.validators.length,
+          validators: value.validators,
+        },
+      })
+    }
   }
 
   res.sort((prev: AmendmentInVoting, next: AmendmentInVoting) =>
