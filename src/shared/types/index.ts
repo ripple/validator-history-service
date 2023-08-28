@@ -41,7 +41,7 @@ interface LedgerEntryMajority {
   }
 }
 
-interface LedgerEntryAmendments {
+interface LedgerEntryAmendmentsResponse {
   result: {
     index: string
     ledger_hash: string
@@ -225,5 +225,5 @@ export {
   StreamLedger,
   Chain,
   ValidatorKeys,
-  LedgerEntryAmendments,
+  LedgerEntryAmendmentsResponse,
 }

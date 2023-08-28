@@ -8,7 +8,7 @@ import {
   saveAmendmentsEnabled,
 } from '../shared/database'
 import {
-  LedgerEntryAmendments,
+  LedgerEntryAmendmentsResponse,
   StreamLedger,
   StreamManifest,
   ValidationRaw,
@@ -50,7 +50,7 @@ function subscribe(ws: WebSocket): void {
  *
  * @param ws - A WebSocket object.
  */
-function ledger_entry(ws: WebSocket): void {
+function getAmendmentLedgerEntry(ws: WebSocket): void {
   ws.send(
     JSON.stringify({
       command: 'ledger_entry',
@@ -69,7 +69,11 @@ function ledger_entry(ws: WebSocket): void {
  * @returns Void.
  */
 async function handleWsMessageTypes(
-  data: ValidationRaw | StreamManifest | StreamLedger | LedgerEntryAmendments,
+  data:
+    | ValidationRaw
+    | StreamManifest
+    | StreamLedger
+    | LedgerEntryAmendmentsResponse,
   ledger_hashes: string[],
   networks: string | undefined,
 ): Promise<void> {
@@ -88,7 +92,7 @@ async function handleWsMessageTypes(
     }
     // eslint-disable-next-line no-prototype-builtins -- Safeguards against some strange streams data.
   } else if (!data.hasOwnProperty('id')) {
-    const ledgerEntryData = data as LedgerEntryAmendments
+    const ledgerEntryData = data as LedgerEntryAmendmentsResponse
     if (ledgerEntryData.result.node.LedgerEntryType === 'Amendments') {
       await saveAmendmentsEnabled(
         ledgerEntryData.result.node.Amendments,
@@ -124,7 +128,7 @@ async function setHandlers(
       connections.set(ip, ws)
       subscribe(ws)
       if (entry) {
-        ledger_entry(ws)
+        getAmendmentLedgerEntry(ws)
       }
       resolve()
     })
