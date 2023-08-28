@@ -14,6 +14,13 @@ interface AmendmentsInfoResponse {
   amendments: AmendmentsInfo[]
 }
 
+interface AmendmentInfoResponse {
+  result: 'success' | 'error'
+  stale_name: boolean
+  stale_version: boolean
+  amendment: AmendmentsInfo
+}
+
 interface Cache {
   amendments: AmendmentsInfo[]
   time: number
@@ -50,12 +57,12 @@ async function cacheAmendmentsInfo(): Promise<void> {
 void cacheAmendmentsInfo()
 
 /**
- * Handles Amendment Info request.
+ * Handles Amendments Info request.
  *
  * @param _u - Unused express request.
  * @param res - Express response.
  */
-export default async function handleAmendmentsInfo(
+export async function handleAmendmentsInfo(
   _u: Request,
   res: Response,
 ): Promise<void> {
@@ -70,6 +77,40 @@ export default async function handleAmendmentsInfo(
       stale_name: staleAmendmentsData.staleName,
       stale_version: staleAmendmentsData.staleVersion,
       amendments,
+    }
+    res.send(response)
+  } catch {
+    res.send({ result: 'error', message: 'internal error' })
+  }
+}
+
+/**
+ * Handles Amendment Info request.
+ *
+ * @param req - Unused express request.
+ * @param res - Express response.
+ */
+export async function handleAmendmentInfo(
+  req: Request,
+  res: Response,
+): Promise<void> {
+  try {
+    const { param } = req.params
+    if (Date.now() - cache.time > 60 * 1000) {
+      await cacheAmendmentsInfo()
+    }
+    const amendments: AmendmentsInfo[] = cache.amendments.filter(
+      (amend) => amend.name === param || amend.id === param,
+    )
+    if (amendments.length === 0) {
+      res.send({ result: 'error', message: "incorrect amendment's id/name" })
+      return
+    }
+    const response: AmendmentInfoResponse = {
+      result: 'success',
+      stale_name: staleAmendmentsData.staleName,
+      stale_version: staleAmendmentsData.staleVersion,
+      amendment: amendments[0],
     }
     res.send(response)
   } catch {
