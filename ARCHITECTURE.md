@@ -114,6 +114,9 @@ This table keeps track of the amendments enabled on each network.
 |----------------------|---------------------------------------------------------|
 | `amendment_id`       |The amendment id.                                        |
 | `networks`           |The network where the amendment has been enabled.        |
+| `ledger_index`       |The ledger where the amendment has been enabled.         |
+| `tx_hash`            |The transaction hash where the amendment has been enabled.|
+| `date`               |The date when the amendment has been enabled.            |
 
 ### `validators`
 
