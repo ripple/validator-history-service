@@ -1,3 +1,4 @@
+/* eslint-disable max-lines -- Disable for this file containing many types. */
 import { Manifest, StreamManifest } from 'xrpl-validator-domains'
 
 interface Chain {
@@ -58,6 +59,64 @@ interface LedgerEntryAmendmentsResponse {
   }
   status: string
   type: string
+}
+
+interface LedgerEnableAmendmentResponse {
+  result: {
+    ledger: {
+      accepted: boolean
+      account_hash: string
+      close_flags: number
+      close_time: number
+      close_time_human: number
+      close_time_resolution: number
+      closed: boolean
+      hash: string
+      ledger_hash: string
+      ledger_index: string
+      parent_close_time: number
+      parent_hash: string
+      seqNum: string
+      totalCoins: string
+      total_coins: string
+      transaction_hash: string
+      // eslint-disable-next-line @typescript-eslint/no-explicit-any -- Use any since we do not need to build Transaction model.
+      transactions: any[]
+    }
+    ledger_hash: string
+    ledger_index: number
+    validated: boolean
+  }
+  status: string
+  type: string
+}
+
+interface TxEnableAmendmentResponse {
+  result: {
+    Account: string
+    Amendment: string
+    Fee: string
+    LedgerSequence: string
+    Sequence: string
+    SigningPubKey: string
+    TransactionType: string
+    hash: string
+    // eslint-disable-next-line @typescript-eslint/no-explicit-any -- Use any since we do not need to build Transaction model.
+    meta: any
+    validated: boolean
+    date: number
+    ledger_index: number
+  }
+  status: string
+  type: string
+}
+
+interface AmendmentEnabled {
+  amendment_id: string
+  networks: string | undefined
+  ledger_index: number
+  tx_hash: string
+  date: Date
 }
 
 interface Node {
@@ -226,4 +285,7 @@ export {
   Chain,
   ValidatorKeys,
   LedgerEntryAmendmentsResponse,
+  LedgerEnableAmendmentResponse,
+  TxEnableAmendmentResponse,
+  AmendmentEnabled,
 }

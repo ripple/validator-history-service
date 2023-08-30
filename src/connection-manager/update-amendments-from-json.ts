@@ -1,39 +1,23 @@
 import 'dotenv/config'
 import * as fs from 'fs'
 
-import logger from '../utils/logger'
-
-import { query } from './utils'
+import { query } from '../shared/database/utils'
+import { AmendmentEnabled } from '../shared/types'
+import { rippleTimeToUnixTime } from '../shared/utils'
+import logger from '../shared/utils/logger'
 
 const log = logger({ name: 'database-agreement' })
 const filePath = 'src/shared/data/amendments_enabled.json'
-const RIPPLE_EPOCH_DIFF = 0x386d4380
-
-interface AmendmentEnabledDb {
-  amendment_id: string
-  networks: string
-  tx_hash: string
-  date: Date
-}
 
 interface AmendmentEnabledJson {
   networks: string
   amendments: Array<{
     id: string
     networks: string
+    ledger_index: number
     tx_hash: string
     date: string | number
   }>
-}
-
-/**
- * Convert a ripple timestamp to a unix timestamp.
- *
- * @param rpepoch - (seconds since 1/1/2000 GMT).
- * @returns Milliseconds since unix epoch.
- */
-function rippleTimeToUnixTime(rpepoch: number): number {
-  return (rpepoch + RIPPLE_EPOCH_DIFF) * 1000
 }
 
 /**
@@ -44,7 +28,7 @@ function rippleTimeToUnixTime(rpepoch: number): number {
  * @returns Void.
  */
 async function saveAmendmentsEnabled(
-  enabledAmendment: AmendmentEnabledDb,
+  enabledAmendment: AmendmentEnabled,
 ): Promise<void> {
   await query('amendments_enabled')
     .insert(enabledAmendment)
@@ -58,7 +42,7 @@ async function saveAmendmentsEnabled(
  *
  * @returns Void.
  */
-async function addDataFromJSON(): Promise<void> {
+export default async function addAmendmentsDataFromJSON(): Promise<void> {
   log.info('Adding Enabled Amendment Data from JSON File...')
   const jsonData = await fs.promises.readFile(filePath, 'utf8')
   const data: AmendmentEnabledJson[] = JSON.parse(jsonData)
@@ -67,9 +51,10 @@ async function addDataFromJSON(): Promise<void> {
       if (typeof amendment.date === 'number') {
         amendment.date = rippleTimeToUnixTime(amendment.date)
       }
-      const enabledData: AmendmentEnabledDb = {
+      const enabledData: AmendmentEnabled = {
         amendment_id: amendment.id,
         networks: networkData.networks,
+        ledger_index: amendment.ledger_index,
         tx_hash: amendment.tx_hash,
         date: new Date(amendment.date),
       }
@@ -78,5 +63,3 @@ async function addDataFromJSON(): Promise<void> {
   })
   log.info('Finished Enabled Amendment Data from JSON File.')
 }
-
-void addDataFromJSON()

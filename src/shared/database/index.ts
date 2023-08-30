@@ -5,6 +5,7 @@ import {
   Validator,
   Location,
   DatabaseNetwork,
+  AmendmentEnabled,
 } from '../types'
 import logger from '../utils/logger'
 
@@ -256,6 +257,21 @@ export async function saveAmendmentsEnabled(
       .merge()
       .catch((err) => log.error('Error Saving Enabled Amendment', err))
   })
+}
+
+/**
+ * Saves an amendment enabled on a network to the database.
+ *
+ * @param amendment - The amendment to be saved.
+ */
+export async function saveAmendmentEnabled(
+  amendment: AmendmentEnabled,
+): Promise<void> {
+  await query('amendments_enabled')
+    .insert(amendment)
+    .onConflict(['amendment_id', 'networks'])
+    .merge()
+    .catch((err) => log.error('Error Saving Enabled Amendment', err))
 }
 
 /**
