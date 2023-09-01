@@ -16,7 +16,7 @@ interface AmendmentEnabledJson {
     networks: string
     ledger_index: number
     tx_hash: string
-    date: string | number
+    date: number
   }>
 }
 
@@ -48,15 +48,12 @@ export default async function addAmendmentsDataFromJSON(): Promise<void> {
   const data: AmendmentEnabledJson[] = JSON.parse(jsonData)
   data.forEach((networkData: AmendmentEnabledJson) => {
     networkData.amendments.forEach(async (amendment) => {
-      if (typeof amendment.date === 'number') {
-        amendment.date = rippleTimeToUnixTime(amendment.date)
-      }
       const enabledData: AmendmentEnabled = {
         amendment_id: amendment.id,
         networks: networkData.networks,
         ledger_index: amendment.ledger_index,
         tx_hash: amendment.tx_hash,
-        date: new Date(amendment.date),
+        date: new Date(rippleTimeToUnixTime(amendment.date)),
       }
       await saveAmendmentsEnabled(enabledData)
     })
