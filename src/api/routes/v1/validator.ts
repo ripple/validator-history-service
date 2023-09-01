@@ -3,7 +3,7 @@ import { Request, Response } from 'express'
 import { query } from '../../../shared/database'
 import logger from '../../../shared/utils/logger'
 
-import { formatAgreementScore, getChains } from './utils'
+import { formatAgreementScore, formatAmendments, getChains } from './utils'
 
 const log = logger({ name: 'api-validator' })
 
@@ -42,7 +42,7 @@ interface ValidatorResponse {
   } | null
   partial: boolean
   unl: boolean
-  amendments?: string
+  amendments?: string | Array<{ id: string; name: string }>
   base_fee?: number
   reserve_base?: number
   reserve_inc?: number
@@ -256,6 +256,10 @@ export async function handleValidator(
     if (validator === undefined) {
       res.send({ result: 'error', message: 'validator not found' })
       return
+    }
+
+    if (validator.amendments && typeof validator.amendments === 'string') {
+      validator.amendments = await formatAmendments(validator.amendments)
     }
 
     res.send({ ...validator, result: 'success' })
