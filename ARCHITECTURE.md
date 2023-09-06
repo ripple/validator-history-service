@@ -117,6 +117,7 @@ This table keeps track of the general information of all known amendments.
 | `id`                 |The amendment id.                                           |
 | `name`               |The name of the amendment.                                  |
 | `rippled_version`    |The rippled version when the amendment is first enabled     |
+| `deprecated`         |Whether the amendment has been deprecated or retired        |
 
 ### `validators`
 

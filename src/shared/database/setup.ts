@@ -211,7 +211,13 @@ async function setupAmendmentsInfoTable(): Promise<void> {
       table.string('id')
       table.string('name')
       table.string('rippled_version')
+      table.boolean('deprecated')
       table.primary(['id'])
+    })
+  }
+  if (!(await db().schema.hasColumn('amendments_info', 'deprecated'))) {
+    await db().schema.alterTable('amendments_info', (table) => {
+      table.boolean('deprecated').after('rippled_version')
     })
   }
 }
