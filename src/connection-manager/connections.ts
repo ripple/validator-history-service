@@ -1,3 +1,5 @@
+/* eslint-disable max-lines -- Disable for this file with complex websocket rules. */
+/* eslint-disable max-lines-per-function  -- Disable for this file with complex websocket rules. */
 import WebSocket from 'ws'
 
 import {
@@ -6,15 +8,20 @@ import {
   clearConnectionsDb,
   getNetworks,
   saveAmendmentsEnabled,
+  saveAmendmentEnabled,
 } from '../shared/database'
 import {
   DatabaseValidator,
   Fee,
-  LedgerEntryAmendments,
+  AmendmentEnabled,
+  LedgerEnableAmendmentResponse,
+  LedgerEntryAmendmentsResponse,
   StreamLedger,
   StreamManifest,
+  TxEnableAmendmentResponse,
   ValidationRaw,
 } from '../shared/types'
+import { rippleTimeToUnixTime } from '../shared/utils'
 import logger from '../shared/utils/logger'
 
 import agreement from './agreement'
@@ -53,7 +60,7 @@ function subscribe(ws: WebSocket): void {
  *
  * @param ws - A WebSocket object.
  */
-function ledger_entry(ws: WebSocket): void {
+function getAmendmentLedgerEntry(ws: WebSocket): void {
   ws.send(
     JSON.stringify({
       command: 'ledger_entry',
@@ -90,15 +97,64 @@ function handleLedger(
 }
 
 /**
- * Handles a WebSocket message received.
+ * Sends a ledger WebSocket request to retrieve transactions on a flag+1 ledger.
+ *
+ * @param ws - A WebSocket object.
+ * @param ledger_index -- The index of the ledger.
+ */
+function getEnableAmendmentLedger(ws: WebSocket, ledger_index: number): void {
+  ws.send(
+    JSON.stringify({
+      command: 'ledger',
+      ledger_index,
+      transactions: true,
+      expand: true,
+    }),
+  )
+}
+
+/**
+ * Sends a tx WebSocket request to retrieve EnableAmendment transaction details.
+ *
+ * @param ws - A WebSocket object.
+ * @param transaction -- The hash of the transaction..
+ */
+function getEnableAmendmentTx(ws: WebSocket, transaction: string): void {
+  ws.send(
+    JSON.stringify({
+      command: 'tx',
+      transaction,
+    }),
+  )
+}
+
+/**
+ * Check if a ledger entry is right after a flag ledger, where amendments are enabled.
+ *
+ * @param ledger_index - The index of the ledger.
+ * @returns Boolean.
+ */
+function isFlagLedgerPlusOne(ledger_index: number): boolean {
+  if (ledger_index % 256 === 1) {
+    return true
+  }
+  return false
+}
+
+/**
+ * Handles a WebSocket message received from a subscribe request.
  *
  * @param data - The WebSocket message received from connection.
  * @param ledger_hashes - The list of recent ledger hashes.
  * @param networks - The networks of subscribed node.
  * @returns Void.
  */
-async function handleWsMessageTypes(
-  data: ValidationRaw | StreamManifest | StreamLedger | LedgerEntryAmendments,
+async function handleWsMessageSubscribeTypes(
+  data:
+    | ValidationRaw
+    | StreamManifest
+    | StreamLedger
+    | LedgerEntryAmendmentsResponse,
   ledger_hashes: string[],
   networks: string | undefined,
 ): Promise<void> {
@@ -125,7 +181,7 @@ async function handleWsMessageTypes(
     void handleLedger(data as StreamLedger, ledger_hashes, networks)
     // eslint-disable-next-line no-prototype-builtins -- Safeguards against some strange streams data.
   } else if (!data.hasOwnProperty('id')) {
-    const ledgerEntryData = data as LedgerEntryAmendments
+    const ledgerEntryData = data as LedgerEntryAmendmentsResponse
     if (ledgerEntryData.result.node.LedgerEntryType === 'Amendments') {
       await saveAmendmentsEnabled(
         ledgerEntryData.result.node.Amendments,
@@ -133,6 +189,66 @@ async function handleWsMessageTypes(
       )
     }
   }
+}
+
+/**
+ * Handle ws ledger_entry amendments messages.
+ *
+ * @param ws - A WebSocket object.
+ * @param data - The WebSocket message received from connection.
+ * @param networks - The networks of subscribed node.
+ */
+async function handleWsMessageLedgerEntryAmendments(
+  ws: WebSocket,
+  data: LedgerEntryAmendmentsResponse,
+  networks: string | undefined,
+): Promise<void> {
+  if (data.result.node.LedgerEntryType === 'Amendments') {
+    await saveAmendmentsEnabled(data.result.node.Amendments, networks)
+  }
+  if (isFlagLedgerPlusOne(data.result.ledger_index)) {
+    getEnableAmendmentLedger(ws, data.result.ledger_index)
+  }
+}
+
+/**
+ * Handle ws ledger messages to search for EnableAmendment transactions.
+ *
+ * @param ws - A WebSocket object.
+ * @param data - The WebSocket message received from connection.
+ */
+async function handleWsMessageLedgerEnableAmendments(
+  ws: WebSocket,
+  data: LedgerEnableAmendmentResponse,
+): Promise<void> {
+  data.result.ledger.transactions.forEach(async (transaction) => {
+    if (
+      transaction.TransactionType === 'EnableAmendment' &&
+      !transaction.Flags
+    ) {
+      getEnableAmendmentTx(ws, transaction.hash)
+    }
+  })
+}
+
+/**
+ * Handle ws ledger messages to process EnableAmendment transactions.
+ *
+ * @param data - The WebSocket message received from connection.
+ * @param networks - The WebSocket message received from connection.
+ */
+async function handleWsMessageTxEnableAmendments(
+  data: TxEnableAmendmentResponse,
+  networks: string | undefined,
+): Promise<void> {
+  const amendment: AmendmentEnabled = {
+    amendment_id: data.result.Amendment,
+    networks,
+    ledger_index: data.result.ledger_index,
+    tx_hash: data.result.hash,
+    date: new Date(rippleTimeToUnixTime(data.result.date)),
+  }
+  await saveAmendmentEnabled(amendment)
 }
 
 /**
@@ -161,7 +277,7 @@ async function setHandlers(
       connections.set(ip, ws)
       subscribe(ws)
       if (entry) {
-        ledger_entry(ws)
+        getAmendmentLedgerEntry(ws)
       }
       resolve()
     })
@@ -173,7 +289,25 @@ async function setHandlers(
         log.error('Error parsing validation message', error)
         return
       }
-      void handleWsMessageTypes(data, ledger_hashes, networks)
+      if (data.result?.node) {
+        void handleWsMessageLedgerEntryAmendments(
+          ws,
+          data as LedgerEntryAmendmentsResponse,
+          networks,
+        )
+      } else if (data.result?.ledger) {
+        void handleWsMessageLedgerEnableAmendments(
+          ws,
+          data as LedgerEnableAmendmentResponse,
+        )
+      } else if (data.result?.Amendment) {
+        void handleWsMessageTxEnableAmendments(
+          data as TxEnableAmendmentResponse,
+          networks,
+        )
+      } else {
+        void handleWsMessageSubscribeTypes(data, ledger_hashes, networks)
+      }
     })
     ws.on('close', () => {
       if (connections.get(ip)?.url === ws.url) {

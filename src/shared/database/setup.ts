@@ -244,7 +244,25 @@ async function setupAmendmentsEnabledTable(): Promise<void> {
     await db().schema.createTable('amendments_enabled', (table) => {
       table.string('amendment_id')
       table.string('networks')
+      table.integer('ledger_index')
+      table.string('tx_hash')
+      table.dateTime('date')
       table.primary(['amendment_id', 'networks'])
+    })
+  }
+  if (!(await db().schema.hasColumn('amendments_enabled', 'tx_hash'))) {
+    await db().schema.alterTable('amendments_enabled', (table) => {
+      table.string('tx_hash').after('networks')
+    })
+  }
+  if (!(await db().schema.hasColumn('amendments_enabled', 'date'))) {
+    await db().schema.alterTable('amendments_enabled', (table) => {
+      table.datetime('date').after('tx_hash')
+    })
+  }
+  if (!(await db().schema.hasColumn('amendments_enabled', 'ledger_index'))) {
+    await db().schema.alterTable('amendments_enabled', (table) => {
+      table.integer('ledger_index').after('networks')
     })
   }
 }
