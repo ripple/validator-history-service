@@ -16,11 +16,6 @@ const ACTIVE_AMENDMENT_REGEX = /^\s*REGISTER_F[A-Z]+\s*\((\S+),\s*.*$/
 // eslint-disable-next-line prefer-named-capture-group, require-unicode-regexp -- Bypass for now.
 const RETIRED_AMENDMENT_REGEX = /^ .*retireFeature\("(\S+)"\)[,;].*$/
 
-export const staleAmendmentsData = {
-  staleName: false,
-  staleVersion: false,
-}
-
 /**
  * Fetch a list of amendments names from rippled file.
  *
@@ -32,7 +27,6 @@ async function fetchAmendmentNames(): Promise<string[] | undefined> {
       'https://raw.githubusercontent.com/ripple/rippled/develop/src/ripple/protocol/impl/Feature.cpp',
     )
     const text = response.data
-    staleAmendmentsData.staleName = false
     const amendmentNames: string[] = []
     text.split('\n').forEach((line: string) => {
       const name = ACTIVE_AMENDMENT_REGEX.exec(line)
@@ -47,7 +41,6 @@ async function fetchAmendmentNames(): Promise<string[] | undefined> {
     })
     return amendmentNames
   } catch (err) {
-    staleAmendmentsData.staleName = true
     log.error('Error getting amendment names', err)
     return undefined
   }
@@ -94,7 +87,6 @@ async function fetchMinRippledVersions(): Promise<void> {
       'https://raw.githubusercontent.com/XRPLF/xrpl-dev-portal/master/content/resources/known-amendments.md',
     )
     const text = response.data
-    staleAmendmentsData.staleVersion = false
     const regex =
       // eslint-disable-next-line prefer-named-capture-group, require-unicode-regexp -- Bypass for now.
       /\| \[([a-zA-Z0-9_]+)\][^\n]+\| (v[0-9]*.[0-9]*.[0-9]*|TBD) *\|/
@@ -109,7 +101,6 @@ async function fetchMinRippledVersions(): Promise<void> {
       }
     })
   } catch (err) {
-    staleAmendmentsData.staleVersion = true
     log.error('Error getting amendment rippled versions', err)
   }
 }

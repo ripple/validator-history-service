@@ -1,6 +1,5 @@
 import { Request, Response } from 'express'
 
-import { staleAmendmentsData } from '../../../connection-manager/amendments'
 import { query } from '../../../shared/database'
 import { AmendmentsInfo } from '../../../shared/types'
 import { isEarlierVersion } from '../../../shared/utils'
@@ -9,15 +8,11 @@ import logger from '../../../shared/utils/logger'
 interface AmendmentsInfoResponse {
   result: 'success' | 'error'
   count: number
-  stale_name: boolean
-  stale_version: boolean
   amendments: AmendmentsInfo[]
 }
 
 interface AmendmentInfoResponse {
   result: 'success' | 'error'
-  stale_name: boolean
-  stale_version: boolean
   amendment: AmendmentsInfo
 }
 
@@ -74,8 +69,6 @@ export async function handleAmendmentsInfo(
     const response: AmendmentsInfoResponse = {
       result: 'success',
       count: amendments.length,
-      stale_name: staleAmendmentsData.staleName,
-      stale_version: staleAmendmentsData.staleVersion,
       amendments,
     }
     res.send(response)
@@ -108,8 +101,6 @@ export async function handleAmendmentInfo(
     }
     const response: AmendmentInfoResponse = {
       result: 'success',
-      stale_name: staleAmendmentsData.staleName,
-      stale_version: staleAmendmentsData.staleVersion,
       amendment: amendments[0],
     }
     res.send(response)
