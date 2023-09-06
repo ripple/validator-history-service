@@ -25,6 +25,7 @@ There are 3 folders in `src`, corresponding to the 3 processes that the VHS runs
   * `/network/validator/:publicKey/reports`: Returns more detailed information about the reliability of a specific validator.
   * `/network/amendments/info`: Returns general information about known amendments.
   * `/network/amendments/vote/:network`: Returns list of enabled and in voting amendments on a specific network.
+  * `/network/amendments/info/param`: Returns general information about a specific amendment by name or ID.
 
 
 ## SQL Table Schemas
@@ -130,6 +131,7 @@ This table keeps track of the general information of all known amendments.
 | `id`                 |The amendment id.                                           |
 | `name`               |The name of the amendment.                                  |
 | `rippled_version`    |The rippled version when the amendment is first enabled     |
+| `deprecated`         |Whether the amendment has been deprecated or retired        |
 
 
 ### `amendments_enabled`

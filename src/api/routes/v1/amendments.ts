@@ -1,6 +1,6 @@
+/* eslint-disable max-lines -- Disable for this file. */
 import { Request, Response } from 'express'
 
-import { staleAmendmentsData } from '../../../connection-manager/amendments'
 import { getNetworks, query } from '../../../shared/database'
 import { AmendmentsInfo } from '../../../shared/types'
 import { isEarlierVersion } from '../../../shared/utils'
@@ -9,14 +9,16 @@ import logger from '../../../shared/utils/logger'
 interface AmendmentsInfoResponse {
   result: 'success' | 'error'
   count: number
-  stale_name: boolean
-  stale_version: boolean
   amendments: AmendmentsInfo[]
 }
 
 interface AmendmentsVoteResponse {
   result: 'success' | 'error'
   amendments: AmendmentsVote
+}
+interface AmendmentInfoResponse {
+  result: 'success' | 'error'
+  amendment: AmendmentsInfo
 }
 
 interface CacheInfo {
@@ -122,6 +124,7 @@ async function getEnabledAmendments(id: string): Promise<AmendmentsInfo[]> {
       'amendments_enabled.amendment_id AS id',
       'amendments_info.name',
       'amendments_info.rippled_version',
+      'amendments_info.deprecated',
     )
     .where('amendments_enabled.networks', id)
 
@@ -147,6 +150,7 @@ function parseAmendmentVote(
       name: string
       rippled_version: string | undefined | null
       validators: Array<{ signing_key: string; ledger_index: string }>
+      deprecated: boolean | null
     }
   },
 ): void {
@@ -157,6 +161,7 @@ function parseAmendmentVote(
         name: '',
         rippled_version: '',
         validators: [],
+        deprecated: false,
       }
     }
     votingAmendments[amendmentId].validators.push({
@@ -183,6 +188,7 @@ async function getVotingAmendments(id: string): Promise<AmendmentInVoting[]> {
       name: string
       rippled_version: string | undefined | null
       validators: Array<{ signing_key: string; ledger_index: string }>
+      deprecated: boolean | null
     }
   } = {}
 
@@ -198,6 +204,7 @@ async function getVotingAmendments(id: string): Promise<AmendmentInVoting[]> {
     if (amendment.id in votingAmendments) {
       votingAmendments[amendment.id].name = amendment.name
       votingAmendments[amendment.id].rippled_version = amendment.rippled_version
+      votingAmendments[amendment.id].deprecated = amendment.deprecated
     }
   })
 
@@ -209,6 +216,7 @@ async function getVotingAmendments(id: string): Promise<AmendmentInVoting[]> {
         id: key,
         name: value.name,
         rippled_version: value.rippled_version,
+        deprecated: value.deprecated,
         voted: {
           count: value.validators.length,
           validators: value.validators,
@@ -273,9 +281,39 @@ export async function handleAmendmentsInfo(
     const response: AmendmentsInfoResponse = {
       result: 'success',
       count: amendments.length,
-      stale_name: staleAmendmentsData.staleName,
-      stale_version: staleAmendmentsData.staleVersion,
       amendments,
+    }
+    res.send(response)
+  } catch {
+    res.send({ result: 'error', message: 'internal error' })
+  }
+}
+
+/**
+ * Handles Amendment Info request.
+ *
+ * @param req - Express request.
+ * @param res - Express response.
+ */
+export async function handleAmendmentInfo(
+  req: Request,
+  res: Response,
+): Promise<void> {
+  try {
+    const { param } = req.params
+    if (Date.now() - cacheInfo.time > 60 * 1000) {
+      await cacheAmendmentsInfo()
+    }
+    const amendments: AmendmentsInfo[] = cacheInfo.amendments.filter(
+      (amend) => amend.name === param || amend.id === param,
+    )
+    if (amendments.length === 0) {
+      res.send({ result: 'error', message: "incorrect amendment's id/name" })
+      return
+    }
+    const response: AmendmentInfoResponse = {
+      result: 'success',
+      amendment: amendments[0],
     }
     res.send(response)
   } catch {

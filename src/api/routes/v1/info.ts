@@ -62,6 +62,11 @@ const info = {
       example: 'https://data.xrpl.org/v1/network/amendments/info',
     },
     {
+      action: 'Get Amendment General Information by Name or ID',
+      route: '/v1/network/amendment/info',
+      example: 'https://data.xrpl.org/v1/network/amendment/info/{param}',
+    },
+    {
       action: 'Get Amendments Voting Information',
       route: '/v1/network/amendments/vote/{network}',
       example: 'https://data.xrpl.org/v1/network/amendments/vote/{network}',
