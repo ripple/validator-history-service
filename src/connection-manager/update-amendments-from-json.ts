@@ -2,12 +2,13 @@ import 'dotenv/config'
 import * as fs from 'fs'
 
 import { query } from '../shared/database/utils'
-import { AmendmentEnabled } from '../shared/types'
+import { AmendmentEnabled, AmendmentsInfo } from '../shared/types'
 import { rippleTimeToUnixTime } from '../shared/utils'
 import logger from '../shared/utils/logger'
 
 const log = logger({ name: 'database-agreement' })
-const filePath = 'src/shared/data/amendments_enabled.json'
+const filePathInfo = 'src/shared/data/amendments_info.json'
+const filePathEnabled = 'src/shared/data/amendments_enabled.json'
 
 interface AmendmentEnabledJson {
   networks: string
@@ -18,6 +19,23 @@ interface AmendmentEnabledJson {
     tx_hash: string
     date: number
   }>
+}
+
+/**
+ * Save amendment's info on a network to the database.
+ *
+ * @param amendmentInfo - The input amendment.
+ *
+ * @returns Void.
+ */
+async function saveAmendmentsInfo(
+  amendmentInfo: AmendmentsInfo,
+): Promise<void> {
+  await query('amendments_info')
+    .insert(amendmentInfo)
+    .onConflict(['id'])
+    .merge()
+    .catch((err) => log.error('Error Saving Amendment Info', err))
 }
 
 /**
@@ -38,13 +56,28 @@ async function saveAmendmentsEnabled(
 }
 
 /**
+ * Add amendments info data from Json file munually to the database.
+ *
+ * @returns Void.
+ */
+async function addAmendmentsInfoFromJSON(): Promise<void> {
+  log.info('Adding Amendments Information from JSON File...')
+  const jsonData = await fs.promises.readFile(filePathInfo, 'utf8')
+  const data: AmendmentsInfo[] = JSON.parse(jsonData)
+  data.forEach(async (amendmentInfo: AmendmentsInfo) => {
+    await saveAmendmentsInfo(amendmentInfo)
+  })
+  log.info('Finished adding Amendments Information from JSON File.')
+}
+
+/**
  * Add enabled amendments data from Json file munually to the database.
  *
  * @returns Void.
  */
-export default async function addAmendmentsDataFromJSON(): Promise<void> {
-  log.info('Adding Enabled Amendment Data from JSON File...')
-  const jsonData = await fs.promises.readFile(filePath, 'utf8')
+async function addAmendmentsEnabledFromJSON(): Promise<void> {
+  log.info('Adding Enabled Amendments Data from JSON File...')
+  const jsonData = await fs.promises.readFile(filePathEnabled, 'utf8')
   const data: AmendmentEnabledJson[] = JSON.parse(jsonData)
   data.forEach((networkData: AmendmentEnabledJson) => {
     networkData.amendments.forEach(async (amendment) => {
@@ -58,5 +91,10 @@ export default async function addAmendmentsDataFromJSON(): Promise<void> {
       await saveAmendmentsEnabled(enabledData)
     })
   })
-  log.info('Finished Enabled Amendment Data from JSON File.')
+  log.info('Finished adding Enabled Amendments Data from JSON File.')
+}
+
+export default async function addAmendmentsDataFromJSON(): Promise<void> {
+  await addAmendmentsInfoFromJSON()
+  await addAmendmentsEnabledFromJSON()
 }
