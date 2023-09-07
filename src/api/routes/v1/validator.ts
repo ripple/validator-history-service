@@ -245,8 +245,13 @@ export async function handleValidator(
     }
 
     const public_key = req.params.publicKey
-    let validator: ValidatorResponse | undefined = cache.validators.find(
-      (resp: ValidatorResponse) => resp.validation_public_key === public_key,
+    let validator: ValidatorResponse | undefined = JSON.parse(
+      JSON.stringify(
+        cache.validators.find(
+          (resp: ValidatorResponse) =>
+            resp.validation_public_key === public_key,
+        ),
+      ),
     )
 
     if (validator === undefined) {
