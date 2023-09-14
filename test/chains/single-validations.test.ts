@@ -30,7 +30,7 @@ describe('Single Validations', () => {
     const constructed: Array<{
       ledgers: Set<string>
       validators: Set<string>
-    }> = chains.calculateChainsFromLedgers()
+    }> = await chains.calculateChainsFromLedgers()
 
     expect(constructed).toEqual([])
   })

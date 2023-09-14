@@ -1,6 +1,6 @@
 import { Knex } from 'knex'
 
-import { query } from '../shared/database'
+import { query, signingToMaster } from '../shared/database'
 import { Ledger, ValidationRaw, Chain } from '../shared/types'
 import { getLists, overlaps } from '../shared/utils'
 import logger from '../shared/utils/logger'
@@ -67,6 +67,61 @@ async function saveValidatorChains(chain: Chain): Promise<void> {
 }
 
 /**
+ * Clears all agreement_scores from a specific chain.
+ *
+ * @param signing_keys -- The chain's validators to clear agreement_scores from.
+ */
+async function purgeChainAgreementScores(
+  signing_keys: string[],
+): Promise<void> {
+  for (const signing_key of signing_keys) {
+    const master_key = await signingToMaster(signing_key)
+    const main_key = master_key ?? signing_key
+    await query('hourly_agreement')
+      .delete('*')
+      .where('main_key', main_key)
+      .catch((err) => log.error('Error Purging Hourly Agreement Scores', err))
+
+    await query('daily_agreement')
+      .delete('*')
+      .where('main_key', main_key)
+      .catch((err) => log.error('Error Purging Hourly Agreement Scores', err))
+  }
+}
+
+/**
+ * Clears all agreement_scores if a chain resets.
+ *
+ * @param signing_keys - The signing_keys of first ledger belonging to the chain.
+ */
+async function purgeNewChainAgreementScores(
+  signing_keys: string[],
+): Promise<void> {
+  let foundChain
+  for (const signing_key of signing_keys) {
+    const chains = await query('validators')
+      .select('chain')
+      .distinct()
+      .where('signing_key', signing_key)
+    foundChain = chains.map((chain) => chain.chain as string).shift()
+    if (foundChain) {
+      log.info(
+        `A chain has been reset. Updating chain and agreement information...`,
+      )
+      const validators: Array<{ signing_key: string }> = await query(
+        'validators',
+      )
+        .select('signing_key')
+        .where('chain', foundChain)
+      await purgeChainAgreementScores(
+        validators.map((validator) => validator.signing_key),
+      )
+      break
+    }
+  }
+}
+
+/**
  *
  */
 class Chains {
@@ -102,7 +157,7 @@ class Chains {
    *
    * @returns List of chains being monitored by the system.
    */
-  public calculateChainsFromLedgers(): Chain[] {
+  public async calculateChainsFromLedgers(): Promise<Chain[]> {
     const list = []
     const now = Date.now()
 
@@ -121,7 +176,7 @@ class Chains {
     list.sort((ledger1, ledger2) => ledger1.ledger_index - ledger2.ledger_index)
 
     for (const ledger of list) {
-      this.updateChains(ledger)
+      await this.updateChains(ledger)
     }
 
     return this.chains
@@ -166,10 +221,12 @@ class Chains {
    *
    * @param ledger - Ledger being validated on a new chain.
    */
-  private addNewChain(ledger: Ledger): void {
+  private async addNewChain(ledger: Ledger): Promise<void> {
     const current = ledger.ledger_index
     const validators = ledger.validations
     const ledgerSet = new Set([ledger.ledger_hash])
+
+    await purgeNewChainAgreementScores(Array.from(validators))
 
     const chain: Chain = {
       id: this.getNextChainID(),
@@ -190,7 +247,8 @@ class Chains {
    *
    * @param ledger - The Ledger being handled in order to update the chains.
    */
-  private updateChains(ledger: Ledger): void {
+  // eslint-disable-next-line max-statements, max-lines-per-function -- Disable for this function.
+  private async updateChains(ledger: Ledger): Promise<void> {
     const next = ledger.ledger_index
     const validators = ledger.validations
 
@@ -233,6 +291,23 @@ class Chains {
       if (skipped > 1 && skipped < 20) {
         chainWithThisValidator.incomplete = true
         addLedgerToChain(ledger, chainWithThisValidator)
+      } else if (skipped < -20) {
+        // When new ledgers with overlap validator came in with ledger_index smaller
+        // than the current index of the chain, we assume this chain has been reset.
+        //
+        // We also assume that the chain has at least 20 ledgers before it gets reset.
+        // If not, in some cases where the ledgers data before reset still remains
+        // on cache, it might still count the ledgers as valid (in the above condition)
+        // after reset.
+        log.info(
+          `A chain has been reset. Updating chain and agreement information...`,
+        )
+        await purgeChainAgreementScores(
+          Array.from(chainWithThisValidator.validators),
+        )
+        chainWithThisValidator.ledgers.clear()
+        chainWithThisValidator.first = ledger.ledger_index
+        addLedgerToChain(ledger, chainWithThisValidator)
       }
     }
 
@@ -240,7 +315,7 @@ class Chains {
       return
     }
 
-    this.addNewChain(ledger)
+    await this.addNewChain(ledger)
   }
 }
 

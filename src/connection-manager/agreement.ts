@@ -146,7 +146,7 @@ class Agreement {
     log.info('Calculating agreement scores')
     const promises = []
 
-    const agreementChains = chains.calculateChainsFromLedgers()
+    const agreementChains = await chains.calculateChainsFromLedgers()
 
     for (const chain of agreementChains) {
       const ledger_hashes = chain.ledgers

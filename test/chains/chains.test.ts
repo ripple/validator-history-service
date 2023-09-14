@@ -30,7 +30,7 @@ describe('Creates chains', () => {
     const constructed: Array<{
       ledgers: Set<string>
       validators: Set<string>
-    }> = chains.calculateChainsFromLedgers()
+    }> = await chains.calculateChainsFromLedgers()
 
     expect(constructed[0].ledgers).toContain('LEDGER1')
     expect(constructed[0].ledgers).toContain('LEDGER2')
@@ -47,7 +47,7 @@ describe('Creates chains', () => {
     const constructed: Array<{
       ledgers: Set<string>
       validators: Set<string>
-    }> = chains.calculateChainsFromLedgers()
+    }> = await chains.calculateChainsFromLedgers()
 
     expect(constructed[0].ledgers).toEqual(new Set())
 
