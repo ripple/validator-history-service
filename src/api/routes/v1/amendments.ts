@@ -33,6 +33,12 @@ interface AmendmentInVoting extends AmendmentsInfo {
   }
 }
 
+interface AmendmentsEnabled extends AmendmentsInfo {
+  ledger_index?: string
+  tx_hash?: string
+  date?: Date
+}
+
 interface BallotAmendmentDb {
   signing_key: string
   ledger_index: string
@@ -42,7 +48,7 @@ interface BallotAmendmentDb {
 interface AmendmentsVote {
   enabled: {
     count: number
-    amendments: AmendmentsInfo[]
+    amendments: AmendmentsEnabled[]
   }
   voting: {
     count: number
@@ -67,7 +73,7 @@ const cacheVote: CacheVote = {
   time: Date.now(),
 }
 
-const cacheEnabled = new Set()
+const cacheEnabled = new Map<string, Set<string>>()
 
 /**
  * Sort by rippled version callback function.
@@ -113,7 +119,7 @@ void cacheAmendmentsInfo()
  * @param id - The network id.
  * @returns List of enabled amendments.
  */
-async function getEnabledAmendments(id: string): Promise<AmendmentsInfo[]> {
+async function getEnabledAmendments(id: string): Promise<AmendmentsEnabled[]> {
   const enabled = await query('amendments_enabled')
     .leftJoin(
       'amendments_info',
@@ -122,17 +128,24 @@ async function getEnabledAmendments(id: string): Promise<AmendmentsInfo[]> {
     )
     .select(
       'amendments_enabled.amendment_id AS id',
+      'amendments_enabled.ledger_index',
+      'amendments_enabled.tx_hash',
+      'amendments_enabled.date',
       'amendments_info.name',
       'amendments_info.rippled_version',
       'amendments_info.deprecated',
     )
     .where('amendments_enabled.networks', id)
 
-  enabled.sort((prev: AmendmentsInfo, next: AmendmentsInfo) =>
+  enabled.sort((prev: AmendmentsEnabled, next: AmendmentsEnabled) =>
     sortByVersion(prev, next),
   )
-  enabled.forEach((amendment: AmendmentsInfo) => {
-    cacheEnabled.add(amendment.id)
+
+  if (!cacheEnabled.has(id)) {
+    cacheEnabled.set(id, new Set())
+  }
+  enabled.forEach((amendment: AmendmentsEnabled) => {
+    cacheEnabled.get(id)?.add(amendment.id)
   })
 
   return enabled
@@ -209,9 +222,8 @@ async function getVotingAmendments(id: string): Promise<AmendmentInVoting[]> {
   })
 
   const res: AmendmentInVoting[] = []
-
   for (const [key, value] of Object.entries(votingAmendments)) {
-    if (!cacheEnabled.has(key)) {
+    if (!cacheEnabled.get(id)?.has(key)) {
       res.push({
         id: key,
         name: value.name,
