@@ -314,9 +314,9 @@ export {
   StreamLedger,
   Chain,
   ValidatorKeys,
-  AmendmentsInfo,
   LedgerEntryAmendmentsResponse,
   LedgerEnableAmendmentResponse,
   TxEnableAmendmentResponse,
   AmendmentEnabled,
+  AmendmentsInfo,
 }

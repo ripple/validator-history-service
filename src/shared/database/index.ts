@@ -242,19 +242,6 @@ export async function saveValidator(
 }
 
 /**
- * Saves a ballot to the database.
- *
- * @param ballot - The ballot to be saved.
- */
-export async function saveBallot(ballot: Ballot): Promise<void> {
-  await query('ballot')
-    .insert(ballot)
-    .onConflict('signing_key')
-    .merge()
-    .catch((err) => log.error('Error Saving Ballot', err))
-}
-
-/**
  * Saves list of amendments enabled on a network to the database.
  *
  * @param amendments - The list of amendments to be saved.
@@ -286,6 +273,19 @@ export async function saveAmendmentEnabled(
     .onConflict(['amendment_id', 'networks'])
     .merge()
     .catch((err) => log.error('Error Saving Enabled Amendment', err))
+}
+
+/**
+ * Saves a ballot to the database.
+ *
+ * @param ballot - The ballot to be saved.
+ */
+export async function saveBallot(ballot: Ballot): Promise<void> {
+  await query('ballot')
+    .insert(ballot)
+    .onConflict('signing_key')
+    .merge()
+    .catch((err) => log.error('Error Saving Ballot', err))
 }
 
 /**

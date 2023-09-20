@@ -109,6 +109,29 @@ This table keeps track of the manifests of the validators.
 | `revoked`            |Whether the manifest has been revoked.                      |
 | `seq`                |The sequence number of this manifest.                       |
 
+### `amendments_enabled`
+
+This table keeps track of the amendments enabled on each network.
+
+| Key                  | Definition                                              |
+|----------------------|---------------------------------------------------------|
+| `amendment_id`       |The amendment id.                                        |
+| `networks`           |The network where the amendment has been enabled.        |
+| `ledger_index`       |The ledger where the amendment has been enabled.         |
+| `tx_hash`            |The transaction hash where the amendment has been enabled.|
+| `date`               |The date when the amendment has been enabled.            |
+
+### `amendments_info`
+
+This table keeps track of the general information of all known amendments.
+
+| Key                  | Definition                                                 |
+|----------------------|------------------------------------------------------------|
+| `id`                 |The amendment id.                                           |
+| `name`               |The name of the amendment.                                  |
+| `rippled_version`    |The rippled version when the amendment is first enabled     |
+| `deprecated`         |Whether the amendment has been deprecated or retired        |
+
 ### `ballot`
 
 This table keeps track of the most current voting data for the validators.
