@@ -145,30 +145,6 @@ This table keeps track of the most current voting data for the validators.
 | `reserve_base`       |The minimum reserve requirement this validator wants to set.       |
 | `reserve_inc`        |The increment in the reserve requirement this validator wants to set.|
 
-### `amendments_info`
-
-This table keeps track of the general information of all known amendments.
-
-| Key                  | Definition                                                 |
-|----------------------|------------------------------------------------------------|
-| `id`                 |The amendment id.                                           |
-| `name`               |The name of the amendment.                                  |
-| `rippled_version`    |The rippled version when the amendment is first enabled     |
-| `deprecated`         |Whether the amendment has been deprecated or retired        |
-
-
-### `amendments_enabled`
-
-This table keeps track of the amendments enabled on each network.
-
-| Key                  | Definition                                              |
-|----------------------|---------------------------------------------------------|
-| `amendment_id`       |The amendment id.                                        |
-| `networks`           |The network where the amendment has been enabled.        |
-| `ledger_index`       |The ledger where the amendment has been enabled.         |
-| `tx_hash`            |The transaction hash where the amendment has been enabled.|
-| `date`               |The date when the amendment has been enabled.            |
-
 ### `validators`
 
 This table keeps track of the validators on the networks.
