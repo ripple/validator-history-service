@@ -56,6 +56,16 @@ const info = {
       route: '/v1/network/validator_reports',
       example: 'https://data.xrpl.org/v1/network/validator_reports',
     },
+    {
+      action: 'Get Amendments General Information',
+      route: '/v1/network/amendments/info',
+      example: 'https://data.xrpl.org/v1/network/amendments/info',
+    },
+    {
+      action: 'Get Amendment General Information by Name or ID',
+      route: '/v1/network/amendment/info',
+      example: 'https://data.xrpl.org/v1/network/amendment/info/{param}',
+    },
   ],
 }
 
