@@ -19,6 +19,10 @@ const ACTIVE_AMENDMENT_REGEX = /^\s*REGISTER_F[A-Z]+\s*\((\S+),\s*.*$/
 // eslint-disable-next-line prefer-named-capture-group, require-unicode-regexp -- Bypass for now.
 const RETIRED_AMENDMENT_REGEX = /^ .*retireFeature\("(\S+)"\)[,;].*$/
 
+const AMENDMENT_VERSION_REGEX =
+  // eslint-disable-next-line prefer-named-capture-group, require-unicode-regexp -- Bypass for now.
+  /\| \[([a-zA-Z0-9_]+)\][^\n]+\| (v[0-9]*.[0-9]*.[0-9]*|TBD) *\|/
+
 /**
  * Fetch a list of amendments names from rippled file.
  *
@@ -93,12 +97,9 @@ async function fetchMinRippledVersions(): Promise<void> {
       'https://raw.githubusercontent.com/XRPLF/xrpl-dev-portal/master/content/resources/known-amendments.md',
     )
     const text = response.data
-    const regex =
-      // eslint-disable-next-line prefer-named-capture-group, require-unicode-regexp -- Bypass for now.
-      /\| \[([a-zA-Z0-9_]+)\][^\n]+\| (v[0-9]*.[0-9]*.[0-9]*|TBD) *\|/
 
     text.split('\n').forEach((line: string) => {
-      const found = regex.exec(line)
+      const found = AMENDMENT_VERSION_REGEX.exec(line)
       if (found) {
         cachedRippledVersions.set(
           found[1],
