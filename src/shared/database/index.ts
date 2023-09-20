@@ -5,6 +5,7 @@ import {
   Validator,
   Location,
   DatabaseNetwork,
+  Ballot,
 } from '../types'
 import logger from '../utils/logger'
 
@@ -237,6 +238,19 @@ export async function saveValidator(
   await query('validators')
     .where({ signing_key: validator.signing_key, revoked: null })
     .update({ revoked: false })
+}
+
+/**
+ * Saves a ballot to the database.
+ *
+ * @param ballot - The ballot to be saved.
+ */
+export async function saveBallot(ballot: Ballot): Promise<void> {
+  await query('ballot')
+    .insert(ballot)
+    .onConflict('signing_key')
+    .merge()
+    .catch((err) => log.error('Error Saving Ballot', err))
 }
 
 /**

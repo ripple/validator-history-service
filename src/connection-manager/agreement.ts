@@ -9,12 +9,14 @@ import {
   purgeHourlyAgreementScores,
   signingToMaster,
   decodeServerVersion,
+  saveBallot,
 } from '../shared/database'
 import {
   AgreementScore,
   Validator,
   ValidationRaw,
   ValidatorKeys,
+  Ballot,
 } from '../shared/types'
 import logger from '../shared/utils/logger'
 
@@ -183,9 +185,6 @@ class Agreement {
     if (!hashes.has(validation.ledger_hash)) {
       hashes.set(validation.ledger_hash, Date.now())
       this.validationsByPublicKey.set(signing_key, hashes)
-      const server_version =
-        isPreceedingFlagLedger(validation.ledger_index) &&
-        decodeServerVersion(validation.server_version)
       const validator: Validator = {
         master_key: validation.master_key,
         signing_key,
@@ -193,6 +192,23 @@ class Agreement {
         current_index: Number(validation.ledger_index),
         partial: !validation.full,
         last_ledger_time: new Date(),
+      }
+
+      let server_version
+
+      if (isPreceedingFlagLedger(validation.ledger_index)) {
+        server_version = decodeServerVersion(validation.server_version)
+        const ballot: Ballot = {
+          signing_key,
+          ledger_index: Number(validation.ledger_index),
+          amendments: validation.amendments?.join(','),
+          base_fee: validation.base_fee ?? validation.ledger_fee?.fee_base,
+          reserve_base:
+            validation.reserve_base ?? validation.ledger_fee?.reserve_base,
+          reserve_inc:
+            validation.reserve_inc ?? validation.ledger_fee?.reserve_inc,
+        }
+        await saveBallot(ballot)
       }
 
       if (validation.networks) {
