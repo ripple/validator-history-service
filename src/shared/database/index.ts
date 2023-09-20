@@ -5,8 +5,8 @@ import {
   Validator,
   Location,
   DatabaseNetwork,
-  Ballot,
   AmendmentEnabled,
+  Ballot,
 } from '../types'
 import logger from '../utils/logger'
 
