@@ -12,6 +12,8 @@ import {
 } from '../shared/database'
 import {
   AmendmentEnabled,
+  DatabaseValidator,
+  Fee,
   LedgerEnableAmendmentResponse,
   LedgerEntryAmendmentsResponse,
   StreamLedger,
@@ -29,6 +31,7 @@ const log = logger({ name: 'connections' })
 const ports = [443, 80, 6005, 6006, 51233, 51234]
 const protocols = ['wss://', 'ws://']
 const connections: Map<string, WebSocket> = new Map()
+const network_fee: Map<string, Fee> = new Map()
 const CM_INTERVAL = 60 * 60 * 1000
 const WS_TIMEOUT = 10000
 const REPORTING_INTERVAL = 15 * 60 * 1000
@@ -134,11 +137,31 @@ async function handleWsMessageSubscribeTypes(
     if (ledger_hashes.includes(validationData.ledger_hash)) {
       validationData.networks = networks
     }
-    void agreement.handleValidation(data as ValidationRaw)
+    const validationNetworkDb: DatabaseValidator | undefined = await query(
+      'validators',
+    )
+      .select('*')
+      .where('signing_key', validationData.validation_public_key)
+      .first()
+    const validationNetwork =
+      validationData.networks ?? validationNetworkDb?.networks
+    if (validationNetwork) {
+      validationData.ledger_fee = network_fee.get(validationNetwork)
+    }
+    void agreement.handleValidation(validationData)
   } else if (data.type === 'manifestReceived') {
     void handleManifest(data as StreamManifest)
   } else if (data.type.includes('ledger')) {
-    ledger_hashes.push((data as StreamLedger).ledger_hash)
+    const current_ledger = data as StreamLedger
+    ledger_hashes.push(current_ledger.ledger_hash)
+    if (networks) {
+      const fee: Fee = {
+        fee_base: current_ledger.fee_base,
+        reserve_base: current_ledger.reserve_base,
+        reserve_inc: current_ledger.reserve_inc,
+      }
+      network_fee.set(networks, fee)
+    }
     if (ledger_hashes.length > LEDGER_HASHES_SIZE) {
       ledger_hashes.shift()
     }

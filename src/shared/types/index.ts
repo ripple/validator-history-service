@@ -173,6 +173,12 @@ interface ValidationRaw {
   validation_public_key: string
   server_version?: string
   networks?: string
+  amendments?: string[]
+  base_fee?: number
+  reserve_base?: number
+  reserve_inc?: number
+  ledger_fee?: Fee
+
   // The validation_public_key is the same as the signing_key in StreamManifest
 }
 
@@ -180,6 +186,21 @@ interface Agreement {
   score: number
   missed: number
   incomplete: boolean
+}
+
+interface Ballot {
+  signing_key: string
+  ledger_index: number
+  amendments?: string
+  base_fee?: number
+  reserve_base?: number
+  reserve_inc?: number
+}
+
+interface Fee {
+  fee_base: number
+  reserve_base: number
+  reserve_inc: number
 }
 
 interface Validator {
@@ -263,6 +284,13 @@ interface DailyAgreement {
   agreement: AgreementScore
 }
 
+interface AmendmentsInfo {
+  id: string
+  name: string
+  rippled_version?: string | null
+  deprecated: boolean | null
+}
+
 export {
   Node,
   Crawl,
@@ -275,6 +303,8 @@ export {
   DatabaseManifest,
   DatabaseNetwork,
   HourlyAgreement,
+  Ballot,
+  Fee,
   DatabaseValidator,
   Validator,
   DailyAgreement,
@@ -288,4 +318,5 @@ export {
   LedgerEnableAmendmentResponse,
   TxEnableAmendmentResponse,
   AmendmentEnabled,
+  AmendmentsInfo,
 }

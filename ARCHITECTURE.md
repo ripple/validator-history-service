@@ -23,6 +23,8 @@ There are 3 folders in `src`, corresponding to the 3 processes that the VHS runs
   * `/network/validator/:publicKey`: Returns information about a specific validator.
   * `/network/validator/:publicKey/manifests`: Returns the manifests of a specific validator.
   * `/network/validator/:publicKey/reports`: Returns more detailed information about the reliability of a specific validator.
+  * `/network/amendments/info`: Returns general information about known amendments.
+  * `/network/amendments/info/param`: Returns general information about a specific amendment by name or ID.
 
 
 ## SQL Table Schemas
@@ -117,6 +119,30 @@ This table keeps track of the amendments enabled on each network.
 | `ledger_index`       |The ledger where the amendment has been enabled.         |
 | `tx_hash`            |The transaction hash where the amendment has been enabled.|
 | `date`               |The date when the amendment has been enabled.            |
+### `amendments_info`
+
+This table keeps track of the general information of all known amendments.
+
+| Key                  | Definition                                                 |
+|----------------------|------------------------------------------------------------|
+| `id`                 |The amendment id.                                           |
+| `name`               |The name of the amendment.                                  |
+| `rippled_version`    |The rippled version when the amendment is first enabled     |
+| `deprecated`         |Whether the amendment has been deprecated or retired        |
+
+### `ballot`
+
+This table keeps track of the most current voting data for the validators.
+
+| Key                  | Definition                                                        |
+|----------------------|-------------------------------------------------------------------|
+| `signing_key`        |The signing key of the validator.                                  |
+| `ledger_index`       |The most recent ledger index where voting data was retrieved.      |
+| `amendments`         |The amendments this validator wants to be added to the protocol.   |
+| `base_fee`           |The unscaled transaction cost this validator wants to set.         |
+| `reserve_base`       |The minimum reserve requirement this validator wants to set.       |
+| `reserve_inc`        |The increment in the reserve requirement this validator wants to set.|
+
 
 ### `validators`
 

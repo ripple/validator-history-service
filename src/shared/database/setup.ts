@@ -20,6 +20,8 @@ export default async function setupTables(): Promise<void> {
   await setupDailyAgreementTable()
   await setupNetworksTable()
   await setupAmendmentsEnabledTable()
+  await setupAmendmentsInfoTable()
+  await setupBallotTable()
 }
 
 async function setupCrawlsTable(): Promise<void> {
@@ -229,6 +231,38 @@ async function setupAmendmentsEnabledTable(): Promise<void> {
   if (!(await db().schema.hasColumn('amendments_enabled', 'ledger_index'))) {
     await db().schema.alterTable('amendments_enabled', (table) => {
       table.integer('ledger_index').after('networks')
+    })
+  }
+}
+
+async function setupAmendmentsInfoTable(): Promise<void> {
+  const hasAmendmentsInfo = await db().schema.hasTable('amendments_info')
+  if (!hasAmendmentsInfo) {
+    await db().schema.createTable('amendments_info', (table) => {
+      table.string('id')
+      table.string('name')
+      table.string('rippled_version')
+      table.boolean('deprecated')
+      table.primary(['id'])
+    })
+  }
+  if (!(await db().schema.hasColumn('amendments_info', 'deprecated'))) {
+    await db().schema.alterTable('amendments_info', (table) => {
+      table.boolean('deprecated').after('rippled_version')
+    })
+  }
+}
+
+async function setupBallotTable(): Promise<void> {
+  const hasBallot = await db().schema.hasTable('ballot')
+  if (!hasBallot) {
+    await db().schema.createTable('ballot', (table) => {
+      table.string('signing_key').unique()
+      table.string('ledger_index')
+      table.string('amendments', 10000)
+      table.integer('base_fee')
+      table.integer('reserve_base')
+      table.integer('reserve_inc')
     })
   }
 }
