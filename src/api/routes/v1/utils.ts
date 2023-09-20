@@ -27,6 +27,27 @@ export function formatAgreementScore(agreement: AgreementScore): {
 }
 
 /**
+ * Formats amendments from string to list.
+ *
+ * @param amendmentsDb - Amendments string from database.
+ * @returns A list of amendments.
+ */
+export async function formatAmendments(
+  amendmentsDb: string,
+): Promise<Array<{ id: string; name: string }>> {
+  const res: Array<{ id: string; name: string }> = []
+  const amendmentsList = amendmentsDb.split(',')
+  amendmentsList.forEach(async (amendment) => {
+    const info = await query('amendments_info')
+      .select('id', 'name')
+      .where('id', amendment)
+      .first()
+    res.push(info)
+  })
+  return res
+}
+
+/**
  * Get the chains associated with the given UNL.
  *
  * @param param - The UNL/Networks of the chain.
