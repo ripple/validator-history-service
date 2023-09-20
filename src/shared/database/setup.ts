@@ -20,6 +20,7 @@ export default async function setupTables(): Promise<void> {
   await setupDailyAgreementTable()
   await setupNetworksTable()
   await setupAmendmentsInfoTable()
+  await setupBallotTable()
 }
 
 async function setupCrawlsTable(): Promise<void> {
@@ -218,6 +219,20 @@ async function setupAmendmentsInfoTable(): Promise<void> {
   if (!(await db().schema.hasColumn('amendments_info', 'deprecated'))) {
     await db().schema.alterTable('amendments_info', (table) => {
       table.boolean('deprecated').after('rippled_version')
+    })
+  }
+}
+
+async function setupBallotTable(): Promise<void> {
+  const hasBallot = await db().schema.hasTable('ballot')
+  if (!hasBallot) {
+    await db().schema.createTable('ballot', (table) => {
+      table.string('signing_key').unique()
+      table.string('ledger_index')
+      table.string('amendments', 10000)
+      table.integer('base_fee')
+      table.integer('reserve_base')
+      table.integer('reserve_inc')
     })
   }
 }
