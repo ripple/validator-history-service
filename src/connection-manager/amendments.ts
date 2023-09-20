@@ -24,9 +24,7 @@ const RETIRED_AMENDMENT_REGEX = /^ .*retireFeature\("(\S+)"\)[,;].*$/
  *
  * @returns The list of amendment names.
  */
-async function fetchAmendmentNames(): Promise<
-  Map<string, boolean> | undefined
-> {
+async function fetchAmendmentNames(): Promise<Map<string, boolean> | null> {
   try {
     const response = await axios.get(
       'https://raw.githubusercontent.com/ripple/rippled/develop/src/ripple/protocol/impl/Feature.cpp',
@@ -47,7 +45,7 @@ async function fetchAmendmentNames(): Promise<
     return amendmentNames
   } catch (err) {
     log.error('Error getting amendment names', err)
-    return undefined
+    return null
   }
 }
 
@@ -74,7 +72,7 @@ function sha512Half(buffer: Buffer): string {
 async function nameOfAmendmentID(): Promise<void> {
   // The Amendment ID is the hash of the Amendment name
   const amendmentNames = await fetchAmendmentNames()
-  if (amendmentNames !== undefined) {
+  if (amendmentNames !== null) {
     amendmentNames.forEach((deprecated, name) => {
       cachedAmendmentIDs.set(sha512Half(Buffer.from(name, 'ascii')), {
         name,
