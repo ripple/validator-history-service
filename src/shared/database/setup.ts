@@ -19,8 +19,8 @@ export default async function setupTables(): Promise<void> {
   await setupHourlyAgreementTable()
   await setupDailyAgreementTable()
   await setupNetworksTable()
-  await setupAmendmentsInfoTable()
   await setupAmendmentsEnabledTable()
+  await setupAmendmentsInfoTable()
   await setupBallotTable()
 }
 
