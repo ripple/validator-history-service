@@ -27,9 +27,30 @@ interface CacheInfo {
 }
 
 interface AmendmentInVoting extends AmendmentsInfo {
+  threshold: string
+  consensus: string
   voted: {
     count: number
-    validators: Array<{ signing_key: string; ledger_index: string }>
+    validators: Array<{
+      signing_key: string
+      ledger_index: string
+      unl: boolean
+    }>
+  }
+}
+
+interface AmendmentInVotingMap {
+  [key: string]: {
+    name: string
+    rippled_version: string | undefined | null
+    threshold: string
+    consensus: string
+    validators: Array<{
+      signing_key: string
+      ledger_index: string
+      unl: boolean
+    }>
+    deprecated: boolean | null
   }
 }
 
@@ -43,6 +64,7 @@ interface BallotAmendmentDb {
   signing_key: string
   ledger_index: string
   amendments: string
+  unl?: boolean
 }
 
 interface AmendmentsVote {
@@ -158,14 +180,7 @@ async function getEnabledAmendments(id: string): Promise<AmendmentsEnabled[]> {
  */
 function parseAmendmentVote(
   ballot: BallotAmendmentDb,
-  votingAmendments: {
-    [key: string]: {
-      name: string
-      rippled_version: string | undefined | null
-      validators: Array<{ signing_key: string; ledger_index: string }>
-      deprecated: boolean | null
-    }
-  },
+  votingAmendments: AmendmentInVotingMap,
 ): void {
   const amendmentsVoted = ballot.amendments ? ballot.amendments.split(',') : []
   amendmentsVoted.forEach((amendmentId: string) => {
@@ -173,6 +188,8 @@ function parseAmendmentVote(
       votingAmendments[amendmentId] = {
         name: '',
         rippled_version: '',
+        threshold: '',
+        consensus: '',
         validators: [],
         deprecated: false,
       }
@@ -180,8 +197,42 @@ function parseAmendmentVote(
     votingAmendments[amendmentId].validators.push({
       signing_key: ballot.signing_key,
       ledger_index: ballot.ledger_index,
+      unl: ballot.unl ?? false,
     })
   })
+}
+
+/**
+ * Calculates the consensus data for an amendment in a network.
+ *
+ * @param votingMap -- The map of all voting amendments on the network.
+ * @param amendment_id -- The id of the amendment.
+ * @param network_id -- The id of the network.
+ */
+async function calculateConsensus(
+  votingMap: AmendmentInVotingMap,
+  amendment_id: string,
+  network_id: string,
+): Promise<void> {
+  const votedUNL = votingMap[amendment_id].validators.filter(
+    (validator) => validator.unl,
+  ).length
+  const dbUNL = await query('validators')
+    .count('signing_key AS count')
+    .whereNotNull('unl')
+    .andWhere('chain', network_id)
+
+  const totalUnl: number = dbUNL[0].count
+
+  // eslint-disable-next-line require-atomic-updates -- no race condition.
+  votingMap[amendment_id].threshold = `${Math.ceil(
+    0.8 * totalUnl,
+  ).toString()}/${totalUnl.toString()}`
+  // eslint-disable-next-line require-atomic-updates -- no race condition.
+  votingMap[amendment_id].consensus = (votedUNL / totalUnl).toLocaleString(
+    undefined,
+    { style: 'percent', minimumFractionDigits: 2 },
+  )
 }
 
 /**
@@ -193,17 +244,15 @@ function parseAmendmentVote(
 async function getVotingAmendments(id: string): Promise<AmendmentInVoting[]> {
   const inNetworks: BallotAmendmentDb[] = await query('ballot')
     .leftJoin('validators', 'ballot.signing_key', 'validators.signing_key')
-    .select('ballot.signing_key', 'ballot.ledger_index', 'ballot.amendments')
+    .select(
+      'ballot.signing_key',
+      'ballot.ledger_index',
+      'ballot.amendments',
+      'validators.unl',
+    )
     .where('validators.networks', id)
 
-  const votingAmendments: {
-    [key: string]: {
-      name: string
-      rippled_version: string | undefined | null
-      validators: Array<{ signing_key: string; ledger_index: string }>
-      deprecated: boolean | null
-    }
-  } = {}
+  const votingAmendments: AmendmentInVotingMap = {}
 
   inNetworks.forEach((val) => {
     parseAmendmentVote(val, votingAmendments)
@@ -213,13 +262,14 @@ async function getVotingAmendments(id: string): Promise<AmendmentInVoting[]> {
     await cacheAmendmentsInfo()
   }
 
-  cacheInfo.amendments.forEach((amendment) => {
+  for (const amendment of cacheInfo.amendments) {
     if (amendment.id in votingAmendments) {
       votingAmendments[amendment.id].name = amendment.name
       votingAmendments[amendment.id].rippled_version = amendment.rippled_version
       votingAmendments[amendment.id].deprecated = amendment.deprecated
+      await calculateConsensus(votingAmendments, amendment.id, id)
     }
-  })
+  }
 
   const res: AmendmentInVoting[] = []
   for (const [key, value] of Object.entries(votingAmendments)) {
@@ -229,6 +279,8 @@ async function getVotingAmendments(id: string): Promise<AmendmentInVoting[]> {
         name: value.name,
         rippled_version: value.rippled_version,
         deprecated: value.deprecated,
+        threshold: value.threshold,
+        consensus: value.consensus,
         voted: {
           count: value.validators.length,
           validators: value.validators,
@@ -276,7 +328,7 @@ async function cacheAmendmentsVote(): Promise<void> {
 void cacheAmendmentsVote()
 
 /**
- * Handles Amendment Info request.
+ * Handles Amendments Info request.
  *
  * @param _u - Unused express request.
  * @param res - Express response.
@@ -334,7 +386,7 @@ export async function handleAmendmentInfo(
 }
 
 /**
- * Handles Amendment Voting request.
+ * Handles Amendments Voting request.
  *
  * @param req - Express request.
  * @param res - Express response.
@@ -356,6 +408,58 @@ export async function handleAmendmentsVote(
         amendments: networkVotes,
       }
       res.send(response)
+    } else {
+      res.send({ result: 'error', message: 'network not found' })
+    }
+  } catch {
+    res.send({ result: 'error', message: 'internal error' })
+  }
+}
+
+/**
+ * Handles Amendment Voting request.
+ *
+ * @param req - Express request.
+ * @param res - Express response.
+ */
+export async function handleAmendmentVote(
+  req: Request,
+  res: Response,
+): Promise<void> {
+  try {
+    const { network, identifier } = req.params
+    if (Date.now() - cacheVote.time > 60 * 1000) {
+      await cacheAmendmentsVote()
+    }
+    const networkVotes: AmendmentsVote | undefined =
+      cacheVote.networks.get(network)
+    if (networkVotes) {
+      const enabled = networkVotes.enabled.amendments.filter(
+        (amend) => amend.id === identifier || amend.name === identifier,
+      )
+      // eslint-disable-next-line max-depth -- Disable for this function.
+      if (enabled.length > 0) {
+        res.send({
+          result: 'success',
+          status: 'enabled',
+          amendment: enabled[0],
+        })
+      }
+
+      const voting = networkVotes.voting.amendments.filter(
+        (amend) => amend.id === identifier || amend.name === identifier,
+      )
+
+      // eslint-disable-next-line max-depth -- Disable for this function.
+      if (voting.length > 0) {
+        res.send({
+          result: 'success',
+          status: 'voting',
+          amendment: voting[0],
+        })
+      } else {
+        res.send({ result: 'error', message: "incorrect amendment's id/name" })
+      }
     } else {
       res.send({ result: 'error', message: 'network not found' })
     }

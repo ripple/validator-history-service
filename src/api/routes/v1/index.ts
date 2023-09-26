@@ -4,6 +4,7 @@ import {
   handleAmendmentsInfo,
   handleAmendmentsVote,
   handleAmendmentInfo,
+  handleAmendmentVote,
 } from './amendments'
 import handleDailyScores from './daily-report'
 import getNetworkOrAdd from './get-network'
@@ -21,6 +22,7 @@ api.use('/network/validator_reports', handleDailyScores)
 api.use('/network/amendment/info/:param', handleAmendmentInfo)
 api.use('/network/amendments/info', handleAmendmentsInfo)
 api.use('/network/amendments/vote/:network', handleAmendmentsVote)
+api.use('/network/amendment/vote/:network/:identifier', handleAmendmentVote)
 
 api.use('/network/get_network/:entryUrl', getNetworkOrAdd)
 
