@@ -137,6 +137,8 @@ async function handleWsMessageSubscribeTypes(
     if (ledger_hashes.includes(validationData.ledger_hash)) {
       validationData.networks = networks
     }
+
+    // Get network of the validation if ledger_hash is not in cache.
     const validationNetworkDb: DatabaseValidator | undefined = await query(
       'validators',
     )
@@ -144,7 +146,9 @@ async function handleWsMessageSubscribeTypes(
       .where('signing_key', validationData.validation_public_key)
       .first()
     const validationNetwork =
-      validationData.networks ?? validationNetworkDb?.networks
+      validationNetworkDb?.networks ?? validationData.networks
+
+    // Get the fee for the network to be used in case the validator does not vote for a new fee.
     if (validationNetwork) {
       validationData.ledger_fee = network_fee.get(validationNetwork)
     }

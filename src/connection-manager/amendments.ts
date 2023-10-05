@@ -19,14 +19,16 @@ const ACTIVE_AMENDMENT_REGEX = /^\s*REGISTER_F[A-Z]+\s*\((\S+),\s*.*$/
 // eslint-disable-next-line prefer-named-capture-group, require-unicode-regexp -- Bypass for now.
 const RETIRED_AMENDMENT_REGEX = /^ .*retireFeature\("(\S+)"\)[,;].*$/
 
+const AMENDMENT_VERSION_REGEX =
+  // eslint-disable-next-line prefer-named-capture-group, require-unicode-regexp -- Bypass for now.
+  /\| \[([a-zA-Z0-9_]+)\][^\n]+\| (v[0-9]*.[0-9]*.[0-9]*|TBD) *\|/
+
 /**
  * Fetch a list of amendments names from rippled file.
  *
  * @returns The list of amendment names.
  */
-async function fetchAmendmentNames(): Promise<
-  Map<string, boolean> | undefined
-> {
+async function fetchAmendmentNames(): Promise<Map<string, boolean> | null> {
   try {
     const response = await axios.get(
       'https://raw.githubusercontent.com/ripple/rippled/develop/src/ripple/protocol/impl/Feature.cpp',
@@ -47,7 +49,7 @@ async function fetchAmendmentNames(): Promise<
     return amendmentNames
   } catch (err) {
     log.error('Error getting amendment names', err)
-    return undefined
+    return null
   }
 }
 
@@ -74,7 +76,7 @@ function sha512Half(buffer: Buffer): string {
 async function nameOfAmendmentID(): Promise<void> {
   // The Amendment ID is the hash of the Amendment name
   const amendmentNames = await fetchAmendmentNames()
-  if (amendmentNames !== undefined) {
+  if (amendmentNames !== null) {
     amendmentNames.forEach((deprecated, name) => {
       cachedAmendmentIDs.set(sha512Half(Buffer.from(name, 'ascii')), {
         name,
@@ -95,12 +97,9 @@ async function fetchMinRippledVersions(): Promise<void> {
       'https://raw.githubusercontent.com/XRPLF/xrpl-dev-portal/master/content/resources/known-amendments.md',
     )
     const text = response.data
-    const regex =
-      // eslint-disable-next-line prefer-named-capture-group, require-unicode-regexp -- Bypass for now.
-      /\| \[([a-zA-Z0-9_]+)\][^\n]+\| (v[0-9]*.[0-9]*.[0-9]*|TBD) *\|/
 
     text.split('\n').forEach((line: string) => {
-      const found = regex.exec(line)
+      const found = AMENDMENT_VERSION_REGEX.exec(line)
       if (found) {
         cachedRippledVersions.set(
           found[1],
