@@ -194,7 +194,7 @@ class Agreement {
         last_ledger_time: new Date(),
       }
 
-      let server_version
+      let server_version = null
 
       if (isPreceedingFlagLedger(validation.ledger_index)) {
         server_version = decodeServerVersion(validation.server_version)
