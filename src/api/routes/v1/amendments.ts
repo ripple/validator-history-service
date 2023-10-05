@@ -441,7 +441,7 @@ export async function handleAmendmentVote(
       if (enabled.length > 0) {
         res.send({
           result: 'success',
-          status: 'enabled',
+          voting_status: 'enabled',
           amendment: enabled[0],
         })
       }
@@ -454,11 +454,13 @@ export async function handleAmendmentVote(
       if (voting.length > 0) {
         res.send({
           result: 'success',
-          status: 'voting',
+          voting_status: 'voting',
           amendment: voting[0],
         })
       } else {
-        res.send({ result: 'error', message: "incorrect amendment's id/name" })
+        res
+          .status(404)
+          .send({ result: 'error', message: "incorrect amendment's id/name" })
       }
     } else {
       res.send({ result: 'error', message: 'network not found' })
