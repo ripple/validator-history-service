@@ -1,3 +1,4 @@
+/* eslint-disable import/max-dependencies -- Disabled since this module requires multiple dependencies. */
 import { Router as createRouter } from 'express'
 
 import {
@@ -12,7 +13,6 @@ import handleHealth from './health'
 import handleValidatorManifest from './manifests'
 import { handleNode, handleNodes, handleTopology } from './nodes'
 import { handleValidator, handleValidators } from './validator'
-// eslint-disable-next-line import/max-dependencies -- Disabled since this module requires multiple dependencies.
 import handleValidatorReport from './validator-report'
 
 const api = createRouter()
