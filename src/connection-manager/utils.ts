@@ -61,10 +61,7 @@ export function getAmendmentLedgerEntry(ws: WebSocket): void {
  * @param ws - A WebSocket object.
  * @param ledger_index -- The index of the ledger.
  */
-export function getEnableAmendmentLedger(
-  ws: WebSocket,
-  ledger_index: number,
-): void {
+function getEnableAmendmentLedger(ws: WebSocket, ledger_index: number): void {
   ws.send(
     JSON.stringify({
       command: 'ledger',
@@ -81,7 +78,7 @@ export function getEnableAmendmentLedger(
  * @param ws - A WebSocket object.
  * @param transaction -- The hash of the transaction..
  */
-export function getEnableAmendmentTx(ws: WebSocket, transaction: string): void {
+function getEnableAmendmentTx(ws: WebSocket, transaction: string): void {
   ws.send(
     JSON.stringify({
       command: 'tx',
@@ -96,7 +93,7 @@ export function getEnableAmendmentTx(ws: WebSocket, transaction: string): void {
  * @param ledger_index - The index of the ledger.
  * @returns Boolean.
  */
-export function isFlagLedgerPlusOne(ledger_index: number): boolean {
+function isFlagLedgerPlusOne(ledger_index: number): boolean {
   if (ledger_index % 256 === 1) {
     return true
   }
