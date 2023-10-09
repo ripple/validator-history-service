@@ -238,14 +238,14 @@ async function handleWsMessageTxEnableAmendments(
  * @param ip - The ip address of the node we are trying to reach.
  * @param ws - A WebSocket object.
  * @param networks - The networks of the node we are trying to reach where it retrieves validations.
- * @param entry - Whether source node is an entry node for the network.
+ * @param isInitialNode - Whether source node is an entry/initial node for the network.
  * @returns A Promise that resolves to void once a connection has been created or timeout has occured.
  */
 async function setHandlers(
   ip: string,
   ws: WebSocket,
   networks: string | undefined,
-  entry = false,
+  isInitialNode = false,
 ): Promise<void> {
   const ledger_hashes: string[] = []
   return new Promise(function setHandlersPromise(resolve, _reject) {
@@ -257,7 +257,7 @@ async function setHandlers(
       void saveNodeWsUrl(ws.url, true)
       connections.set(ip, ws)
       subscribe(ws)
-      if (entry) {
+      if (isInitialNode) {
         getAmendmentLedgerEntry(ws)
       }
       resolve()
@@ -321,7 +321,9 @@ interface WsNode {
  * @returns A promise that resolves to void once a valid endpoint to the node has been found or timeout occurs.
  */
 async function findConnection(node: WsNode): Promise<void> {
-  const networkEntryIps = (await getNetworks()).map((network) => network.entry)
+  const networkInitialIps = (await getNetworks()).map(
+    (network) => network.entry,
+  )
   if (!node.ip || node.ip.search(':') !== -1) {
     return Promise.resolve()
   }
@@ -345,7 +347,7 @@ async function findConnection(node: WsNode): Promise<void> {
           node.ip,
           ws,
           node.networks,
-          networkEntryIps.includes(node.ip),
+          networkInitialIps.includes(node.ip),
         ),
       )
     }
