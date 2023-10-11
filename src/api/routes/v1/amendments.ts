@@ -14,7 +14,8 @@ interface AmendmentsInfoResponse {
 
 interface AmendmentsVoteResponse {
   result: 'success' | 'error'
-  amendments: AmendmentsVote
+  count: number
+  amendments: Array<AmendmentsEnabled | AmendmentInVoting>
 }
 interface AmendmentInfoResponse {
   result: 'success' | 'error'
@@ -67,19 +68,8 @@ interface BallotAmendmentDb {
   unl?: boolean
 }
 
-interface AmendmentsVote {
-  enabled: {
-    count: number
-    amendments: AmendmentsEnabled[]
-  }
-  voting: {
-    count: number
-    amendments: AmendmentInVoting[]
-  }
-}
-
 interface CacheVote {
-  networks: Map<string, AmendmentsVote>
+  networks: Map<string, Array<AmendmentsEnabled | AmendmentInVoting>>
   time: number
 }
 
@@ -91,7 +81,7 @@ const cacheInfo: CacheInfo = {
 }
 
 const cacheVote: CacheVote = {
-  networks: new Map<string, AmendmentsVote>(),
+  networks: new Map<string, Array<AmendmentsEnabled | AmendmentInVoting>>(),
   time: Date.now(),
 }
 
@@ -307,16 +297,7 @@ async function cacheAmendmentsVote(): Promise<void> {
     networks.forEach(async (id: string) => {
       const enabled = await getEnabledAmendments(id)
       const voting = await getVotingAmendments(id)
-      cacheVote.networks.set(id, {
-        enabled: {
-          count: enabled.length,
-          amendments: enabled,
-        },
-        voting: {
-          count: voting.length,
-          amendments: voting,
-        },
-      })
+      cacheVote.networks.set(id, enabled.concat(voting))
     })
     cacheVote.time = Date.now()
     // eslint-disable-next-line @typescript-eslint/no-explicit-any -- TODO: clean up
@@ -400,11 +381,13 @@ export async function handleAmendmentsVote(
     if (Date.now() - cacheVote.time > 60 * 1000) {
       await cacheAmendmentsVote()
     }
-    const networkVotes: AmendmentsVote | undefined =
-      cacheVote.networks.get(network)
+    const networkVotes:
+      | Array<AmendmentsEnabled | AmendmentInVoting>
+      | undefined = cacheVote.networks.get(network)
     if (networkVotes) {
       const response: AmendmentsVoteResponse = {
         result: 'success',
+        count: networkVotes.length,
         amendments: networkVotes,
       }
       res.send(response)
@@ -431,31 +414,18 @@ export async function handleAmendmentVote(
     if (Date.now() - cacheVote.time > 60 * 1000) {
       await cacheAmendmentsVote()
     }
-    const networkVotes: AmendmentsVote | undefined =
-      cacheVote.networks.get(network)
+    const networkVotes:
+      | Array<AmendmentsEnabled | AmendmentInVoting>
+      | undefined = cacheVote.networks.get(network)
     if (networkVotes) {
-      const enabled = networkVotes.enabled.amendments.filter(
+      const amendment = networkVotes.filter(
         (amend) => amend.id === identifier || amend.name === identifier,
       )
       // eslint-disable-next-line max-depth -- Disable for this function.
-      if (enabled.length > 0) {
+      if (amendment.length > 0) {
         res.send({
           result: 'success',
-          voting_status: 'enabled',
-          amendment: enabled[0],
-        })
-      }
-
-      const voting = networkVotes.voting.amendments.filter(
-        (amend) => amend.id === identifier || amend.name === identifier,
-      )
-
-      // eslint-disable-next-line max-depth -- Disable for this function.
-      if (voting.length > 0) {
-        res.send({
-          result: 'success',
-          voting_status: 'voting',
-          amendment: voting[0],
+          amendment: amendment[0],
         })
       } else {
         res
