@@ -1,14 +1,14 @@
 import 'dotenv/config'
-import * as fs from 'fs'
 
 import { query } from '../shared/database/utils'
 import { AmendmentEnabled, AmendmentsInfo } from '../shared/types'
 import { rippleTimeToUnixTime } from '../shared/utils'
 import logger from '../shared/utils/logger'
 
+import amendmentEnabledData from './data/amendments_enabled.json'
+import amendmentInfoData from './data/amendments_info.json'
+
 const log = logger({ name: 'database-agreement' })
-const filePathInfo = 'src/shared/data/amendments_info.json'
-const filePathEnabled = 'src/shared/data/amendments_enabled.json'
 
 interface AmendmentEnabledJson {
   networks: string
@@ -62,8 +62,7 @@ async function saveAmendmentsEnabled(
  */
 async function addAmendmentsInfoFromJSON(): Promise<void> {
   log.info('Adding Amendments Information from JSON File...')
-  const jsonData = await fs.promises.readFile(filePathInfo, 'utf8')
-  const data: AmendmentsInfo[] = JSON.parse(jsonData)
+  const data = amendmentInfoData
   data.forEach(async (amendmentInfo: AmendmentsInfo) => {
     await saveAmendmentsInfo(amendmentInfo)
   })
@@ -77,8 +76,7 @@ async function addAmendmentsInfoFromJSON(): Promise<void> {
  */
 async function addAmendmentsEnabledFromJSON(): Promise<void> {
   log.info('Adding Enabled Amendments Data from JSON File...')
-  const jsonData = await fs.promises.readFile(filePathEnabled, 'utf8')
-  const data: AmendmentEnabledJson[] = JSON.parse(jsonData)
+  const data = amendmentEnabledData as AmendmentEnabledJson[]
   data.forEach((networkData: AmendmentEnabledJson) => {
     networkData.amendments.forEach(async (amendment) => {
       const enabledData: AmendmentEnabled = {
