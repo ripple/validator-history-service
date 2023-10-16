@@ -8,7 +8,7 @@ import logger from './logger'
 
 const log = logger({ name: 'utils' })
 const HTTPS_PORT = 51234
-const RIPPLE_EPOCH_DIFF = 0x386d4380
+const RIPPLE_EPOCH_DIFF = 946684800
 
 /**
  * Fetches the UNL.

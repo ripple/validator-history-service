@@ -1,4 +1,5 @@
 /* eslint-disable max-lines -- Disable for this file containing many types. */
+import type { TransactionMetadata } from 'xrpl'
 import { Manifest, StreamManifest } from 'xrpl-validator-domains'
 
 interface Chain {
@@ -61,6 +62,7 @@ interface LedgerEntryAmendmentsResponse {
   type: string
 }
 
+// TODO: Use xrpl types dev-dependencies once EnableAmendment is added to Transaction model.
 interface LedgerEnableAmendmentResponse {
   result: {
     ledger: {
@@ -80,6 +82,7 @@ interface LedgerEnableAmendmentResponse {
       totalCoins: string
       total_coins: string
       transaction_hash: string
+      // TODO: Use xrpl types dev-dependencies once EnableAmendment is added to Transaction model.
       // eslint-disable-next-line @typescript-eslint/no-explicit-any -- Use any since we do not need to build Transaction model.
       transactions: any[]
     }
@@ -91,6 +94,7 @@ interface LedgerEnableAmendmentResponse {
   type: string
 }
 
+// TODO: Use xrpl types dev-dependencies once EnableAmendment is added to Transaction model.
 interface TxEnableAmendmentResponse {
   result: {
     Account: string
@@ -101,8 +105,7 @@ interface TxEnableAmendmentResponse {
     SigningPubKey: string
     TransactionType: string
     hash: string
-    // eslint-disable-next-line @typescript-eslint/no-explicit-any -- Use any since we do not need to build Transaction model.
-    meta: any
+    meta: TransactionMetadata
     validated: boolean
     date: number
     ledger_index: number
