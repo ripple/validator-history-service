@@ -13,11 +13,10 @@ const cachedAmendmentIDs = new Map<
 >()
 const cachedRippledVersions = new Map<string, string>()
 
-// TODO: fix these regex linting issues later.
-// eslint-disable-next-line prefer-named-capture-group, require-unicode-regexp -- Bypass for now.
-const ACTIVE_AMENDMENT_REGEX = /^\s*REGISTER_F[A-Z]+\s*\((\S+),\s*.*$/
-// eslint-disable-next-line prefer-named-capture-group, require-unicode-regexp -- Bypass for now.
-const RETIRED_AMENDMENT_REGEX = /^ .*retireFeature\("(\S+)"\)[,;].*$/
+const ACTIVE_AMENDMENT_REGEX =
+  /^\s*REGISTER_F[A-Z]+\s*\((?<amendmendName>\S+),\s*.*$/u
+const RETIRED_AMENDMENT_REGEX =
+  /^ .*retireFeature\("(?<amendmendName>\S+)"\)[,;].*$/u
 
 const AMENDMENT_VERSION_REGEX =
   // eslint-disable-next-line prefer-named-capture-group, require-unicode-regexp -- Bypass for now.
@@ -127,6 +126,7 @@ async function saveAmendmentInfo(amendment: AmendmentsInfo): Promise<void> {
 }
 
 export default async function fetchAmendmentInfo(): Promise<void> {
+  log.info('Fetch amendments info from data sources...')
   await nameOfAmendmentID()
   await fetchMinRippledVersions()
   cachedAmendmentIDs.forEach(async (value, id) => {
@@ -138,4 +138,5 @@ export default async function fetchAmendmentInfo(): Promise<void> {
     }
     await saveAmendmentInfo(amendment)
   })
+  log.info('Finish fetching amendments info from data sources...')
 }
