@@ -1,9 +1,10 @@
 import 'dotenv/config'
 import * as fs from 'fs'
 
+import { rippleTimeToUnixTime } from 'xrpl'
+
 import { query } from '../shared/database/utils'
 import { AmendmentEnabled } from '../shared/types'
-import { rippleTimeToUnixTime } from '../shared/utils'
 import logger from '../shared/utils/logger'
 
 const log = logger({ name: 'database-agreement' })

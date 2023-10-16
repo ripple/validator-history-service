@@ -8,7 +8,6 @@ import logger from './logger'
 
 const log = logger({ name: 'utils' })
 const HTTPS_PORT = 51234
-const RIPPLE_EPOCH_DIFF = 946684800
 
 /**
  * Fetches the UNL.
@@ -155,16 +154,6 @@ export function overlaps(
     }
   }
   return false
-}
-
-/**
- * Convert a ripple timestamp to a unix timestamp.
- *
- * @param rpepoch - (seconds since 1/1/2000 GMT).
- * @returns Milliseconds since unix epoch.
- */
-export function rippleTimeToUnixTime(rpepoch: number): number {
-  return (rpepoch + RIPPLE_EPOCH_DIFF) * 1000
 }
 
 /**

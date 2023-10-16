@@ -1,4 +1,6 @@
 import WebSocket from 'ws'
+import { rippleTimeToUnixTime } from 'xrpl'
+import { AMENDMENTS_ID } from 'xrpl/dist/npm/models/ledger'
 
 import {
   query,
@@ -16,14 +18,11 @@ import {
   TxEnableAmendmentResponse,
   ValidationRaw,
 } from '../shared/types'
-import { rippleTimeToUnixTime } from '../shared/utils'
 
 import agreement from './agreement'
 import { handleManifest } from './manifests'
 
 const LEDGER_HASHES_SIZE = 10
-const AMENDMENT_LEDGER_ENTRY_INDEX =
-  '7DB0788C020F02780A673DC74757F23823FA3014C1866E72CC4CD8B226CD6EF4'
 
 /**
  * Subscribes a WebSocket to manifests and validations streams.
@@ -49,7 +48,7 @@ export function getAmendmentLedgerEntry(ws: WebSocket): void {
   ws.send(
     JSON.stringify({
       command: 'ledger_entry',
-      index: AMENDMENT_LEDGER_ENTRY_INDEX,
+      index: AMENDMENTS_ID,
       ledger_index: 'validated',
     }),
   )
