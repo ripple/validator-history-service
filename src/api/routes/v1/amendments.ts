@@ -213,11 +213,11 @@ async function calculateConsensus(
 
   const totalUnl: number = dbUNL[0].count
 
-  // eslint-disable-next-line require-atomic-updates -- no race condition.
+  // eslint-disable-next-line require-atomic-updates -- The threshold is only updated for each id once at a time.
   votingMap[amendment_id].threshold = `${Math.ceil(
     CONSENSUS_FACTOR * totalUnl,
   ).toString()}/${totalUnl.toString()}`
-  // eslint-disable-next-line require-atomic-updates -- no race condition.
+  // eslint-disable-next-line require-atomic-updates -- The concensus is only updated for each id once at a time.
   votingMap[amendment_id].consensus = (votedUNL / totalUnl).toLocaleString(
     undefined,
     { style: 'percent', minimumFractionDigits: 2 },
@@ -414,24 +414,24 @@ export async function handleAmendmentVote(
     const networkVotes:
       | Array<AmendmentsEnabled | AmendmentInVoting>
       | undefined = cacheVote.networks.get(network)
-    if (networkVotes) {
-      const amendment = networkVotes.filter(
-        (amend) => amend.id === identifier || amend.name === identifier,
-      )
-      // eslint-disable-next-line max-depth -- Disable for this function.
-      if (amendment.length > 0) {
-        res.send({
-          result: 'success',
-          amendment: amendment[0],
-        })
-      } else {
-        res.status(404).send({
-          result: 'error',
-          message: 'amendment with id/name not found',
-        })
-      }
-    } else {
+    if (networkVotes === undefined) {
       res.send({ result: 'error', message: 'network not found' })
+    }
+
+    const amendment = (
+      networkVotes as Array<AmendmentsEnabled | AmendmentInVoting>
+    ).filter((amend) => amend.id === identifier || amend.name === identifier)
+
+    if (amendment.length > 0) {
+      res.send({
+        result: 'success',
+        amendment: amendment[0],
+      })
+    } else {
+      res.status(404).send({
+        result: 'error',
+        message: 'amendment with id/name not found',
+      })
     }
   } catch {
     res.send({ result: 'error', message: 'internal error' })
