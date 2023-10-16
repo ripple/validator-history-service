@@ -1,6 +1,7 @@
 import { getNetworks, query } from '../../../shared/database'
 import { AgreementScore } from '../../../shared/types'
 
+export const CACHE_INTERVAL_MILLIS = 60 * 1000
 /**
  * Formats agreement score for response.
  *

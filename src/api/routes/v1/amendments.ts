@@ -6,6 +6,8 @@ import { AmendmentsInfo } from '../../../shared/types'
 import { isEarlierVersion } from '../../../shared/utils'
 import logger from '../../../shared/utils/logger'
 
+import { CACHE_INTERVAL_MILLIS } from './utils'
+
 interface AmendmentsInfoResponse {
   result: 'success' | 'error'
   count: number
@@ -43,7 +45,7 @@ interface AmendmentInVoting extends AmendmentsInfo {
 interface AmendmentInVotingMap {
   [key: string]: {
     name: string
-    rippled_version: string | undefined | null
+    rippled_version?: string
     threshold: string
     consensus: string
     validators: Array<{
@@ -51,7 +53,7 @@ interface AmendmentInVotingMap {
       ledger_index: string
       unl: boolean
     }>
-    deprecated: boolean | null
+    deprecated?: boolean
   }
 }
 
@@ -72,6 +74,8 @@ interface CacheVote {
   networks: Map<string, Array<AmendmentsEnabled | AmendmentInVoting>>
   time: number
 }
+
+const CONSENSUS_FACTOR = 0.8
 
 const log = logger({ name: 'api-amendments' })
 
@@ -113,13 +117,10 @@ function sortByVersion(
 async function cacheAmendmentsInfo(): Promise<void> {
   try {
     cacheInfo.amendments = await query('amendments_info').select('*')
-    cacheInfo.amendments.sort((prev: AmendmentsInfo, next: AmendmentsInfo) =>
-      sortByVersion(prev, next),
-    )
+    cacheInfo.amendments.sort(sortByVersion)
     cacheInfo.time = Date.now()
-    // eslint-disable-next-line @typescript-eslint/no-explicit-any -- TODO: clean up
-  } catch (err: any) {
-    log.error(err.toString())
+  } catch (err: unknown) {
+    log.error('Error getting amendments info from the database', err)
   }
 }
 
@@ -149,9 +150,7 @@ async function getEnabledAmendments(id: string): Promise<AmendmentsEnabled[]> {
     )
     .where('amendments_enabled.networks', id)
 
-  enabled.sort((prev: AmendmentsEnabled, next: AmendmentsEnabled) =>
-    sortByVersion(prev, next),
-  )
+  enabled.sort(sortByVersion)
 
   if (!cacheEnabled.has(id)) {
     cacheEnabled.set(id, new Set())
@@ -216,7 +215,7 @@ async function calculateConsensus(
 
   // eslint-disable-next-line require-atomic-updates -- no race condition.
   votingMap[amendment_id].threshold = `${Math.ceil(
-    0.8 * totalUnl,
+    CONSENSUS_FACTOR * totalUnl,
   ).toString()}/${totalUnl.toString()}`
   // eslint-disable-next-line require-atomic-updates -- no race condition.
   votingMap[amendment_id].consensus = (votedUNL / totalUnl).toLocaleString(
@@ -248,7 +247,7 @@ async function getVotingAmendments(id: string): Promise<AmendmentInVoting[]> {
     parseAmendmentVote(val, votingAmendments)
   })
 
-  if (Date.now() - cacheInfo.time > 60 * 1000) {
+  if (Date.now() - cacheInfo.time > CACHE_INTERVAL_MILLIS) {
     await cacheAmendmentsInfo()
   }
 
@@ -279,9 +278,7 @@ async function getVotingAmendments(id: string): Promise<AmendmentInVoting[]> {
     }
   }
 
-  res.sort((prev: AmendmentInVoting, next: AmendmentInVoting) =>
-    sortByVersion(prev, next),
-  )
+  res.sort(sortByVersion)
 
   return res
 }
@@ -319,7 +316,7 @@ export async function handleAmendmentsInfo(
   res: Response,
 ): Promise<void> {
   try {
-    if (Date.now() - cacheInfo.time > 60 * 1000) {
+    if (Date.now() - cacheInfo.time > CACHE_INTERVAL_MILLIS) {
       await cacheAmendmentsInfo()
     }
     const amendments: AmendmentsInfo[] = cacheInfo.amendments
@@ -346,7 +343,7 @@ export async function handleAmendmentInfo(
 ): Promise<void> {
   try {
     const { param } = req.params
-    if (Date.now() - cacheInfo.time > 60 * 1000) {
+    if (Date.now() - cacheInfo.time > CACHE_INTERVAL_MILLIS) {
       await cacheAmendmentsInfo()
     }
     const amendments: AmendmentsInfo[] = cacheInfo.amendments.filter(
@@ -378,7 +375,7 @@ export async function handleAmendmentsVote(
 ): Promise<void> {
   try {
     const { network } = req.params
-    if (Date.now() - cacheVote.time > 60 * 1000) {
+    if (Date.now() - cacheVote.time > CACHE_INTERVAL_MILLIS) {
       await cacheAmendmentsVote()
     }
     const networkVotes:
@@ -411,7 +408,7 @@ export async function handleAmendmentVote(
 ): Promise<void> {
   try {
     const { network, identifier } = req.params
-    if (Date.now() - cacheVote.time > 60 * 1000) {
+    if (Date.now() - cacheVote.time > CACHE_INTERVAL_MILLIS) {
       await cacheAmendmentsVote()
     }
     const networkVotes:

@@ -3,7 +3,12 @@ import { Request, Response } from 'express'
 import { query } from '../../../shared/database'
 import logger from '../../../shared/utils/logger'
 
-import { formatAgreementScore, formatAmendments, getChains } from './utils'
+import {
+  CACHE_INTERVAL_MILLIS,
+  formatAgreementScore,
+  formatAmendments,
+  getChains,
+} from './utils'
 
 const log = logger({ name: 'api-validator' })
 
@@ -240,18 +245,13 @@ export async function handleValidator(
   res: Response,
 ): Promise<void> {
   try {
-    if (Date.now() - cache.time > 60 * 1000) {
+    if (Date.now() - cache.time > CACHE_INTERVAL_MILLIS) {
       await cacheValidators()
     }
 
     const public_key = req.params.publicKey
-    let validator: ValidatorResponse | undefined = JSON.parse(
-      JSON.stringify(
-        cache.validators.find(
-          (resp: ValidatorResponse) =>
-            resp.validation_public_key === public_key,
-        ),
-      ),
+    let validator: ValidatorResponse | undefined = cache.validators.find(
+      (resp: ValidatorResponse) => resp.validation_public_key === public_key,
     )
 
     if (validator === undefined) {
@@ -284,7 +284,7 @@ export async function handleValidators(
   res: Response,
 ): Promise<void> {
   try {
-    if (Date.now() - cache.time > 60 * 1000) {
+    if (Date.now() - cache.time > CACHE_INTERVAL_MILLIS) {
       await cacheValidators()
     }
 
