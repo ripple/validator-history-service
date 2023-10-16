@@ -428,9 +428,10 @@ export async function handleAmendmentVote(
           amendment: amendment[0],
         })
       } else {
-        res
-          .status(404)
-          .send({ result: 'error', message: "amendment with id/name not found" })
+        res.status(404).send({
+          result: 'error',
+          message: 'amendment with id/name not found',
+        })
       }
     } else {
       res.send({ result: 'error', message: 'network not found' })
