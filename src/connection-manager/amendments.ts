@@ -126,6 +126,7 @@ async function saveAmendmentInfo(amendment: AmendmentsInfo): Promise<void> {
 }
 
 export default async function fetchAmendmentInfo(): Promise<void> {
+  log.info('Fetch amendments info from data sources...')
   await nameOfAmendmentID()
   await fetchMinRippledVersions()
   cachedAmendmentIDs.forEach(async (value, id) => {
@@ -137,4 +138,5 @@ export default async function fetchAmendmentInfo(): Promise<void> {
     }
     await saveAmendmentInfo(amendment)
   })
+  log.info('Finish fetching amendments info from data sources...')
 }
