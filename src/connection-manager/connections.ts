@@ -184,7 +184,7 @@ async function handleWsMessageSubscribeTypes(
   } else if (data.type.includes('ledger')) {
     void handleLedger(data as StreamLedger, ledger_hashes, networks)
     // eslint-disable-next-line no-prototype-builtins -- Safeguards against some strange streams data.
-  } else if (!data.hasOwnProperty('id')) {
+  } else if (Object.prototype.hasOwnProperty.call(data, 'id')) {
     const ledgerEntryData = data as LedgerEntryAmendmentsResponse
     if (ledgerEntryData.result.node.LedgerEntryType === 'Amendments') {
       await saveAmendmentsEnabled(
