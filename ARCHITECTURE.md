@@ -118,7 +118,7 @@ This table keeps track of the amendments enabled on each network.
 | `networks`           |The network where the amendment has been enabled.         |
 | `ledger_index`       |The ledger where the amendment has been enabled.          |
 | `tx_hash`            |The transaction hash where the amendment has been enabled.|
-| `date`               |The date when the amendment has been enabled.             |
+| `date`               |The date and time when the amendment has been enabled.    |
 
 ### `amendments_info`
 
