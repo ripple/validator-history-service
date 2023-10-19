@@ -1,5 +1,6 @@
 /* eslint-disable max-lines-per-function  -- Disable for this file with complex websocket rules. */
 import WebSocket from 'ws'
+import { LedgerEntryResponse, TxResponse } from 'xrpl'
 
 import {
   query,
@@ -7,12 +8,7 @@ import {
   clearConnectionsDb,
   getNetworks,
 } from '../shared/database'
-import {
-  Fee,
-  LedgerEnableAmendmentResponse,
-  LedgerEntryAmendmentsResponse,
-  TxEnableAmendmentResponse,
-} from '../shared/types'
+import { Fee, LedgerResponseCorrected } from '../shared/types'
 import logger from '../shared/utils/logger'
 
 import {
@@ -75,19 +71,16 @@ async function setHandlers(
       if (data.result?.node) {
         void handleWsMessageLedgerEntryAmendments(
           ws,
-          data as LedgerEntryAmendmentsResponse,
+          data as LedgerEntryResponse,
           networks,
         )
       } else if (data.result?.ledger) {
         void handleWsMessageLedgerEnableAmendments(
           ws,
-          data as LedgerEnableAmendmentResponse,
+          data as LedgerResponseCorrected,
         )
       } else if (data.result?.Amendment) {
-        void handleWsMessageTxEnableAmendments(
-          data as TxEnableAmendmentResponse,
-          networks,
-        )
+        void handleWsMessageTxEnableAmendments(data as TxResponse, networks)
       } else {
         void handleWsMessageSubscribeTypes(
           data,

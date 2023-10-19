@@ -1,5 +1,5 @@
 import WebSocket from 'ws'
-import { rippleTimeToUnixTime } from 'xrpl'
+import { LedgerEntryResponse, rippleTimeToUnixTime, TxResponse } from 'xrpl'
 import { AMENDMENTS_ID } from 'xrpl/dist/npm/models/ledger'
 
 import {
@@ -11,11 +11,9 @@ import {
   AmendmentEnabled,
   DatabaseValidator,
   Fee,
-  LedgerEnableAmendmentResponse,
-  LedgerEntryAmendmentsResponse,
+  LedgerResponseCorrected,
   StreamLedger,
   StreamManifest,
-  TxEnableAmendmentResponse,
   ValidationRaw,
 } from '../shared/types'
 
@@ -109,11 +107,7 @@ function isFlagLedgerPlusOne(ledger_index: number): boolean {
  * @returns Void.
  */
 export async function handleWsMessageSubscribeTypes(
-  data:
-    | ValidationRaw
-    | StreamManifest
-    | StreamLedger
-    | LedgerEntryAmendmentsResponse,
+  data: ValidationRaw | StreamManifest | StreamLedger | LedgerEntryResponse,
   ledger_hashes: string[],
   networks: string | undefined,
   network_fee: Map<string, Fee>,
@@ -167,14 +161,17 @@ export async function handleWsMessageSubscribeTypes(
  */
 export async function handleWsMessageLedgerEntryAmendments(
   ws: WebSocket,
-  data: LedgerEntryAmendmentsResponse,
+  data: LedgerEntryResponse,
   networks: string | undefined,
 ): Promise<void> {
-  if (data.result.node.LedgerEntryType === 'Amendments') {
+  if (
+    data.result.node?.LedgerEntryType === 'Amendments' &&
+    data.result.node.Amendments
+  ) {
     await saveAmendmentsEnabled(data.result.node.Amendments, networks)
   }
-  if (isFlagLedgerPlusOne(data.result.ledger_index)) {
-    getEnableAmendmentLedger(ws, data.result.ledger_index)
+  if (isFlagLedgerPlusOne(data.result.ledger_current_index)) {
+    getEnableAmendmentLedger(ws, data.result.ledger_current_index)
   }
 }
 
@@ -186,10 +183,11 @@ export async function handleWsMessageLedgerEntryAmendments(
  */
 export async function handleWsMessageLedgerEnableAmendments(
   ws: WebSocket,
-  data: LedgerEnableAmendmentResponse,
+  data: LedgerResponseCorrected,
 ): Promise<void> {
-  data.result.ledger.transactions.forEach(async (transaction) => {
+  data.result.ledger.transactions?.forEach(async (transaction) => {
     if (
+      typeof transaction !== 'string' &&
       transaction.TransactionType === 'EnableAmendment' &&
       !transaction.Flags
     ) {
@@ -205,15 +203,19 @@ export async function handleWsMessageLedgerEnableAmendments(
  * @param networks - The WebSocket message received from connection.
  */
 export async function handleWsMessageTxEnableAmendments(
-  data: TxEnableAmendmentResponse,
+  data: TxResponse,
   networks: string | undefined,
 ): Promise<void> {
-  const amendment: AmendmentEnabled = {
-    amendment_id: data.result.Amendment,
-    networks,
-    ledger_index: data.result.ledger_index,
-    tx_hash: data.result.hash,
-    date: new Date(rippleTimeToUnixTime(data.result.date)),
+  if (data.result.TransactionType === 'EnableAmendment') {
+    const amendment: AmendmentEnabled = {
+      amendment_id: data.result.Amendment,
+      networks,
+      ledger_index: data.result.ledger_index,
+      tx_hash: data.result.hash,
+      date: data.result.date
+        ? new Date(rippleTimeToUnixTime(data.result.date))
+        : undefined,
+    }
+    await saveAmendmentEnabled(amendment)
   }
-  await saveAmendmentEnabled(amendment)
 }
