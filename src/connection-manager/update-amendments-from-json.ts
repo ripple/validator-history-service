@@ -59,5 +59,5 @@ export default async function addAmendmentsDataFromJSON(): Promise<void> {
       await saveAmendmentsEnabled(enabledData)
     })
   })
-  log.info('Finished Enabled Amendment Data from JSON File.')
+  log.info('Finished adding Enabled Amendment Data from JSON File.')
 }
