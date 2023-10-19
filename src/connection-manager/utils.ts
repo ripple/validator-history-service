@@ -73,7 +73,7 @@ function getEnableAmendmentLedger(ws: WebSocket, ledger_index: number): void {
  * Sends a tx WebSocket request to retrieve EnableAmendment transaction details.
  *
  * @param ws - A WebSocket object.
- * @param transaction -- The hash of the transaction..
+ * @param transaction -- The hash of the transaction.
  */
 function getEnableAmendmentTx(ws: WebSocket, transaction: string): void {
   ws.send(
