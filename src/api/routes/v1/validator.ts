@@ -231,7 +231,7 @@ export async function handleValidator(
     }
 
     if (validator === undefined) {
-      res.send({ result: 'error', message: 'validator not found' })
+      res.status(404).json({ result: 'error', message: 'Validator not found' })
       return
     }
 
@@ -273,6 +273,6 @@ export async function handleValidators(
 
     res.send(response)
   } catch {
-    res.send({ result: 'error', message: 'internal error' })
+    res.status(500).json({ result: 'error', message: 'Internal server error' })
   }
 }
