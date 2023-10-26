@@ -8,7 +8,7 @@ import {
 } from '../shared/database'
 import {
   DatabaseValidator,
-  Fee,
+  FeeVote,
   StreamLedger,
   StreamManifest,
   ValidationRaw,
@@ -22,7 +22,7 @@ const log = logger({ name: 'connections' })
 const ports = [443, 80, 6005, 6006, 51233, 51234]
 const protocols = ['wss://', 'ws://']
 const connections: Map<string, WebSocket> = new Map()
-const network_fee: Map<string, Fee> = new Map()
+const network_fee: Map<string, FeeVote> = new Map()
 const CM_INTERVAL = 60 * 60 * 1000
 const WS_TIMEOUT = 10000
 const REPORTING_INTERVAL = 15 * 60 * 1000
@@ -45,6 +45,24 @@ function subscribe(ws: WebSocket): void {
 }
 
 /**
+ * Retrieves the network information of a validation from either the validation itself or from the database.
+ *
+ * @param validationData -- The raw validation data.
+ * @returns The networks information.
+ */
+async function getValidationNetwork(
+  validationData: ValidationRaw,
+): Promise<string | undefined> {
+  const validationNetworkDb: DatabaseValidator | undefined = await query(
+    'validators',
+  )
+    .select('*')
+    .where('signing_key', validationData.validation_public_key)
+    .first()
+  return validationNetworkDb?.networks ?? validationData.networks
+}
+
+/**
  * Handles a WebSocket message received.
  *
  * @param data - The WebSocket message received from connection.
@@ -63,15 +81,7 @@ async function handleWsMessageTypes(
       validationData.networks = networks
     }
 
-    // Get network of the validation if ledger_hash is not in cache.
-    const validationNetworkDb: DatabaseValidator | undefined = await query(
-      'validators',
-    )
-      .select('*')
-      .where('signing_key', validationData.validation_public_key)
-      .first()
-    const validationNetwork =
-      validationNetworkDb?.networks ?? validationData.networks
+    const validationNetwork = await getValidationNetwork(validationData)
 
     // Get the fee for the network to be used in case the validator does not vote for a new fee.
     if (validationNetwork) {
@@ -84,7 +94,7 @@ async function handleWsMessageTypes(
     const current_ledger = data as StreamLedger
     ledger_hashes.push(current_ledger.ledger_hash)
     if (networks) {
-      const fee: Fee = {
+      const fee: FeeVote = {
         fee_base: current_ledger.fee_base,
         reserve_base: current_ledger.reserve_base,
         reserve_inc: current_ledger.reserve_inc,
