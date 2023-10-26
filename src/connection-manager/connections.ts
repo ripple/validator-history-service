@@ -55,6 +55,12 @@ async function setHandlers(
       void saveNodeWsUrl(ws.url, true)
       connections.set(ip, ws)
       subscribe(ws)
+
+      // Use LedgerEntry to look for fee data to apply the fee for all validators
+      // in a network that doesn't vote for a new fee. We want to do it only once
+      // per network. This part will check if the node is the initial node that we
+      // added manually at first for each network in order to start crawling, so
+      // the ledgerEntry calls only execute once per network per ledger.
       if (isInitialNode) {
         getAmendmentLedgerEntry(ws)
       }
