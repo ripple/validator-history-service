@@ -22,7 +22,7 @@ const log = logger({ name: 'connections' })
 const ports = [443, 80, 6005, 6006, 51233, 51234]
 const protocols = ['wss://', 'ws://']
 const connections: Map<string, WebSocket> = new Map()
-const network_fee: Map<string, FeeVote> = new Map()
+const networkFee: Map<string, FeeVote> = new Map()
 const CM_INTERVAL = 60 * 60 * 1000
 const WS_TIMEOUT = 10000
 const REPORTING_INTERVAL = 15 * 60 * 1000
@@ -85,7 +85,7 @@ async function handleWsMessageTypes(
 
     // Get the fee for the network to be used in case the validator does not vote for a new fee.
     if (validationNetwork) {
-      validationData.ledger_fee = network_fee.get(validationNetwork)
+      validationData.ledger_fee = networkFee.get(validationNetwork)
     }
     void agreement.handleValidation(validationData)
   } else if (data.type === 'manifestReceived') {
@@ -99,7 +99,7 @@ async function handleWsMessageTypes(
         reserve_base: current_ledger.reserve_base,
         reserve_inc: current_ledger.reserve_inc,
       }
-      network_fee.set(networks, fee)
+      networkFee.set(networks, fee)
     }
     if (ledger_hashes.length > LEDGER_HASHES_SIZE) {
       ledger_hashes.shift()
