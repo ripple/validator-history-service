@@ -87,7 +87,7 @@ interface ValidationRaw {
   base_fee?: number
   reserve_base?: number
   reserve_inc?: number
-  ledger_fee?: Fee
+  ledger_fee?: FeeVote
 
   // The validation_public_key is the same as the signing_key in StreamManifest
 }
@@ -107,7 +107,7 @@ interface Ballot {
   reserve_inc?: number
 }
 
-interface Fee {
+interface FeeVote {
   fee_base: number
   reserve_base: number
   reserve_inc: number
@@ -214,7 +214,7 @@ export {
   DatabaseNetwork,
   HourlyAgreement,
   Ballot,
-  Fee,
+  FeeVote,
   DatabaseValidator,
   Validator,
   DailyAgreement,
