@@ -179,7 +179,12 @@ export async function getNetworkId(url: string): Promise<number | undefined> {
     const response = await axios(params)
     const networkId = response.data.result?.info?.network_id
     return networkId
-  } catch {
+  } catch (err: unknown) {
+    const error = err as Error
+    log.error(error.message)
+    if (error.stack != null) {
+      log.error(error.stack)
+    }
     return Promise.resolve(undefined)
   }
 }

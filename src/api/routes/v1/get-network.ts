@@ -1,47 +1,19 @@
+import axios, { AxiosRequestConfig } from 'axios'
 import { Request, Response } from 'express'
 
 import Crawler from '../../../crawler/crawl'
-import crawlNodeOriginal from '../../../crawler/network'
 import { query } from '../../../shared/database'
 import { Network } from '../../../shared/database/networks'
-import { Crawl } from '../../../shared/types'
+import { getNetworkId } from '../../../shared/utils'
 import logger from '../../../shared/utils/logger'
 
 const log = logger({ name: 'api-get-network' })
 
-const CRAWL_PORTS = [51235, 2459, 30001, 443]
-
-let maxNetwork: number
-
-interface CrawlAndPort {
-  crawl: Crawl
-  port: number
-}
-
-async function updateMaxNetwork(): Promise<void> {
-  const currentNetworks = await query('networks').select('id')
-  const currentNetworkNumbers = currentNetworks.reduce(
-    (filtered: number[], network: { id: string }) => {
-      const { id } = network
-      if (!Number.isNaN(Number(id))) {
-        filtered.push(Number(id))
-      }
-      return filtered
-    },
-    [],
-  )
-  maxNetwork = Math.max(...currentNetworkNumbers)
-  if (maxNetwork === -Infinity) {
-    maxNetwork = 0
-  }
-}
-
 /**
- * A wrapper for `crawlNode` that also returns the port.
  *
- * @param host - The host to crawl.
- * @param port - The peer port guess.
- * @returns The crawl result and the peer port.
+ * @param host
+ * @param port
+ * @returns
  */
 async function crawlNode(
   host: string,
@@ -54,149 +26,75 @@ async function crawlNode(
   return { crawl, port }
 }
 
-void updateMaxNetwork()
-// double check that the max network is accurate every hour
-setInterval(updateMaxNetwork, 60 * 60 * 1000)
+/**
+ *
+ * Determine whether the given Network ID is already in the system.
+ *
+ * @param id - The network ID.
+ * @returns Whether the network ID is registered in the db.
+ */
+async function isNetworkIdRegistered(id: number): Promise<boolean> {
+  const result = await query('networks').select('id').where('id', '=', id)
+  return result.length > 0
+}
+
+interface ServerInfoPort {
+  port: string
+  protocol: string[]
+}
 
 /**
- * An implementation of `Promise.any`. Returns the first promise to resolve.
- * Ignores errors, unless they all error.
- * This method is used to improve performance of this API call - since the API
- * call checks multiple possible ports for the `/crawl` endpoint, it should
- * return the first one to succeed. The other ones will probably fail, but will
- * take several seconds to fail.
- * Modified from https://stackoverflow.com/a/57599519.
+ * Helper function to get the peer port for a node.
  *
- * @param promises - The crawl Promises that are waiting.
- * @returns The first promise to resolve.
+ * @param url - The URL to a node.
+ * @returns The peer port for the node.
  */
-async function any(
-  promises: Array<Promise<CrawlAndPort | undefined>>,
-): Promise<CrawlAndPort> {
-  return new Promise((resolve, reject) => {
-    let errors: Error[] = []
-    let undefinedValues = 0
-    let resolved: boolean
-
-    function sendReject(): void {
-      if (errors.length > 0) {
-        reject(errors)
-      }
-      reject(new Error('crawl attempts all failed'))
-    }
-
-    /**
-     * Helper method when a promise is fulfilled.
-     *
-     * @param value - The resolved value.
-     */
-    function onFulfill(value: CrawlAndPort | undefined): void {
-      // skip if already resolved
-      if (resolved) {
-        return
-      }
-      // if the value is undefined (which is returned if an error occurs)
-      if (value == null) {
-        undefinedValues += 1
-        // reject promise combinator if all promises are failed/undefined
-        if (undefinedValues + errors.length === promises.length) {
-          sendReject()
-        }
-        return
-      }
-      resolved = true
-
-      // resolve with the first available value
-      resolve(value)
-    }
-
-    /**
-     * Helper method when a promise is rejected.
-     *
-     * @param error - The error.
-     */
-    function onError(error: Error): void {
-      // skip if already resolved
-      if (resolved) {
-        return
-      }
-
-      // collect error
-      errors = errors.concat(error)
-
-      // reject promise combinator if all promises are failed/undefined
-      if (undefinedValues + errors.length === promises.length) {
-        sendReject()
-      }
-    }
-
-    promises.forEach(async (promise) => promise.then(onFulfill, onError))
+async function getPeerPort(url: string): Promise<number | undefined> {
+  const data = JSON.stringify({
+    method: 'server_info',
   })
-}
-
-/**
- * Fetches the crawl data for the node.
- *
- * @param host - The host URL to crawl.
- * @returns The crawl data from the node.
- */
-async function fetchCrawls(host: string): Promise<CrawlAndPort> {
-  const promises: Array<Promise<CrawlAndPort | undefined>> = []
-  for (const port of CRAWL_PORTS) {
-    promises.push(crawlNode(host, port))
+  const params: AxiosRequestConfig = {
+    method: 'post',
+    url,
+    headers: {
+      'Content-Type': 'application/json',
+    },
+    data,
   }
-  return any(promises)
-}
 
-/**
- * Checks whether the UNL of the node is recorded in the networks table. If so,
- * then it returns the network associated with the UNL.
- *
- * @param unl - The UNL of the node.
- * @returns Whether the UNL of the node has been seen before.
- */
-async function getNetworkFromUNL(unl: string): Promise<string | undefined> {
-  const result = await query('networks')
-    .select('id')
-    .where('unls', 'like', `%${unl}%`)
-  return result.length > 0 ? result[0].id : undefined
-}
-
-/**
- * Checks whether the public key of the node is recorded in the crawls table. If
- * so, then it returns the network associated with the public key.
- *
- * @param publicKey - The public key of the node.
- * @returns The network associated with the public key of the node. Undefined
- * if the public key has not been seen by the network.
- */
-async function getNetworkFromPublicKey(
-  publicKey: string,
-): Promise<string | undefined> {
-  const result = await query('crawls')
-    .select('public_key', 'networks')
-    .where('public_key', '=', publicKey)
-  return result.length > 0 ? result[0].networks : undefined
+  try {
+    const response = await axios(params)
+    const ports = response.data.result?.info?.ports
+    const peerPorts: string[] = ports
+      .filter((port: ServerInfoPort) => port.protocol.includes('peer'))
+      .map((port: ServerInfoPort) => port.port)
+    if (peerPorts.length === 0) {
+      throw new Error(`Cannot find a peer port for ${url}`)
+    }
+    return Number(peerPorts[0])
+  } catch (err: unknown) {
+    log.error((err as Error).message)
+    return Promise.resolve(undefined)
+  }
 }
 
 /**
  * Adds the node (and its corresponding network) to the networks table.
  *
+ * @param networkId - The network ID of the node.
  * @param url - The URL endpoint of the node.
  * @param unl - The UNL of the node.
  * @param port - The peer port of the node.
  * @returns The ID of the new network.
  */
 async function addNode(
+  networkId: number,
   url: string,
   unl: string | null,
   port: number,
-): Promise<string> {
-  const newNetwork = (maxNetwork + 1).toString()
-  maxNetwork += 1
-
+): Promise<void> {
   const network: Network = {
-    id: newNetwork,
+    id: networkId,
     entry: url,
     port,
     unls: unl ? [unl] : [],
@@ -208,8 +106,6 @@ async function addNode(
 
   const crawler = new Crawler()
   void crawler.crawl(network)
-
-  return newNetwork
 }
 
 /**
@@ -226,37 +122,32 @@ export default async function getNetworkOrAdd(
   try {
     const { entryUrl } = req.params
 
-    // fetch crawl
-    const { crawl, port } = await fetchCrawls(entryUrl)
+    // check network ID
+    const networkId = await getNetworkId(entryUrl)
+    if (networkId == null) {
+      throw new Error('Network ID does not exist')
+    }
 
-    // check UNL
-    const { node_unl } = crawl
-    if (node_unl != null) {
-      const unlNetwork = await getNetworkFromUNL(node_unl)
-      // eslint-disable-next-line max-depth -- Necessary here
-      if (unlNetwork != null) {
-        return res.send({
-          result: 'success',
-          network: unlNetwork,
-        })
+    if (!(await isNetworkIdRegistered(networkId))) {
+      const peerPort = await getPeerPort(entryUrl)
+      if (peerPort == null) {
+        throw new Error('Peer port does not exist')
       }
-    }
+      const crawlResult = await crawlNode(entryUrl, peerPort)
+      if (crawlResult == null) {
+        throw new Error('Crawl failed')
+      }
 
-    // check if node public key is already recorded
-    const { public_key } = crawl.this_node
-    const publicKeyNetwork = await getNetworkFromPublicKey(public_key)
-    if (publicKeyNetwork != null) {
-      return res.send({
-        result: 'success',
-        network: publicKeyNetwork,
-      })
+      // check UNL
+      const { crawl } = crawlResult
+      const { node_unl } = crawl
+      // add node to networks list
+      await addNode(networkId, entryUrl, node_unl, peerPort)
     }
-    // add node to networks list
-    const newNetwork = await addNode(entryUrl, node_unl, port)
 
     return res.send({
       result: 'success',
-      network: newNetwork,
+      network: networkId,
     })
     // eslint-disable-next-line @typescript-eslint/no-explicit-any -- TODO: clean up
   } catch (err: any) {

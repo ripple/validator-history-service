@@ -79,6 +79,7 @@ module.exports = {
         allow: ['dotenv/config'],
       },
     ],
+    'max-depth': ['error', 3],
   },
   overrides: [
     {

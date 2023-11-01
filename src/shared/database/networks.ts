@@ -1,13 +1,17 @@
 import config from '../utils/config'
 
 interface DefinedNetwork {
+  json: number
   port?: number
   entry: string
   unls: string[]
 }
 
-interface Network extends DefinedNetwork {
+interface Network {
   id: number
+  port?: number
+  entry: string
+  unls: string[]
 }
 
 // put the UNL you want to prioritize at the front
@@ -27,26 +31,25 @@ if (config.mainnet_unl == null) {
 const networks: DefinedNetwork[] = [
   {
     entry: config.mainnet_p2p_server,
+    json: 51234,
     port: 51235,
     unls: mainnetUnls,
   },
   {
     entry: 's.altnet.rippletest.net',
+    json: 51234,
     port: 51235,
     unls: ['vl.altnet.rippletest.net'],
   },
   {
     entry: 's.devnet.rippletest.net',
+    json: 51234,
     port: 51235,
     unls: ['vl.devnet.rippletest.net'],
   },
   {
-    entry: 'amm.devnet.rippletest.net',
-    port: 51235,
-    unls: ['vlamm.devnet.rippletest.net'],
-  },
-  {
-    entry: 'hooks-testnet-v3.xrpl-labs.com',
+    entry: 'xahau-test.net',
+    json: 80,
     port: 443,
     unls: ['vl3.beta.bithomp.com'],
   },

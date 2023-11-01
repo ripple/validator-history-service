@@ -36,7 +36,7 @@ async function setupCrawlsTable(): Promise<void> {
       table.integer('port')
       table.string('ws_url')
       table.boolean('connected')
-      table.string('networks')
+      table.integer('networks')
       table.string('type')
       table.integer('uptime')
       table.integer('inbound_count')
@@ -112,7 +112,7 @@ async function setupValidatorsTable(): Promise<void> {
       table.integer('load_fee')
       table.boolean('partial')
       table.string('chain')
-      table.string('networks')
+      table.integer('networks')
       table.string('unl')
       table.string('domain')
       table.boolean('domain_verified')
@@ -133,10 +133,6 @@ async function setupValidatorsTable(): Promise<void> {
       table.string('networks').after('chain')
     })
   }
-  // Modifies nft-dev validators once, since they have been decomissioned.
-  await db().schema.raw(
-    "UPDATE validators SET chain = 'nft-dev', networks = 'nft-dev' WHERE unl LIKE '%nftvalidators.s3.us-west-2.amazonaws.com%'",
-  )
 }
 
 async function setupHourlyAgreementTable(): Promise<void> {
@@ -198,10 +194,10 @@ async function setupNetworksTable(): Promise<void> {
   const networkEntries = await query('networks').pluck('entry')
   networks.forEach(async (network) => {
     if (!networkEntries.includes(network.entry)) {
-      const id = await getNetworkId(network.entry)
+      const id = await getNetworkId(`http://${network.entry}:${network.json}`)
       if (id == null) {
         throw new Error(
-          `Network entry ${network.entry} doesn't have network ID`,
+          `Network entry ${network.entry} doesn't have a network ID`,
         )
       }
       query('networks')
