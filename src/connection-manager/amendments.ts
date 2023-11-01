@@ -14,9 +14,9 @@ const cachedAmendmentIDs = new Map<
 const cachedRippledVersions = new Map<string, string>()
 
 const ACTIVE_AMENDMENT_REGEX =
-  /^\s*REGISTER_F[A-Z]+\s*\((?<amendmendName>\S+),\s*.*$/u
+  /^\s*REGISTER_F[A-Z]+\s*\((?<amendmentName>\S+),\s*.*$/u
 const RETIRED_AMENDMENT_REGEX =
-  /^ .*retireFeature\("(?<amendmendName>\S+)"\)[,;].*$/u
+  /^ .*retireFeature\("(?<amendmentName>\S+)"\)[,;].*$/u
 
 const AMENDMENT_VERSION_REGEX =
   /\| \[(?<amendmentName>[a-zA-Z0-9_]+)\][^\n]+\| (?<version>v[0-9]*\.[0-9]*\.[0-9]*|TBD) *\|/u
