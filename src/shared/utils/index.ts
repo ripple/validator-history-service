@@ -155,3 +155,31 @@ export function overlaps(
   }
   return false
 }
+
+/**
+ * Helper function to get the network ID for a network.
+ *
+ * @param url - The URL to a node connected to the network.
+ * @returns The network ID for the network.
+ */
+export async function getNetworkId(url: string): Promise<number | undefined> {
+  const data = JSON.stringify({
+    method: 'server_info',
+  })
+  const params: AxiosRequestConfig = {
+    method: 'post',
+    url,
+    headers: {
+      'Content-Type': 'application/json',
+    },
+    data,
+  }
+
+  try {
+    const response = await axios(params)
+    const networkId = response.data.result?.info?.network_id
+    return networkId
+  } catch {
+    return Promise.resolve(undefined)
+  }
+}

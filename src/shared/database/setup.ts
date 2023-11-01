@@ -1,3 +1,4 @@
+import { getNetworkId } from '../utils'
 import logger from '../utils/logger'
 
 import networks from './networks'
@@ -176,19 +177,36 @@ async function setupNetworksTable(): Promise<void> {
   const hasNetworks = await db().schema.hasTable('networks')
   if (!hasNetworks) {
     await db().schema.createTable('networks', (table) => {
-      table.string('id')
+      table.integer('id')
       table.string('entry')
       table.integer('port')
       table.string('unls')
-      table.primary(['entry'])
+      table.primary(['id'])
     })
   }
-  const networksIds = await query('networks').pluck('id')
-  networks.forEach((network) => {
-    if (!networksIds.includes(network.id)) {
+  const networkIds = await query('networks').pluck('id')
+  if (networkIds.includes('main')) {
+    await db().schema.dropTableIfExists('networks')
+    await db().schema.createTable('networks', (table) => {
+      table.integer('id')
+      table.string('entry')
+      table.integer('port')
+      table.string('unls')
+      table.primary(['id'])
+    })
+  }
+  const networkEntries = await query('networks').pluck('entry')
+  networks.forEach(async (network) => {
+    if (!networkEntries.includes(network.entry)) {
+      const id = await getNetworkId(network.entry)
+      if (id == null) {
+        throw new Error(
+          `Network entry ${network.entry} doesn't have network ID`,
+        )
+      }
       query('networks')
         .insert({
-          id: network.id,
+          id,
           entry: network.entry,
           port: network.port,
           unls: network.unls.join(','),
@@ -196,12 +214,6 @@ async function setupNetworksTable(): Promise<void> {
         .catch((err: Error) => log.error(err.message))
     }
   })
-  if (networksIds.includes('nft-dev')) {
-    query('networks')
-      .del()
-      .where('id', '=', 'nft-dev')
-      .catch((err: Error) => log.error(err.message))
-  }
 }
 
 async function setupBallotTable(): Promise<void> {

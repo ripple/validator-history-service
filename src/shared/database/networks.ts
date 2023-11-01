@@ -1,10 +1,13 @@
 import config from '../utils/config'
 
-interface Network {
-  id: string
+interface DefinedNetwork {
   port?: number
   entry: string
   unls: string[]
+}
+
+interface Network extends DefinedNetwork {
+  id: number
 }
 
 // put the UNL you want to prioritize at the front
@@ -21,33 +24,28 @@ if (config.mainnet_unl == null) {
   })
 }
 
-const networks: Network[] = [
+const networks: DefinedNetwork[] = [
   {
-    id: 'main',
     entry: config.mainnet_p2p_server,
     port: 51235,
     unls: mainnetUnls,
   },
   {
-    id: 'test',
     entry: 's.altnet.rippletest.net',
     port: 51235,
     unls: ['vl.altnet.rippletest.net'],
   },
   {
-    id: 'dev',
     entry: 's.devnet.rippletest.net',
     port: 51235,
     unls: ['vl.devnet.rippletest.net'],
   },
   {
-    id: 'amm-dev',
     entry: 'amm.devnet.rippletest.net',
     port: 51235,
     unls: ['vlamm.devnet.rippletest.net'],
   },
   {
-    id: 'hooks-test',
     entry: 'hooks-testnet-v3.xrpl-labs.com',
     port: 443,
     unls: ['vl3.beta.bithomp.com'],
