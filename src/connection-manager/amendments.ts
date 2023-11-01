@@ -19,8 +19,7 @@ const RETIRED_AMENDMENT_REGEX =
   /^ .*retireFeature\("(?<amendmendName>\S+)"\)[,;].*$/u
 
 const AMENDMENT_VERSION_REGEX =
-  // eslint-disable-next-line prefer-named-capture-group, require-unicode-regexp -- Bypass for now.
-  /\| \[([a-zA-Z0-9_]+)\][^\n]+\| (v[0-9]*.[0-9]*.[0-9]*|TBD) *\|/
+  /\| \[(?<amendmentName>[a-zA-Z0-9_]+)\][^\n]+\| (?<version>v[0-9]*\.[0-9]*\.[0-9]*|TBD) *\|/u
 
 /**
  * Fetch a list of amendments names from rippled file.
