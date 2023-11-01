@@ -58,7 +58,6 @@ const networks: Network[] = [
     port: 443,
     unls: ['vl3.beta.bithomp.com'],
   },
-
 ]
 
 export default networks
