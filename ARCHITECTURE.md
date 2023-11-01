@@ -107,6 +107,20 @@ This table keeps track of the manifests of the validators.
 | `seq`                |The sequence number of this manifest.                       |
 
 
+### `ballot`
+
+This table keeps track of the most current voting data for the validators.
+
+| Key                  | Definition                                                        |
+|----------------------|-------------------------------------------------------------------|
+| `signing_key`        |The signing key of the validator.                                  |
+| `ledger_index`       |The most recent ledger index where voting data was retrieved.      |
+| `amendments`         |The amendments this validator wants to be added to the protocol.   |
+| `base_fee`           |The unscaled transaction cost this validator wants to set.         |
+| `reserve_base`       |The minimum reserve requirement this validator wants to set.       |
+| `reserve_inc`        |The increment in the reserve requirement this validator wants to set.|
+
+
 ### `validators`
 
 This table keeps track of the validators on the networks.
