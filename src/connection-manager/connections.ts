@@ -6,7 +6,13 @@ import {
   clearConnectionsDb,
   getNetworks,
 } from '../shared/database'
-import { StreamLedger, StreamManifest, ValidationRaw } from '../shared/types'
+import {
+  DatabaseValidator,
+  FeeVote,
+  StreamLedger,
+  StreamManifest,
+  ValidationRaw,
+} from '../shared/types'
 import logger from '../shared/utils/logger'
 
 import agreement from './agreement'
@@ -16,6 +22,7 @@ const log = logger({ name: 'connections' })
 const ports = [443, 80, 6005, 6006, 51233, 51234]
 const protocols = ['wss://', 'ws://']
 const connections: Map<string, WebSocket> = new Map()
+const networkFee: Map<string, FeeVote> = new Map()
 const CM_INTERVAL = 60 * 60 * 1000
 const WS_TIMEOUT = 10000
 const REPORTING_INTERVAL = 15 * 60 * 1000
@@ -38,6 +45,24 @@ function subscribe(ws: WebSocket): void {
 }
 
 /**
+ * Retrieves the network information of a validation from either the validation itself or from the database.
+ *
+ * @param validationData -- The raw validation data.
+ * @returns The networks information.
+ */
+async function getValidationNetwork(
+  validationData: ValidationRaw,
+): Promise<string | undefined> {
+  const validationNetworkDb: DatabaseValidator | undefined = await query(
+    'validators',
+  )
+    .select('*')
+    .where('signing_key', validationData.validation_public_key)
+    .first()
+  return validationNetworkDb?.networks ?? validationData.networks
+}
+
+/**
  * Handles a WebSocket message received.
  *
  * @param data - The WebSocket message received from connection.
@@ -55,11 +80,27 @@ async function handleWsMessageTypes(
     if (ledger_hashes.includes(validationData.ledger_hash)) {
       validationData.networks = networks
     }
-    void agreement.handleValidation(data as ValidationRaw)
+
+    const validationNetwork = await getValidationNetwork(validationData)
+
+    // Get the fee for the network to be used in case the validator does not vote for a new fee.
+    if (validationNetwork) {
+      validationData.ledger_fee = networkFee.get(validationNetwork)
+    }
+    void agreement.handleValidation(validationData)
   } else if (data.type === 'manifestReceived') {
     void handleManifest(data as StreamManifest)
   } else if (data.type.includes('ledger')) {
-    ledger_hashes.push((data as StreamLedger).ledger_hash)
+    const current_ledger = data as StreamLedger
+    ledger_hashes.push(current_ledger.ledger_hash)
+    if (networks) {
+      const fee: FeeVote = {
+        fee_base: current_ledger.fee_base,
+        reserve_base: current_ledger.reserve_base,
+        reserve_inc: current_ledger.reserve_inc,
+      }
+      networkFee.set(networks, fee)
+    }
     if (ledger_hashes.length > LEDGER_HASHES_SIZE) {
       ledger_hashes.shift()
     }
