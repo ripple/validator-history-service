@@ -19,6 +19,8 @@ const RETIRED_AMENDMENT_REGEX =
 const AMENDMENT_VERSION_REGEX =
   /\| \[(?<amendmentName>[a-zA-Z0-9_]+)\][^\n]+\| (?<version>v[0-9]*\.[0-9]*\.[0-9]*|TBD) *\|/u
 
+// TODO: Clean this up when this PR is merged:
+// https://github.com/XRPLF/rippled/pull/4781
 /**
  * Fetch a list of amendments names from rippled file.
  *
