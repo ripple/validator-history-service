@@ -1,17 +1,15 @@
 import axios from 'axios'
 import createHash from 'create-hash'
 
-import { query } from '../shared/database/utils'
-import { AmendmentsInfo } from '../shared/types'
-import logger from '../shared/utils/logger'
+import { AmendmentsInfo } from '../types'
+import logger from '../utils/logger'
+
+import { query } from './utils'
 
 const log = logger({ name: 'amendments' })
 
-const cachedAmendmentIDs = new Map<
-  string,
-  { name: string; deprecated: boolean }
->()
-const cachedRippledVersions = new Map<string, string>()
+const amendmentIDs = new Map<string, { name: string; deprecated: boolean }>()
+const rippledVersions = new Map<string, string>()
 
 const ACTIVE_AMENDMENT_REGEX =
   /^\s*REGISTER_F[A-Z]+\s*\((?<amendmentName>\S+),\s*.*$/u
@@ -76,7 +74,7 @@ async function nameOfAmendmentID(): Promise<void> {
   const amendmentNames = await fetchAmendmentNames()
   if (amendmentNames !== null) {
     amendmentNames.forEach((deprecated, name) => {
-      cachedAmendmentIDs.set(sha512Half(Buffer.from(name, 'ascii')), {
+      amendmentIDs.set(sha512Half(Buffer.from(name, 'ascii')), {
         name,
         deprecated,
       })
@@ -99,7 +97,7 @@ async function fetchMinRippledVersions(): Promise<void> {
     text.split('\n').forEach((line: string) => {
       const found = AMENDMENT_VERSION_REGEX.exec(line)
       if (found) {
-        cachedRippledVersions.set(
+        rippledVersions.set(
           found[1],
           found[2].startsWith('v') ? found[2].slice(1) : found[2],
         )
@@ -128,11 +126,11 @@ export default async function fetchAmendmentInfo(): Promise<void> {
   log.info('Fetch amendments info from data sources...')
   await nameOfAmendmentID()
   await fetchMinRippledVersions()
-  cachedAmendmentIDs.forEach(async (value, id) => {
+  amendmentIDs.forEach(async (value, id) => {
     const amendment: AmendmentsInfo = {
       id,
       name: value.name,
-      rippled_version: cachedRippledVersions.get(value.name),
+      rippled_version: rippledVersions.get(value.name),
       deprecated: value.deprecated,
     }
     await saveAmendmentInfo(amendment)

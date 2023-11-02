@@ -4,13 +4,11 @@ import Crawler from '../crawler/crawl'
 import { setupTables, getNetworks } from '../shared/database'
 
 import agreement from './agreement'
-import fetchAmendmentInfo from './amendments'
 import startConnections from './connections'
 import { doManifestJobs } from './manifests'
 
 async function start(): Promise<void> {
   await setupTables()
-  await fetchAmendmentInfo()
   // Migrate manifests from the legacy database. This will be removed once the service has collected enough manifests.
   // await migrate()
   const promises = []
