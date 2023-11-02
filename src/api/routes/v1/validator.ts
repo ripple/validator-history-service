@@ -42,7 +42,7 @@ interface ValidatorResponse {
   } | null
   partial: boolean
   unl: boolean
-  amendments: Array<{ id: string; name: string }> | null
+  amendments?: Array<{ id: string; name: string }>
   base_fee?: number
   reserve_base?: number
   reserve_inc?: number
@@ -151,7 +151,7 @@ async function formatResponse(resp: dbResponse): Promise<ValidatorResponse> {
   let hour1_score = null
   let hour24_score = null
   let day30_score = null
-  let amendments_list = null
+  let amendments_list
 
   if (agreement_1hour !== null) {
     hour1_score = formatAgreementScore(agreement_1hour)
