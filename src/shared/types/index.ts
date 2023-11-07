@@ -197,8 +197,8 @@ interface DailyAgreement {
 interface AmendmentsInfo {
   id: string
   name: string
-  rippled_version?: string | null
-  deprecated: boolean | null
+  rippled_version?: string
+  deprecated: boolean
 }
 
 export {
