@@ -1,5 +1,7 @@
+/* eslint-disable import/max-dependencies -- Disabled since this module requires multiple dependencies. */
 import { Router as createRouter } from 'express'
 
+import { handleAmendmentsInfo, handleAmendmentInfo } from './amendments'
 import handleDailyScores from './daily-report'
 import getNetworkOrAdd from './get-network'
 import handleHealth from './health'
@@ -12,6 +14,9 @@ const api = createRouter()
 
 api.use('/health', handleHealth)
 api.use('/network/validator_reports', handleDailyScores)
+api.use('/network/amendment/info/:param', handleAmendmentInfo)
+api.use('/network/amendments/info', handleAmendmentsInfo)
+
 api.use('/network/get_network/:entryUrl', getNetworkOrAdd)
 
 api.use('/network/topology/nodes/:network', handleNodes)

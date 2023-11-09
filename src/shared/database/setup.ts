@@ -1,5 +1,6 @@
 import logger from '../utils/logger'
 
+import fetchAmendmentInfo from './amendments'
 import networks from './networks'
 import { db, query } from './utils'
 
@@ -19,7 +20,9 @@ export default async function setupTables(): Promise<void> {
   await setupHourlyAgreementTable()
   await setupDailyAgreementTable()
   await setupNetworksTable()
+  await setupAmendmentsInfoTable()
   await setupBallotTable()
+  await fetchAmendmentInfo()
 }
 
 async function setupCrawlsTable(): Promise<void> {
@@ -201,6 +204,19 @@ async function setupNetworksTable(): Promise<void> {
       .del()
       .where('id', '=', 'nft-dev')
       .catch((err: Error) => log.error(err.message))
+  }
+}
+
+async function setupAmendmentsInfoTable(): Promise<void> {
+  const hasAmendmentsInfo = await db().schema.hasTable('amendments_info')
+  if (!hasAmendmentsInfo) {
+    await db().schema.createTable('amendments_info', (table) => {
+      table.string('id')
+      table.string('name')
+      table.string('rippled_version')
+      table.boolean('deprecated')
+      table.primary(['id'])
+    })
   }
 }
 
