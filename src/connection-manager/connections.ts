@@ -8,7 +8,7 @@ import {
   clearConnectionsDb,
   getNetworks,
 } from '../shared/database'
-import { Fee, LedgerResponseCorrected } from '../shared/types'
+import { FeeVote, LedgerResponseCorrected } from '../shared/types'
 import logger from '../shared/utils/logger'
 
 import {
@@ -24,7 +24,7 @@ const log = logger({ name: 'connections' })
 const ports = [443, 80, 6005, 6006, 51233, 51234]
 const protocols = ['wss://', 'ws://']
 const connections: Map<string, WebSocket> = new Map()
-const network_fee: Map<string, Fee> = new Map()
+const networkFee: Map<string, FeeVote> = new Map()
 const CM_INTERVAL = 60 * 60 * 1000
 const WS_TIMEOUT = 10000
 const REPORTING_INTERVAL = 15 * 60 * 1000
@@ -92,7 +92,7 @@ async function setHandlers(
           data,
           ledger_hashes,
           networks,
-          network_fee,
+          networkFee,
         )
       }
     })
