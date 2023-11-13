@@ -56,11 +56,11 @@ async function setHandlers(
       connections.set(ip, ws)
       subscribe(ws)
 
-      // Use LedgerEntry to look for fee data to apply the fee for all validators
-      // in a network that doesn't vote for a new fee. We want to do it only once
-      // per network. This part will check if the node is the initial node that we
-      // added manually at first for each network in order to start crawling, so
-      // the ledgerEntry calls only execute once per network per ledger.
+      // Use LedgerEntry to look for amendments that has already been enabled on a network when connections
+      // first start, or when a new network is added. This only need to be ran only once on the initial node
+      // on the network table per network, as new enabled amendments afterwards will be added when there's a
+      // EnableAmendment tx happens, which would provide more information compared to ledger_entry (please
+      // look at handleWsMessageLedgerEnableAmendments function for more details).
       if (isInitialNode) {
         getAmendmentLedgerEntry(ws)
       }
