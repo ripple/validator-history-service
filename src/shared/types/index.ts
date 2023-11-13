@@ -58,7 +58,7 @@ interface LedgerResponseCorrected extends LedgerResponse {
 
 interface AmendmentEnabled {
   amendment_id: string
-  networks: string | undefined
+  networks?: string
   ledger_index?: number
   tx_hash: string
   date?: Date
