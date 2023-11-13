@@ -71,6 +71,7 @@
     "pg": "8.11.3",
     "ripple-address-codec": "^4.1.1",
     "ws": "^8.13.0",
+    "xrpl": "^2.13.0",
     "xrpl-validator-domains": "0.1.0"
   },
   "directories": {
