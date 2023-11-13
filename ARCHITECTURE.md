@@ -3,7 +3,6 @@
 <!-- TODO: this page should probably be fleshed out into a documentation website of some sort -->
 
 There are 3 folders in `src`, corresponding to the 3 processes that the VHS runs:
-
 * `api` manages the VHS API endpoints.
 * `connection-manager` manages the connections to rippled, and listens to validation and manifest streams.
 * `crawler` finds validators and overlay nodes.
@@ -54,6 +53,7 @@ This table keeps track of the nodes in the network, which it finds via crawling 
 | `load_factor_server` |The load factor of the server (used for fees).                                       |
 | `version`            |The version of rippled software that the node is running.                            |
 
+
 ### `daily_agreement`
 
 This table keeps track of how reliable validators have been, on a 24-hour level.
@@ -64,6 +64,7 @@ This table keeps track of how reliable validators have been, on a 24-hour level.
 | `day`                |The day that the data is for.          |
 | `agreement`          |Data about the reliability of the node.|
 
+
 ### `hourly_agreement`
 
 This table keeps track of how reliable validators have been, on an hourly level.
@@ -73,6 +74,7 @@ This table keeps track of how reliable validators have been, on an hourly level.
 | `master_key`         |The master key of the node.            |
 | `start`              |The time that the data starts.         |
 | `agreement`          |Data about the reliability of the node.|
+
 
 ### `location`
 
@@ -91,6 +93,7 @@ This table keeps track of the physical location of all of the nodes that the net
 | `postal_code`        |The postal code where the node is located.               |
 | `region_code`        |The region code where the node is located.               |
 
+
 ### `manifests`
 
 This table keeps track of the manifests of the validators.
@@ -106,6 +109,7 @@ This table keeps track of the manifests of the validators.
 | `revoked`            |Whether the manifest has been revoked.                      |
 | `seq`                |The sequence number of this manifest.                       |
 
+
 ### `amendments_enabled`
 
 This table keeps track of the amendments enabled on each network.
@@ -118,6 +122,7 @@ This table keeps track of the amendments enabled on each network.
 | `tx_hash`            |The transaction hash where the amendment has been enabled.|
 | `date`               |The date and time when the amendment has been enabled.    |
 
+
 ### `amendments_info`
 
 This table keeps track of the general information of all known amendments.
@@ -128,6 +133,7 @@ This table keeps track of the general information of all known amendments.
 | `name`               |The name of the amendment.                                  |
 | `rippled_version`    |The rippled version when the amendment is first enabled     |
 | `deprecated`         |Whether the amendment has been deprecated/retired           |
+
 
 ### `ballot`
 
