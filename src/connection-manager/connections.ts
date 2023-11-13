@@ -18,7 +18,7 @@ import {
   handleWsMessageSubscribeTypes,
   handleWsMessageTxEnableAmendments,
   subscribe,
-} from './utils'
+} from './wsHandling'
 
 const log = logger({ name: 'connections' })
 const ports = [443, 80, 6005, 6006, 51233, 51234]
