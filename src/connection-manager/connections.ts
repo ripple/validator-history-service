@@ -1,5 +1,6 @@
 /* eslint-disable max-lines-per-function  -- Disable for this file with complex websocket rules. */
 import WebSocket from 'ws'
+import { LedgerEntryResponse, TxResponse } from 'xrpl'
 
 import {
   query,
@@ -8,10 +9,11 @@ import {
   getNetworks,
 } from '../shared/database'
 import {
-  Fee,
+  FeeVote,
   LedgerEnableAmendmentResponse,
   LedgerEntryAmendmentsResponse,
   TxEnableAmendmentResponse,
+  LedgerResponseCorrected,
 } from '../shared/types'
 import logger from '../shared/utils/logger'
 
@@ -22,13 +24,13 @@ import {
   handleWsMessageSubscribeTypes,
   handleWsMessageTxEnableAmendments,
   subscribe,
-} from './utils'
+} from './wsHandling'
 
 const log = logger({ name: 'connections' })
 const ports = [443, 80, 6005, 6006, 51233, 51234]
 const protocols = ['wss://', 'ws://']
 const connections: Map<string, WebSocket> = new Map()
-const network_fee: Map<string, Fee> = new Map()
+const networkFee: Map<string, FeeVote> = new Map()
 const CM_INTERVAL = 60 * 60 * 1000
 const WS_TIMEOUT = 10000
 const REPORTING_INTERVAL = 15 * 60 * 1000
@@ -59,6 +61,12 @@ async function setHandlers(
       void saveNodeWsUrl(ws.url, true)
       connections.set(ip, ws)
       subscribe(ws)
+
+      // Use LedgerEntry to look for amendments that has already been enabled on a network when connections
+      // first start, or when a new network is added. This only need to be ran only once on the initial node
+      // on the network table per network, as new enabled amendments afterwards will be added when there's a
+      // EnableAmendment tx happens, which would provide more information compared to ledger_entry (please
+      // look at handleWsMessageLedgerEnableAmendments function for more details).
       if (isInitialNode) {
         getAmendmentLedgerEntry(ws)
       }
@@ -93,7 +101,7 @@ async function setHandlers(
           data,
           ledger_hashes,
           networks,
-          network_fee,
+          networkFee,
         )
       }
     })

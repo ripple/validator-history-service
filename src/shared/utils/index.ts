@@ -158,16 +158,6 @@ export function overlaps(
 }
 
 /**
- * Convert a ripple timestamp to a unix timestamp.
- *
- * @param rpepoch - (seconds since 1/1/2000 GMT).
- * @returns Milliseconds since unix epoch.
- */
-export function rippleTimeToUnixTime(rpepoch: number): number {
-  return (rpepoch + RIPPLE_EPOCH_DIFF) * 1000
-}
-
-/**
  * Determines whether the source rippled version is not later than the target rippled version.
  * Example usage: isNotLaterRippledVersion('1.10.0', '1.11.0') returns true.
  *                IsNotLaterRippledVersion('1.10.0', '1.10.0-b1') returns false.

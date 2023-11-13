@@ -1,5 +1,6 @@
 import logger from '../utils/logger'
 
+import fetchAmendmentInfo from './amendments'
 import networks from './networks'
 import { db, query } from './utils'
 
@@ -22,6 +23,7 @@ export default async function setupTables(): Promise<void> {
   await setupAmendmentsEnabledTable()
   await setupAmendmentsInfoTable()
   await setupBallotTable()
+  await fetchAmendmentInfo()
 }
 
 async function setupCrawlsTable(): Promise<void> {
@@ -229,11 +231,6 @@ async function setupAmendmentsInfoTable(): Promise<void> {
       table.string('rippled_version')
       table.boolean('deprecated')
       table.primary(['id'])
-    })
-  }
-  if (!(await db().schema.hasColumn('amendments_info', 'deprecated'))) {
-    await db().schema.alterTable('amendments_info', (table) => {
-      table.boolean('deprecated').after('rippled_version')
     })
   }
 }

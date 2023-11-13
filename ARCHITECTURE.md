@@ -110,37 +110,52 @@ This table keeps track of the manifests of the validators.
 
 This table keeps track of the amendments enabled on each network.
 
-| Key            | Definition                                                 |
-| -------------- | ---------------------------------------------------------- |
-| `amendment_id` | The amendment id.                                          |
-| `networks`     | The network where the amendment has been enabled.          |
-| `ledger_index` | The ledger where the amendment has been enabled.           |
-| `tx_hash`      | The transaction hash where the amendment has been enabled. |
-| `date`         | The datetime when the amendment has been enabled.          |
+| Key                  | Definition                                               |
+|----------------------|----------------------------------------------------------|
+| `amendment_id`       |The amendment id.                                         |
+| `networks`           |The network(s) where the amendment has been enabled.         |
+| `ledger_index`       |The ledger where the amendment has been enabled.          |
+| `tx_hash`            |The transaction hash where the amendment has been enabled.|
+| `date`               |The date and time when the amendment has been enabled.    |
 
 ### `amendments_info`
 
 This table keeps track of the general information of all known amendments.
 
-| Key               | Definition                                              |
-| ----------------- | ------------------------------------------------------- |
-| `id`              | The amendment id.                                       |
-| `name`            | The name of the amendment.                              |
-| `rippled_version` | The rippled version when the amendment is first enabled |
-| `deprecated`      | Whether the amendment has been deprecated or retired    |
+| Key                  | Definition                                                 |
+|----------------------|------------------------------------------------------------|
+| `id`                 |The amendment id.                                           |
+| `name`               |The name of the amendment.                                  |
+| `rippled_version`    |The rippled version when the amendment is first enabled     |
+| `deprecated`         |Whether the amendment has been deprecated/retired           |
 
 ### `ballot`
 
 This table keeps track of the most current voting data for the validators.
 
-| Key            | Definition                                                            |
-| -------------- | --------------------------------------------------------------------- |
-| `signing_key`  | The signing key of the validator.                                     |
-| `ledger_index` | The most recent ledger index where voting data was retrieved.         |
-| `amendments`   | The amendments this validator wants to be added to the protocol.      |
-| `base_fee`     | The unscaled transaction cost this validator wants to set.            |
-| `reserve_base` | The minimum reserve requirement this validator wants to set.          |
-| `reserve_inc`  | The increment in the reserve requirement this validator wants to set. |
+| Key                  | Definition                                                          |
+|----------------------|---------------------------------------------------------------------|
+| `signing_key`        |The signing key of the validator.                                    |
+| `ledger_index`       |The most recent ledger index where voting data was retrieved.        |
+| `amendments`         |The amendments this validator wants to be added to the protocol.     |
+| `base_fee`           |The unscaled transaction cost this validator wants to set.           |
+| `reserve_base`       |The minimum reserve requirement this validator wants to set.         |
+| `reserve_inc`        |The increment in the reserve requirement this validator wants to set.|
+
+
+### `ballot`
+
+This table keeps track of the most current voting data for the validators.
+
+| Key                  | Definition                                                        |
+|----------------------|-------------------------------------------------------------------|
+| `signing_key`        |The signing key of the validator.                                  |
+| `ledger_index`       |The most recent ledger index where voting data was retrieved.      |
+| `amendments`         |The amendments this validator wants to be added to the protocol.   |
+| `base_fee`           |The unscaled transaction cost this validator wants to set.         |
+| `reserve_base`       |The minimum reserve requirement this validator wants to set.       |
+| `reserve_inc`        |The increment in the reserve requirement this validator wants to set.|
+
 
 ### `validators`
 

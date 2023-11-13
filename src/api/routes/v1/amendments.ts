@@ -19,7 +19,7 @@ interface AmendmentsVoteResponse {
   count: number
   amendments: Array<AmendmentsEnabled | AmendmentInVoting>
 }
-interface AmendmentInfoResponse {
+interface SingleAmendmentInfoResponse {
   result: 'success' | 'error'
   amendment: AmendmentsInfo
 }
@@ -53,7 +53,7 @@ interface AmendmentInVotingMap {
       ledger_index: string
       unl: boolean
     }>
-    deprecated?: boolean
+    deprecated: boolean
   }
 }
 
@@ -304,6 +304,7 @@ async function cacheAmendmentsVote(): Promise<void> {
 }
 
 void cacheAmendmentsVote()
+void cacheAmendmentsInfo()
 
 /**
  * Handles Amendments Info request.
@@ -326,8 +327,10 @@ export async function handleAmendmentsInfo(
       amendments,
     }
     res.send(response)
-  } catch {
+    // eslint-disable-next-line @typescript-eslint/no-explicit-any -- TODO: clean up
+  } catch (err: any) {
     res.send({ result: 'error', message: 'internal error' })
+    log.error(err.toString())
   }
 }
 
@@ -353,13 +356,24 @@ export async function handleAmendmentInfo(
       res.send({ result: 'error', message: "incorrect amendment's id/name" })
       return
     }
-    const response: AmendmentInfoResponse = {
+    if (amendments.length > 1) {
+      res.send({
+        result: 'error',
+        message:
+          "there's a duplicate amendment's id/name on the server, please try again later",
+      })
+      log.error("there's a duplicate amendment's id/name on the server", param)
+      return
+    }
+    const response: SingleAmendmentInfoResponse = {
       result: 'success',
       amendment: amendments[0],
     }
     res.send(response)
-  } catch {
+    // eslint-disable-next-line @typescript-eslint/no-explicit-any -- TODO: clean up
+  } catch (err: any) {
     res.send({ result: 'error', message: 'internal error' })
+    log.error(err.toString())
   }
 }
 

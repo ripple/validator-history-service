@@ -194,10 +194,10 @@ class Agreement {
         last_ledger_time: new Date(),
       }
 
-      let server_version = null
+      let serverVersion = null
 
       if (isPreceedingFlagLedger(validation.ledger_index)) {
-        server_version = decodeServerVersion(validation.server_version)
+        serverVersion = decodeServerVersion(validation.server_version)
         const ballot: Ballot = {
           signing_key,
           ledger_index: Number(validation.ledger_index),
@@ -215,8 +215,8 @@ class Agreement {
         validator.networks = validation.networks
       }
 
-      if (server_version) {
-        validator.server_version = server_version
+      if (serverVersion) {
+        validator.server_version = serverVersion
       }
 
       chains.updateLedgers(validation)

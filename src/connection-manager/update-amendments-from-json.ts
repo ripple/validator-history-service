@@ -14,7 +14,6 @@ interface AmendmentEnabledJson {
   networks: string
   amendments: Array<{
     id: string
-    networks: string
     ledger_index: number
     tx_hash: string
     date: number

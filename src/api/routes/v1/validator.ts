@@ -47,7 +47,7 @@ interface ValidatorResponse {
   } | null
   partial: boolean
   unl: boolean
-  amendments?: string | Array<{ id: string; name: string }>
+  amendments?: Array<{ id: string; name: string }>
   base_fee?: number
   reserve_base?: number
   reserve_inc?: number
@@ -126,7 +126,7 @@ async function getValidators(): Promise<ValidatorResponse[]> {
     ])
     .where('validators.revoked', '=', 'false')
     .orderBy(['validators.master_key', 'validators.signing_key'])
-    .then((res: dbResponse[]) => res.map(formatResponse))
+    .then(async (res: dbResponse[]) => Promise.all(res.map(formatResponse)))
 }
 
 /**
@@ -150,11 +150,13 @@ async function cacheValidators(): Promise<void> {
  * @param resp - Database response.
  * @returns Validator in correct response format.
  */
-function formatResponse(resp: dbResponse): ValidatorResponse {
-  const { agreement_1hour, agreement_24hour, agreement_30day } = resp
+async function formatResponse(resp: dbResponse): Promise<ValidatorResponse> {
+  const { agreement_1hour, agreement_24hour, agreement_30day, amendments } =
+    resp
   let hour1_score = null
   let hour24_score = null
   let day30_score = null
+  let amendments_list
 
   if (agreement_1hour !== null) {
     hour1_score = formatAgreementScore(agreement_1hour)
@@ -166,6 +168,10 @@ function formatResponse(resp: dbResponse): ValidatorResponse {
 
   if (agreement_30day !== null) {
     day30_score = formatAgreementScore(agreement_30day)
+  }
+
+  if (amendments) {
+    amendments_list = await formatAmendments(amendments)
   }
 
   return {
@@ -183,7 +189,7 @@ function formatResponse(resp: dbResponse): ValidatorResponse {
     partial: resp.partial,
     unl: resp.unl ?? false,
     revoked: resp.revoked,
-    amendments: resp.amendments,
+    amendments: amendments_list,
     base_fee: resp.base_fee,
     reserve_base: resp.reserve_base,
     reserve_inc: resp.reserve_inc,

@@ -1,5 +1,13 @@
 /* eslint-disable max-lines -- Disable for this file containing many types. */
 import type { TransactionMetadata } from 'xrpl'
+import {
+  LedgerBinary,
+  LedgerResponse,
+  PseudoTransaction,
+  Transaction,
+  TransactionMetadata,
+} from 'xrpl'
+import { Ledger as LedgerXRPL } from 'xrpl/dist/npm/models/ledger'
 import { Manifest, StreamManifest } from 'xrpl-validator-domains'
 
 interface Chain {
@@ -114,12 +122,31 @@ interface TxEnableAmendmentResponse {
   type: string
 }
 
+// TODO: use xrpl LedgerResponse type once hash has been added to transactions in the response.
+interface LedgerCorrected extends LedgerXRPL {
+  transactions: Array<
+    (Transaction | PseudoTransaction) & {
+      metaData?: TransactionMetadata
+      hash: string
+    }
+  >
+}
+
+interface LedgerResponseCorrected extends LedgerResponse {
+  result: {
+    ledger: LedgerCorrected | LedgerBinary
+  } & Pick<
+    LedgerResponse['result'],
+    Exclude<keyof LedgerResponse['result'], 'ledger'>
+  >
+}
+
 interface AmendmentEnabled {
   amendment_id: string
-  networks: string | undefined
-  ledger_index: number
+  networks?: string
+  ledger_index?: number
   tx_hash: string
-  date: Date
+  date?: Date
 }
 
 interface Node {
@@ -180,7 +207,7 @@ interface ValidationRaw {
   base_fee?: number
   reserve_base?: number
   reserve_inc?: number
-  ledger_fee?: Fee
+  ledger_fee?: FeeVote
 
   // The validation_public_key is the same as the signing_key in StreamManifest
 }
@@ -200,7 +227,7 @@ interface Ballot {
   reserve_inc?: number
 }
 
-interface Fee {
+interface FeeVote {
   fee_base: number
   reserve_base: number
   reserve_inc: number
@@ -291,7 +318,7 @@ interface AmendmentsInfo {
   id: string
   name: string
   rippled_version?: string
-  deprecated?: boolean
+  deprecated: boolean
 }
 
 export {
@@ -307,7 +334,7 @@ export {
   DatabaseNetwork,
   HourlyAgreement,
   Ballot,
-  Fee,
+  FeeVote,
   DatabaseValidator,
   Validator,
   DailyAgreement,
@@ -320,6 +347,7 @@ export {
   LedgerEntryAmendmentsResponse,
   LedgerEnableAmendmentResponse,
   TxEnableAmendmentResponse,
+  LedgerResponseCorrected,
   AmendmentEnabled,
   AmendmentsInfo,
 }
