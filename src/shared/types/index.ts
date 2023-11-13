@@ -1,5 +1,4 @@
 /* eslint-disable max-lines -- Disable for this file containing many types. */
-import type { TransactionMetadata } from 'xrpl'
 import {
   LedgerBinary,
   LedgerResponse,

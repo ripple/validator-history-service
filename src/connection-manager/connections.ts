@@ -8,13 +8,7 @@ import {
   clearConnectionsDb,
   getNetworks,
 } from '../shared/database'
-import {
-  FeeVote,
-  LedgerEnableAmendmentResponse,
-  LedgerEntryAmendmentsResponse,
-  TxEnableAmendmentResponse,
-  LedgerResponseCorrected,
-} from '../shared/types'
+import { FeeVote, LedgerResponseCorrected } from '../shared/types'
 import logger from '../shared/utils/logger'
 
 import {
@@ -83,19 +77,16 @@ async function setHandlers(
       if (data.result?.node) {
         void handleWsMessageLedgerEntryAmendments(
           ws,
-          data as LedgerEntryAmendmentsResponse,
+          data as LedgerEntryResponse,
           networks,
         )
       } else if (data.result?.ledger) {
         void handleWsMessageLedgerEnableAmendments(
           ws,
-          data as LedgerEnableAmendmentResponse,
+          data as LedgerResponseCorrected,
         )
       } else if (data.result?.Amendment) {
-        void handleWsMessageTxEnableAmendments(
-          data as TxEnableAmendmentResponse,
-          networks,
-        )
+        void handleWsMessageTxEnableAmendments(data as TxResponse, networks)
       } else {
         void handleWsMessageSubscribeTypes(
           data,

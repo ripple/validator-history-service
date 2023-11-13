@@ -1,4 +1,5 @@
 import WebSocket from 'ws'
+import { rippleTimeToUnixTime } from 'xrpl'
 
 import {
   query,
@@ -8,7 +9,7 @@ import {
 import {
   AmendmentEnabled,
   DatabaseValidator,
-  Fee,
+  FeeVote,
   LedgerEnableAmendmentResponse,
   LedgerEntryAmendmentsResponse,
   StreamLedger,
@@ -16,7 +17,6 @@ import {
   TxEnableAmendmentResponse,
   ValidationRaw,
 } from '../shared/types'
-import { rippleTimeToUnixTime } from '../shared/utils'
 
 import agreement from './agreement'
 import { handleManifest } from './manifests'
@@ -117,7 +117,7 @@ export async function handleWsMessageSubscribeTypes(
     | LedgerEntryAmendmentsResponse,
   ledger_hashes: string[],
   networks: string | undefined,
-  network_fee: Map<string, Fee>,
+  network_fee: Map<string, FeeVote>,
 ): Promise<void> {
   if (data.type === 'validationReceived') {
     const validationData = data as ValidationRaw
@@ -146,7 +146,7 @@ export async function handleWsMessageSubscribeTypes(
     const current_ledger = data as StreamLedger
     ledger_hashes.push(current_ledger.ledger_hash)
     if (networks) {
-      const fee: Fee = {
+      const fee: FeeVote = {
         fee_base: current_ledger.fee_base,
         reserve_base: current_ledger.reserve_base,
         reserve_inc: current_ledger.reserve_inc,

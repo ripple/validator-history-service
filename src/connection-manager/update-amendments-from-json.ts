@@ -1,8 +1,9 @@
 import 'dotenv/config'
 
+import { rippleTimeToUnixTime } from 'xrpl'
+
 import { query } from '../shared/database/utils'
 import { AmendmentEnabled, AmendmentsInfo } from '../shared/types'
-import { rippleTimeToUnixTime } from '../shared/utils'
 import logger from '../shared/utils/logger'
 
 import amendmentEnabledData from './data/amendments_enabled.json'
