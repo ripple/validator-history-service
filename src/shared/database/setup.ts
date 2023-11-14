@@ -2,6 +2,7 @@ import logger from '../utils/logger'
 
 import fetchAmendmentInfo from './amendments'
 import networks from './networks'
+import addAmendmentsDataFromJSON from './update-amendments-from-json'
 import { db, query } from './utils'
 
 const log = logger({ name: 'database' })
@@ -24,6 +25,7 @@ export default async function setupTables(): Promise<void> {
   await setupAmendmentsInfoTable()
   await setupBallotTable()
   await fetchAmendmentInfo()
+  await addAmendmentsDataFromJSON()
 }
 
 async function setupCrawlsTable(): Promise<void> {
