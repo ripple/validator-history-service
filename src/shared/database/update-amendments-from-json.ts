@@ -1,5 +1,3 @@
-import 'dotenv/config'
-
 import { rippleTimeToUnixTime } from 'xrpl'
 
 import amendmentEnabledData from '../data/amendments_enabled.json'

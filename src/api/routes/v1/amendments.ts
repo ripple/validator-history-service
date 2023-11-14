@@ -19,6 +19,7 @@ interface AmendmentsVoteResponse {
   count: number
   amendments: Array<AmendmentsEnabled | AmendmentInVoting>
 }
+
 interface SingleAmendmentInfoResponse {
   result: 'success' | 'error'
   amendment: AmendmentsInfo
@@ -29,31 +30,27 @@ interface CacheInfo {
   time: number
 }
 
-interface AmendmentInVoting extends AmendmentsInfo {
+interface VotingValidators {
+  signing_key: string
+  ledger_index: string
+  unl: boolean
+}
+
+interface AmendmentsInfoExtended extends AmendmentsInfo {
   threshold: string
   consensus: string
+}
+
+interface AmendmentInVoting extends AmendmentsInfoExtended {
   voted: {
     count: number
-    validators: Array<{
-      signing_key: string
-      ledger_index: string
-      unl: boolean
-    }>
+    validators: VotingValidators[]
   }
 }
 
 interface AmendmentInVotingMap {
-  [key: string]: {
-    name: string
-    rippled_version?: string
-    threshold: string
-    consensus: string
-    validators: Array<{
-      signing_key: string
-      ledger_index: string
-      unl: boolean
-    }>
-    deprecated: boolean
+  [key: string]: Omit<AmendmentsInfoExtended, 'id'> & {
+    validators: VotingValidators[]
   }
 }
 
