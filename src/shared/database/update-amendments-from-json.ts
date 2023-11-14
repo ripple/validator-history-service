@@ -2,12 +2,12 @@ import 'dotenv/config'
 
 import { rippleTimeToUnixTime } from 'xrpl'
 
-import { query } from './utils'
+import amendmentEnabledData from '../data/amendments_enabled.json'
+import amendmentInfoData from '../data/amendments_info.json'
 import { AmendmentEnabled, AmendmentsInfo } from '../types'
 import logger from '../utils/logger'
 
-import amendmentEnabledData from '../data/amendments_enabled.json'
-import amendmentInfoData from '../data/amendments_info.json'
+import { query } from './utils'
 
 const log = logger({ name: 'database-agreement' })
 

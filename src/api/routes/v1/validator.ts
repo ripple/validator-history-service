@@ -1,3 +1,4 @@
+/* eslint-disable max-lines -- Disabled for this file. */
 import { Request, Response } from 'express'
 
 import { query } from '../../../shared/database'
