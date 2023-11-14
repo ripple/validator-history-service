@@ -1,4 +1,3 @@
-/* eslint-disable max-lines -- Disable for this file containing many types. */
 import {
   LedgerBinary,
   LedgerResponse,
@@ -35,89 +34,6 @@ interface StreamLedger {
   reserve_base: number
   reserve_inc: number
   txn_id: number
-  type: string
-}
-
-interface LedgerEntryWarning {
-  id: number
-  message: string
-}
-
-interface LedgerEntryMajority {
-  Majority: {
-    Amendment: string
-    CloseTime: number
-  }
-}
-
-interface LedgerEntryAmendmentsResponse {
-  result: {
-    index: string
-    ledger_hash: string
-    ledger_index: number
-    node: {
-      Amendments: string[]
-      Flags: number
-      LedgerEntryType: string
-      Majorities: LedgerEntryMajority[]
-      index: string
-    }
-    validated: boolean
-    warnings: LedgerEntryWarning[]
-  }
-  status: string
-  type: string
-}
-
-// TODO: Use xrpl types dev-dependencies once EnableAmendment is added to Transaction model.
-interface LedgerEnableAmendmentResponse {
-  result: {
-    ledger: {
-      accepted: boolean
-      account_hash: string
-      close_flags: number
-      close_time: number
-      close_time_human: number
-      close_time_resolution: number
-      closed: boolean
-      hash: string
-      ledger_hash: string
-      ledger_index: string
-      parent_close_time: number
-      parent_hash: string
-      seqNum: string
-      totalCoins: string
-      total_coins: string
-      transaction_hash: string
-      // TODO: Use xrpl types dev-dependencies once EnableAmendment is added to Transaction model.
-      // eslint-disable-next-line @typescript-eslint/no-explicit-any -- Use any since we do not need to build Transaction model.
-      transactions: any[]
-    }
-    ledger_hash: string
-    ledger_index: number
-    validated: boolean
-  }
-  status: string
-  type: string
-}
-
-// TODO: Use xrpl types dev-dependencies once EnableAmendment is added to Transaction model.
-interface TxEnableAmendmentResponse {
-  result: {
-    Account: string
-    Amendment: string
-    Fee: string
-    LedgerSequence: string
-    Sequence: string
-    SigningPubKey: string
-    TransactionType: string
-    hash: string
-    meta: TransactionMetadata
-    validated: boolean
-    date: number
-    ledger_index: number
-  }
-  status: string
   type: string
 }
 
@@ -343,9 +259,6 @@ export {
   StreamLedger,
   Chain,
   ValidatorKeys,
-  LedgerEntryAmendmentsResponse,
-  LedgerEnableAmendmentResponse,
-  TxEnableAmendmentResponse,
   LedgerResponseCorrected,
   AmendmentEnabled,
   AmendmentsInfo,
