@@ -54,7 +54,7 @@ async function saveAmendmentsEnabled(
 }
 
 /**
- * Add amendments info data from Json file munually to the database.
+ * Add amendments info data from Json file manually to the database.
  *
  * @returns Void.
  */
@@ -68,7 +68,7 @@ async function addAmendmentsInfoFromJSON(): Promise<void> {
 }
 
 /**
- * Add enabled amendments data from Json file munually to the database.
+ * Add enabled amendments data from Json file manually to the database.
  *
  * @returns Void.
  */
