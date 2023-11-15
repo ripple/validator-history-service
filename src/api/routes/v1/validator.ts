@@ -1,9 +1,15 @@
+/* eslint-disable max-lines -- Disabled for this file. */
 import { Request, Response } from 'express'
 
 import { query } from '../../../shared/database'
 import logger from '../../../shared/utils/logger'
 
-import { formatAgreementScore, formatAmendments, getChains } from './utils'
+import {
+  CACHE_INTERVAL_MILLIS,
+  formatAgreementScore,
+  formatAmendments,
+  getChains,
+} from './utils'
 
 const log = logger({ name: 'api-validator' })
 
@@ -246,7 +252,7 @@ export async function handleValidator(
   res: Response,
 ): Promise<void> {
   try {
-    if (Date.now() - cache.time > 60 * 1000) {
+    if (Date.now() - cache.time > CACHE_INTERVAL_MILLIS) {
       await cacheValidators()
     }
 
@@ -262,6 +268,10 @@ export async function handleValidator(
     if (validator === undefined) {
       res.send({ result: 'error', message: 'validator not found' })
       return
+    }
+
+    if (validator.amendments && typeof validator.amendments === 'string') {
+      validator.amendments = await formatAmendments(validator.amendments)
     }
 
     res.send({ ...validator, result: 'success' })
@@ -281,7 +291,7 @@ export async function handleValidators(
   res: Response,
 ): Promise<void> {
   try {
-    if (Date.now() - cache.time > 60 * 1000) {
+    if (Date.now() - cache.time > CACHE_INTERVAL_MILLIS) {
       await cacheValidators()
     }
 

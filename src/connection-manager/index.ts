@@ -6,7 +6,6 @@ import { setupTables, getNetworks } from '../shared/database'
 import agreement from './agreement'
 import startConnections from './connections'
 import { doManifestJobs } from './manifests'
-import addAmendmentsDataFromJSON from './update-amendments-from-json'
 
 async function start(): Promise<void> {
   await setupTables()
@@ -20,7 +19,6 @@ async function start(): Promise<void> {
   }
   await Promise.all(promises)
   await startConnections()
-  await addAmendmentsDataFromJSON()
   await doManifestJobs()
   agreement.start()
 }

@@ -1,6 +1,7 @@
 import { getNetworks, query } from '../../../shared/database'
 import { AgreementScore } from '../../../shared/types'
 
+export const CACHE_INTERVAL_MILLIS = 60 * 1000
 /**
  * Formats agreement score for response.
  *
@@ -37,13 +38,15 @@ export async function formatAmendments(
 ): Promise<Array<{ id: string; name: string }>> {
   const res: Array<{ id: string; name: string }> = []
   const amendmentsList = amendmentsDb.split(',')
-  amendmentsList.forEach(async (amendment) => {
-    const info = await query('amendments_info')
-      .select('id', 'name')
-      .where('id', amendment)
-      .first()
-    res.push(info)
-  })
+  await Promise.all(
+    amendmentsList.map(async (amendment) => {
+      const info = await query('amendments_info')
+        .select('id', 'name')
+        .where('id', amendment)
+        .first()
+      res.push(info)
+    }),
+  )
   return res
 }
 

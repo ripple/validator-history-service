@@ -4,6 +4,8 @@ import { query } from '../../../shared/database'
 import { AgreementScore } from '../../../shared/types'
 import logger from '../../../shared/utils/logger'
 
+import { CACHE_INTERVAL_MILLIS } from './utils'
+
 const log = logger({ name: 'api-daily-report' })
 
 interface DailyScoreResponse {
@@ -115,7 +117,7 @@ export default async function handleDailyScores(
   res: Response,
 ): Promise<void> {
   try {
-    if (Date.now() - cache.time > 60 * 1000) {
+    if (Date.now() - cache.time > CACHE_INTERVAL_MILLIS) {
       await cacheScores()
     }
 
