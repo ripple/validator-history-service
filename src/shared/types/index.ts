@@ -1,3 +1,11 @@
+import {
+  LedgerBinary,
+  LedgerResponse,
+  PseudoTransaction,
+  Transaction,
+  TransactionMetadata,
+} from 'xrpl'
+import { Ledger as LedgerXRPL } from 'xrpl/dist/npm/models/ledger'
 import { Manifest, StreamManifest } from 'xrpl-validator-domains'
 
 interface Chain {
@@ -27,6 +35,33 @@ interface StreamLedger {
   reserve_inc: number
   txn_id: number
   type: string
+}
+
+// TODO: use xrpl LedgerResponse type once hash has been added to transactions in the response.
+interface LedgerCorrected extends LedgerXRPL {
+  transactions: Array<
+    (Transaction | PseudoTransaction) & {
+      metaData?: TransactionMetadata
+      hash: string
+    }
+  >
+}
+
+interface LedgerResponseCorrected extends LedgerResponse {
+  result: {
+    ledger: LedgerCorrected | LedgerBinary
+  } & Pick<
+    LedgerResponse['result'],
+    Exclude<keyof LedgerResponse['result'], 'ledger'>
+  >
+}
+
+interface AmendmentEnabled {
+  amendment_id: string
+  networks?: string
+  ledger_index?: number
+  tx_hash: string
+  date?: Date
 }
 
 interface Node {
@@ -194,6 +229,13 @@ interface DailyAgreement {
   agreement: AgreementScore
 }
 
+interface AmendmentsInfo {
+  id: string
+  name: string
+  rippled_version?: string
+  deprecated: boolean
+}
+
 export {
   Node,
   Crawl,
@@ -217,4 +259,7 @@ export {
   StreamLedger,
   Chain,
   ValidatorKeys,
+  LedgerResponseCorrected,
+  AmendmentEnabled,
+  AmendmentsInfo,
 }

@@ -56,6 +56,27 @@ const info = {
       route: '/v1/network/validator_reports',
       example: 'https://data.xrpl.org/v1/network/validator_reports',
     },
+    {
+      action: 'Get Amendments General Information',
+      route: '/v1/network/amendments/info',
+      example: 'https://data.xrpl.org/v1/network/amendments/info',
+    },
+    {
+      action: 'Get Amendment General Information by Name or ID',
+      route: '/v1/network/amendment/info/{amendment}',
+      example: 'https://data.xrpl.org/v1/network/amendment/info/{amendment}',
+    },
+    {
+      action: 'Get Amendments Voting Information',
+      route: '/v1/network/amendments/vote/{network}',
+      example: 'https://data.xrpl.org/v1/network/amendments/vote/{network}',
+    },
+    {
+      action: 'Get Amendment Voting Information by Name or ID',
+      route: '/v1/network/amendment/vote/{network}/{identfier}',
+      example:
+        'https://data.xrpl.org/v1/network/amendments/vote/{network}/{identifier}',
+    },
   ],
 }
 

@@ -155,3 +155,78 @@ export function overlaps(
   }
   return false
 }
+
+/**
+ * Determines whether the source rippled version is not later than the target rippled version.
+ * Example usage: isNotLaterRippledVersion('1.10.0', '1.11.0') returns true.
+ *                IsNotLaterRippledVersion('1.10.0', '1.10.0-b1') returns false.
+ *
+ * @param source -- The source rippled version.
+ * @param target -- The target rippled version.
+ * @returns True if source is earlier than target, false otherwise.
+ */
+// eslint-disable-next-line max-statements, max-lines-per-function, complexity -- Disabled for this util function.
+export function isEarlierVersion(
+  source: string | null | undefined,
+  target: string | null | undefined,
+): boolean {
+  if (source === target) {
+    return false
+  }
+  if (source === 'TBD' || !source) {
+    return false
+  }
+  if (target === 'TBD' || !target) {
+    return true
+  }
+  const sourceDecomp = source.split('.')
+  const targetDecomp = target.split('.')
+  const sourceMajor = parseInt(sourceDecomp[0], 10)
+  const sourceMinor = parseInt(sourceDecomp[1], 10)
+  const targetMajor = parseInt(targetDecomp[0], 10)
+  const targetMinor = parseInt(targetDecomp[1], 10)
+  // Compare major version
+  if (sourceMajor !== targetMajor) {
+    return sourceMajor < targetMajor
+  }
+  // Compare minor version
+  if (sourceMinor !== targetMinor) {
+    return sourceMinor < targetMinor
+  }
+  const sourcePatch = sourceDecomp[2].split('-')
+  const targetPatch = targetDecomp[2].split('-')
+
+  const sourcePatchVersion = parseInt(sourcePatch[0], 10)
+  const targetPatchVersion = parseInt(targetPatch[0], 10)
+
+  // Compare patch version
+  if (sourcePatchVersion !== targetPatchVersion) {
+    return sourcePatchVersion < targetPatchVersion
+  }
+
+  // Compare release version
+  if (sourcePatch.length !== targetPatch.length) {
+    return sourcePatch.length > targetPatch.length
+  }
+
+  if (sourcePatch.length === 2) {
+    // Compare different release types
+    if (!sourcePatch[1][0].startsWith(targetPatch[1][0])) {
+      return sourcePatch[1] < targetPatch[1]
+    }
+    // Compare beta version
+    if (sourcePatch[1].startsWith('b')) {
+      return (
+        parseInt(sourcePatch[1].slice(1), 10) <
+        parseInt(targetPatch[1].slice(1), 10)
+      )
+    }
+    // Compare rc version
+    return (
+      parseInt(sourcePatch[1].slice(2), 10) <
+      parseInt(targetPatch[1].slice(2), 10)
+    )
+  }
+
+  return false
+}

@@ -1,6 +1,8 @@
 import logger from '../utils/logger'
 
+import fetchAmendmentInfo from './amendments'
 import networks from './networks'
+import addAmendmentsDataFromJSON from './update-amendments-from-json'
 import { db, query } from './utils'
 
 const log = logger({ name: 'database' })
@@ -19,7 +21,11 @@ export default async function setupTables(): Promise<void> {
   await setupHourlyAgreementTable()
   await setupDailyAgreementTable()
   await setupNetworksTable()
+  await setupAmendmentsEnabledTable()
+  await setupAmendmentsInfoTable()
   await setupBallotTable()
+  await fetchAmendmentInfo()
+  await addAmendmentsDataFromJSON()
 }
 
 async function setupCrawlsTable(): Promise<void> {
@@ -201,6 +207,33 @@ async function setupNetworksTable(): Promise<void> {
       .del()
       .where('id', '=', 'nft-dev')
       .catch((err: Error) => log.error(err.message))
+  }
+}
+
+async function setupAmendmentsEnabledTable(): Promise<void> {
+  const hasAmendmentsEnabled = await db().schema.hasTable('amendments_enabled')
+  if (!hasAmendmentsEnabled) {
+    await db().schema.createTable('amendments_enabled', (table) => {
+      table.string('amendment_id')
+      table.string('networks')
+      table.integer('ledger_index')
+      table.string('tx_hash')
+      table.dateTime('date')
+      table.primary(['amendment_id', 'networks'])
+    })
+  }
+}
+
+async function setupAmendmentsInfoTable(): Promise<void> {
+  const hasAmendmentsInfo = await db().schema.hasTable('amendments_info')
+  if (!hasAmendmentsInfo) {
+    await db().schema.createTable('amendments_info', (table) => {
+      table.string('id')
+      table.string('name')
+      table.string('rippled_version')
+      table.boolean('deprecated')
+      table.primary(['id'])
+    })
   }
 }
 

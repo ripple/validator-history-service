@@ -1,9 +1,15 @@
+/* eslint-disable max-lines -- Disabled for this file. */
 import { Request, Response } from 'express'
 
 import { query } from '../../../shared/database'
 import logger from '../../../shared/utils/logger'
 
-import { formatAgreementScore, getChains } from './utils'
+import {
+  CACHE_INTERVAL_MILLIS,
+  formatAgreementScore,
+  formatAmendments,
+  getChains,
+} from './utils'
 
 const log = logger({ name: 'api-validator' })
 
@@ -42,6 +48,10 @@ interface ValidatorResponse {
   } | null
   partial: boolean
   unl: boolean
+  amendments?: Array<{ id: string; name: string }>
+  base_fee?: number
+  reserve_base?: number
+  reserve_inc?: number
 }
 
 interface ValidatorsResponse {
@@ -76,6 +86,10 @@ interface dbResponse {
   master_key?: string
   signing_key: string
   revoked?: boolean
+  amendments?: string
+  base_fee?: number
+  reserve_base?: number
+  reserve_inc?: number
 }
 
 const cache: Cache = {
@@ -90,25 +104,30 @@ const cache: Cache = {
  */
 async function getValidators(): Promise<ValidatorResponse[]> {
   return query('validators')
+    .join('ballot', 'validators.signing_key', 'ballot.signing_key')
     .select([
-      'partial',
-      'unl',
-      'agreement_1hour',
-      'agreement_24hour',
-      'agreement_30day',
-      'current_index',
-      'domain',
-      'chain',
-      'networks',
-      'server_version',
-      'master_key',
-      'signing_key',
-      'master_key',
-      'revoked',
+      'validators.partial',
+      'validators.unl',
+      'validators.agreement_1hour',
+      'validators.agreement_24hour',
+      'validators.agreement_30day',
+      'validators.current_index',
+      'validators.domain',
+      'validators.chain',
+      'validators.networks',
+      'validators.server_version',
+      'validators.master_key',
+      'validators.signing_key',
+      'validators.master_key',
+      'validators.revoked',
+      'ballot.amendments',
+      'ballot.base_fee',
+      'ballot.reserve_base',
+      'ballot.reserve_inc',
     ])
-    .where('revoked', '=', 'false')
-    .orderBy(['master_key', 'signing_key'])
-    .then((res: dbResponse[]) => res.map(formatResponse))
+    .where('validators.revoked', '=', 'false')
+    .orderBy(['validators.master_key', 'validators.signing_key'])
+    .then(async (res: dbResponse[]) => Promise.all(res.map(formatResponse)))
 }
 
 /**
@@ -132,11 +151,13 @@ async function cacheValidators(): Promise<void> {
  * @param resp - Database response.
  * @returns Validator in correct response format.
  */
-function formatResponse(resp: dbResponse): ValidatorResponse {
-  const { agreement_1hour, agreement_24hour, agreement_30day } = resp
+async function formatResponse(resp: dbResponse): Promise<ValidatorResponse> {
+  const { agreement_1hour, agreement_24hour, agreement_30day, amendments } =
+    resp
   let hour1_score = null
   let hour24_score = null
   let day30_score = null
+  let amendments_list
 
   if (agreement_1hour !== null) {
     hour1_score = formatAgreementScore(agreement_1hour)
@@ -148,6 +169,10 @@ function formatResponse(resp: dbResponse): ValidatorResponse {
 
   if (agreement_30day !== null) {
     day30_score = formatAgreementScore(agreement_30day)
+  }
+
+  if (amendments) {
+    amendments_list = await formatAmendments(amendments)
   }
 
   return {
@@ -165,6 +190,10 @@ function formatResponse(resp: dbResponse): ValidatorResponse {
     partial: resp.partial,
     unl: resp.unl ?? false,
     revoked: resp.revoked,
+    amendments: amendments_list,
+    base_fee: resp.base_fee,
+    reserve_base: resp.reserve_base,
+    reserve_inc: resp.reserve_inc,
   }
 }
 
@@ -178,20 +207,26 @@ async function findInDatabase(
   public_key: string,
 ): Promise<ValidatorResponse | undefined> {
   const result: dbResponse[] = await query('validators')
+    .join('ballot', 'validators.signing_key', 'ballot.signing_key')
     .select([
-      'partial',
-      'unl',
-      'agreement_1hour',
-      'agreement_24hour',
-      'agreement_30day',
-      'current_index',
-      'domain',
-      'chain',
-      'server_version',
-      'networks',
-      'master_key',
-      'signing_key',
-      'master_key',
+      'validators.partial',
+      'validators.unl',
+      'validators.agreement_1hour',
+      'validators.agreement_24hour',
+      'validators.agreement_30day',
+      'validators.current_index',
+      'validators.domain',
+      'validators.chain',
+      'validators.networks',
+      'validators.server_version',
+      'validators.master_key',
+      'validators.signing_key',
+      'validators.master_key',
+      'validators.revoked',
+      'ballot.amendments',
+      'ballot.base_fee',
+      'ballot.reserve_base',
+      'ballot.reserve_inc',
     ])
     .where({ master_key: public_key })
     .orWhere({ signing_key: public_key })
@@ -217,7 +252,7 @@ export async function handleValidator(
   res: Response,
 ): Promise<void> {
   try {
-    if (Date.now() - cache.time > 60 * 1000) {
+    if (Date.now() - cache.time > CACHE_INTERVAL_MILLIS) {
       await cacheValidators()
     }
 
@@ -233,6 +268,10 @@ export async function handleValidator(
     if (validator === undefined) {
       res.send({ result: 'error', message: 'validator not found' })
       return
+    }
+
+    if (validator.amendments && typeof validator.amendments === 'string') {
+      validator.amendments = await formatAmendments(validator.amendments)
     }
 
     res.send({ ...validator, result: 'success' })
@@ -252,7 +291,7 @@ export async function handleValidators(
   res: Response,
 ): Promise<void> {
   try {
-    if (Date.now() - cache.time > 60 * 1000) {
+    if (Date.now() - cache.time > CACHE_INTERVAL_MILLIS) {
       await cacheValidators()
     }
 
