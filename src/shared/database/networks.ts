@@ -47,8 +47,14 @@ const networks: Network[] = [
     unls: ['vlamm.devnet.rippletest.net'],
   },
   {
-    id: 'hooks-test',
-    entry: 'hooks-testnet-v3.xrpl-labs.com',
+    id: 'xahau-main',
+    entry: 'xahau.network',
+    port: 443,
+    unls: ['vl.xahau.org'],
+  },
+  {
+    id: 'xahau-test',
+    entry: 'xahau-test.net',
     port: 443,
     unls: ['vl3.beta.bithomp.com'],
   },
