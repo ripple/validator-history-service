@@ -627,7 +627,7 @@
         ]
     },
     {
-        "networks": "hooks-test",
+        "networks": "xahau-test",
         "amendments": [
             {
                 "id": "F5751842D26FC057B92CAA435ABF4F1428C2BCC4180D18775ADE92CB2643BBA3",
@@ -640,6 +640,30 @@
                 "ledger_index": 4721665,
                 "tx_hash": "5BFB20FBF539871E985CFA50C4125109BE2F1360D245595CAD1075867DE89D01",
                 "date": 742468340
+            },
+            {
+                "id": "6E739F4F8B07BED29FC9FF440DA3C301CD14A180DF45819F658FEC2F7DE31427",
+                "ledger_index": 6868993,
+                "tx_hash": "2C6F4D211BB4AC3AC2ABCB4A2CB3D4A86ECC51981D4324058AC98A439B6463AC",
+                "date": 748957422
+            },
+            {
+                "id": "75A7E01C505DD5A179DFE3E000A9B6F1EDDEB55A12F95579A23E15B15DC8BE5A",
+                "ledger_index": 6868993,
+                "tx_hash": "7247869F50DC8A05461D4E19A0020A96E426491631A46FA96D529B667ECABAE2",
+                "date": 748957422
+            },
+            {
+                "id": "47C3002ABA31628447E8E9A8B315FAA935CE30183F9A9B86845E469CA2CDC3DF",
+                "ledger_index": 6868993,
+                "tx_hash": "93505F3B7C0B82DB36F6C4A02BF253F089BE237E600F1EDC595E72A217D7B1DE",
+                "date": 748957422
+            },
+            {
+                "id": "93E516234E35E08CA689FA33A6D38E103881F8DCB53023F728C307AA89D515A7",
+                "ledger_index": 6868993,
+                "tx_hash": "BFC5553874F444CB91DC18C38F57112ACBEE02802893AB1E829953BBAF8C5DBC",
+                "date": 748957422
             }
         ]
     }

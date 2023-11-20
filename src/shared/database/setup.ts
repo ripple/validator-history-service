@@ -190,6 +190,14 @@ async function setupNetworksTable(): Promise<void> {
     })
   }
   const networksIds = await query('networks').pluck('id')
+
+  if (networksIds.includes('hooks-test')) {
+    query('networks')
+      .del()
+      .where('id', '=', 'hooks-test')
+      .catch((err: Error) => log.error(err.message))
+  }
+
   networks.forEach((network) => {
     if (!networksIds.includes(network.id)) {
       query('networks')
@@ -202,12 +210,6 @@ async function setupNetworksTable(): Promise<void> {
         .catch((err: Error) => log.error(err.message))
     }
   })
-  if (networksIds.includes('nft-dev')) {
-    query('networks')
-      .del()
-      .where('id', '=', 'nft-dev')
-      .catch((err: Error) => log.error(err.message))
-  }
 }
 
 async function setupAmendmentsEnabledTable(): Promise<void> {
