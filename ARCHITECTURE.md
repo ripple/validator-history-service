@@ -117,11 +117,21 @@ This table keeps track of the amendments enabled on each network.
 | Key                  | Definition                                               |
 |----------------------|----------------------------------------------------------|
 | `amendment_id`       |The amendment id.                                         |
-| `networks`           |The network(s) where the amendment has been enabled.         |
+| `networks`           |The network(s) where the amendment has been enabled.      |
 | `ledger_index`       |The ledger where the amendment has been enabled.          |
 | `tx_hash`            |The transaction hash where the amendment has been enabled.|
 | `date`               |The date and time when the amendment has been enabled.    |
 
+
+### `amendments_incoming`
+
+This table keeps track of the amendments arrival time on each network after they reached majority.
+
+| Key                  | Definition                                               |
+|----------------------|----------------------------------------------------------|
+| `amendment_id`       |The amendment id.                                         |
+| `networks`           |The network(s) where the amendment has been enabled.      |
+| `eta`                |The estimated enable time for the amendment.              |
 
 ### `amendments_info`
 

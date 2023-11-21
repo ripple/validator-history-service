@@ -1,7 +1,7 @@
 import axios from 'axios'
 import createHash from 'create-hash'
 
-import { AmendmentsInfo } from '../types'
+import { AmendmentIncoming, AmendmentsInfo } from '../types'
 import logger from '../utils/logger'
 
 import { query } from './utils'
@@ -116,7 +116,9 @@ async function fetchMinRippledVersions(): Promise<void> {
  * @param amendment - The amendment to be saved.
  * @returns Void.
  */
-async function saveAmendmentInfo(amendment: AmendmentsInfo): Promise<void> {
+export async function saveAmendmentInfo(
+  amendment: AmendmentsInfo,
+): Promise<void> {
   await query('amendments_info')
     .insert(amendment)
     .onConflict('id')
@@ -124,7 +126,41 @@ async function saveAmendmentInfo(amendment: AmendmentsInfo): Promise<void> {
     .catch((err) => log.error('Error Saving AmendmentInfo', err))
 }
 
-export default async function fetchAmendmentInfo(): Promise<void> {
+/**
+ * Save amendment incoming to a network to the database.
+ *
+ * @param amendmentIncoming - The input amendment.
+ *
+ * @returns Void.
+ */
+export async function saveAmendmentIncoming(
+  amendmentIncoming: AmendmentIncoming,
+): Promise<void> {
+  await query('amendments_incoming')
+    .insert(amendmentIncoming)
+    .onConflict(['amendment_id', 'networks'])
+    .merge()
+    .catch((err) => log.error('Error Saving Amendment Incoming', err))
+}
+
+/**
+ * Delete an amendment incoming when majority is lost or when the amendment is enabled.
+ *
+ * @param amendment_id -- The id of the amendment incoming to delete.
+ * @param networks -- The networks of the amendment being voted.
+ */
+export async function deleteAmendmentIncoming(
+  amendment_id: string,
+  networks: string,
+): Promise<void> {
+  await query('amendments_incoming')
+    .del()
+    .where('amendments_id', '=', amendment_id)
+    .andWhere('networks', '=', networks)
+    .catch((err) => log.error('Error Saving Amendment Incoming', err))
+}
+
+export async function fetchAmendmentInfo(): Promise<void> {
   log.info('Fetch amendments info from data sources...')
   await nameOfAmendmentID()
   await fetchMinRippledVersions()

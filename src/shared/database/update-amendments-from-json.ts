@@ -1,10 +1,12 @@
 import { rippleTimeToUnixTime } from 'xrpl'
 
 import amendmentEnabledData from '../data/amendments_enabled.json'
+import amendmentIncomingData from '../data/amendments_incoming.json'
 import amendmentInfoData from '../data/amendments_info.json'
 import { AmendmentEnabled, AmendmentsInfo } from '../types'
 import logger from '../utils/logger'
 
+import { saveAmendmentInfo, saveAmendmentIncoming } from './amendments'
 import { query } from './utils'
 
 const log = logger({ name: 'database-agreement' })
@@ -19,21 +21,10 @@ interface AmendmentEnabledJson {
   }>
 }
 
-/**
- * Save amendment's info on a network to the database.
- *
- * @param amendmentInfo - The input amendment.
- *
- * @returns Void.
- */
-async function saveAmendmentsInfo(
-  amendmentInfo: AmendmentsInfo,
-): Promise<void> {
-  await query('amendments_info')
-    .insert(amendmentInfo)
-    .onConflict(['id'])
-    .merge()
-    .catch((err) => log.error('Error Saving Amendment Info', err))
+interface amendmentIncomingJson {
+  amendment_id: string
+  networks: string
+  eta: number
 }
 
 /**
@@ -62,9 +53,27 @@ async function addAmendmentsInfoFromJSON(): Promise<void> {
   log.info('Adding Amendments Information from JSON File...')
   const data = amendmentInfoData
   data.forEach(async (amendmentInfo: AmendmentsInfo) => {
-    await saveAmendmentsInfo(amendmentInfo)
+    await saveAmendmentInfo(amendmentInfo)
   })
   log.info('Finished adding Amendments Information from JSON File.')
+}
+
+/**
+ * Add amendments info data from Json file manually to the database.
+ *
+ * @returns Void.
+ */
+async function addAmendmentsIncomingFromJSON(): Promise<void> {
+  log.info('Adding Amendments Incoming from JSON File...')
+  const data = amendmentIncomingData
+  data.forEach(async (amendmentIncoming: amendmentIncomingJson) => {
+    await saveAmendmentIncoming({
+      amendment_id: amendmentIncoming.amendment_id,
+      networks: amendmentIncoming.networks,
+      eta: new Date(rippleTimeToUnixTime(amendmentIncoming.eta)),
+    })
+  })
+  log.info('Finished adding Amendments Incoming from JSON File.')
 }
 
 /**
@@ -93,4 +102,5 @@ async function addAmendmentsEnabledFromJSON(): Promise<void> {
 export default async function addAmendmentsDataFromJSON(): Promise<void> {
   await addAmendmentsInfoFromJSON()
   await addAmendmentsEnabledFromJSON()
+  await addAmendmentsIncomingFromJSON()
 }

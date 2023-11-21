@@ -1,6 +1,6 @@
 import logger from '../utils/logger'
 
-import fetchAmendmentInfo from './amendments'
+import { fetchAmendmentInfo } from './amendments'
 import networks from './networks'
 import addAmendmentsDataFromJSON from './update-amendments-from-json'
 import { db, query } from './utils'
@@ -24,6 +24,7 @@ export default async function setupTables(): Promise<void> {
   await setupAmendmentsEnabledTable()
   await setupAmendmentsInfoTable()
   await setupBallotTable()
+  await setupAmendmentsIncomingTable()
   await fetchAmendmentInfo()
   await addAmendmentsDataFromJSON()
 }
@@ -221,6 +222,20 @@ async function setupAmendmentsEnabledTable(): Promise<void> {
       table.integer('ledger_index')
       table.string('tx_hash')
       table.dateTime('date')
+      table.primary(['amendment_id', 'networks'])
+    })
+  }
+}
+
+async function setupAmendmentsIncomingTable(): Promise<void> {
+  const hasAmendmentsIncoming = await db().schema.hasTable(
+    'amendments_incoming',
+  )
+  if (!hasAmendmentsIncoming) {
+    await db().schema.createTable('amendments_incoming', (table) => {
+      table.string('amendment_id')
+      table.string('networks')
+      table.dateTime('eta')
       table.primary(['amendment_id', 'networks'])
     })
   }

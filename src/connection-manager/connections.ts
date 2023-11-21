@@ -84,6 +84,7 @@ async function setHandlers(
         void handleWsMessageLedgerEnableAmendments(
           ws,
           data as LedgerResponseCorrected,
+          networks,
         )
       } else if (data.result?.Amendment) {
         void handleWsMessageTxEnableAmendments(data as TxResponse, networks)

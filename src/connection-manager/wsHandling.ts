@@ -8,6 +8,10 @@ import {
   saveAmendmentsEnabled,
 } from '../shared/database'
 import {
+  deleteAmendmentIncoming,
+  saveAmendmentIncoming,
+} from '../shared/database/amendments'
+import {
   AmendmentEnabled,
   DatabaseValidator,
   FeeVote,
@@ -21,6 +25,9 @@ import agreement from './agreement'
 import { handleManifest } from './manifests'
 
 const LEDGER_HASHES_SIZE = 10
+const GOT_MAJORITY_FLAG = 65536
+const LOST_MAJORITY_FLAG = 131072
+const FOURTEEN_DAYS_IN_SECONDS = 14 * 24 * 60 * 60
 
 /**
  * Subscribes a WebSocket to manifests and validations streams.
@@ -180,18 +187,33 @@ export async function handleWsMessageLedgerEntryAmendments(
  *
  * @param ws - A WebSocket object.
  * @param data - The WebSocket message received from connection.
+ * @param networks - The networks of the WebSocket node.
  */
 export async function handleWsMessageLedgerEnableAmendments(
   ws: WebSocket,
   data: LedgerResponseCorrected,
+  networks: string | undefined,
 ): Promise<void> {
   data.result.ledger.transactions?.forEach(async (transaction) => {
     if (
       typeof transaction !== 'string' &&
       transaction.TransactionType === 'EnableAmendment' &&
-      !transaction.Flags
+      networks
     ) {
-      getEnableAmendmentTx(ws, transaction.hash)
+      if (!transaction.Flags) {
+        getEnableAmendmentTx(ws, transaction.hash)
+      } else if (transaction.Flags === GOT_MAJORITY_FLAG) {
+        const incomingAmendment = {
+          amendment_id: transaction.Amendment,
+          networks,
+          eta: new Date(
+            rippleTimeToUnixTime(transaction.date) + FOURTEEN_DAYS_IN_SECONDS,
+          ),
+        }
+        await saveAmendmentIncoming(incomingAmendment)
+      } else if (transaction.Flags === LOST_MAJORITY_FLAG) {
+        await deleteAmendmentIncoming(transaction.Amendment, networks)
+      }
     }
   })
 }
@@ -206,7 +228,7 @@ export async function handleWsMessageTxEnableAmendments(
   data: TxResponse,
   networks: string | undefined,
 ): Promise<void> {
-  if (data.result.TransactionType === 'EnableAmendment') {
+  if (data.result.TransactionType === 'EnableAmendment' && networks) {
     const amendment: AmendmentEnabled = {
       amendment_id: data.result.Amendment,
       networks,
@@ -217,5 +239,6 @@ export async function handleWsMessageTxEnableAmendments(
         : undefined,
     }
     await saveAmendmentEnabled(amendment)
+    await deleteAmendmentIncoming(amendment.amendment_id, networks)
   }
 }

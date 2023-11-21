@@ -2,7 +2,7 @@
 import { Request, Response } from 'express'
 
 import { getNetworks, query } from '../../../shared/database'
-import { AmendmentsInfo } from '../../../shared/types'
+import { AmendmentIncoming, AmendmentsInfo } from '../../../shared/types'
 import { isEarlierVersion } from '../../../shared/utils'
 import logger from '../../../shared/utils/logger'
 
@@ -39,6 +39,7 @@ interface VotingValidators {
 interface AmendmentsInfoExtended extends AmendmentsInfo {
   threshold: string
   consensus: string
+  eta?: Date
 }
 
 interface AmendmentInVoting extends AmendmentsInfoExtended {
@@ -222,11 +223,12 @@ async function calculateConsensus(
 }
 
 /**
- * Retrieves amendments enabled on a network.
+ * Retrieves amendments in voting on a network.
  *
  * @param id - The network id.
  * @returns List of enabled amendments.
  */
+// eslint-disable-next-line max-lines-per-function, max-statements -- Disabled for this function.
 async function getVotingAmendments(id: string): Promise<AmendmentInVoting[]> {
   const inNetworks: BallotAmendmentDb[] = await query('ballot')
     .leftJoin('validators', 'ballot.signing_key', 'validators.signing_key')
@@ -238,11 +240,23 @@ async function getVotingAmendments(id: string): Promise<AmendmentInVoting[]> {
     )
     .where('validators.networks', id)
 
+  const incomingAmendments: AmendmentIncoming[] = await query(
+    'amendments_incoming',
+  )
+    .select('*')
+    .where('networks', id)
+
   const votingAmendments: AmendmentInVotingMap = {}
 
   inNetworks.forEach((val) => {
     parseAmendmentVote(val, votingAmendments)
   })
+
+  for (const amendment of incomingAmendments) {
+    if (amendment.amendment_id in votingAmendments) {
+      votingAmendments[amendment.amendment_id].eta = amendment.eta
+    }
+  }
 
   if (Date.now() - cacheInfo.time > CACHE_INTERVAL_MILLIS) {
     await cacheAmendmentsInfo()
@@ -267,6 +281,7 @@ async function getVotingAmendments(id: string): Promise<AmendmentInVoting[]> {
         deprecated: value.deprecated,
         threshold: value.threshold,
         consensus: value.consensus,
+        eta: value.eta,
         voted: {
           count: value.validators.length,
           validators: value.validators,
