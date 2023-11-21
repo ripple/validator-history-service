@@ -111,13 +111,16 @@ function isFlagLedgerPlusOne(ledger_index: number): boolean {
  * @param ledger_hashes - The list of recent ledger hashes.
  * @param networks - The networks of subscribed node.
  * @param network_fee - The map of default fee for the network to be used in case the validator does not vote for a new fee.
+ * @param ws - The WebSocket message received from.
  * @returns Void.
  */
+// eslint-disable-next-line max-params -- Disabled for this function.
 export async function handleWsMessageSubscribeTypes(
   data: ValidationRaw | StreamManifest | StreamLedger | LedgerEntryResponse,
   ledger_hashes: string[],
   networks: string | undefined,
   network_fee: Map<string, FeeVote>,
+  ws: WebSocket,
 ): Promise<void> {
   if (data.type === 'validationReceived') {
     const validationData = data as ValidationRaw
@@ -156,18 +159,19 @@ export async function handleWsMessageSubscribeTypes(
     if (ledger_hashes.length > LEDGER_HASHES_SIZE) {
       ledger_hashes.shift()
     }
+    if (isFlagLedgerPlusOne(current_ledger.ledger_index)) {
+      getEnableAmendmentLedger(ws, current_ledger.ledger_index)
+    }
   }
 }
 
 /**
  * Handle ws ledger_entry amendments messages.
  *
- * @param ws - A WebSocket object.
  * @param data - The WebSocket message received from connection.
  * @param networks - The networks of subscribed node.
  */
 export async function handleWsMessageLedgerEntryAmendments(
-  ws: WebSocket,
   data: LedgerEntryResponse,
   networks: string | undefined,
 ): Promise<void> {
@@ -176,9 +180,6 @@ export async function handleWsMessageLedgerEntryAmendments(
     data.result.node.Amendments
   ) {
     await saveAmendmentsEnabled(data.result.node.Amendments, networks)
-  }
-  if (isFlagLedgerPlusOne(data.result.ledger_current_index)) {
-    getEnableAmendmentLedger(ws, data.result.ledger_current_index)
   }
 }
 
@@ -219,7 +220,7 @@ export async function handleWsMessageLedgerEnableAmendments(
 }
 
 /**
- * Handle ws ledger messages to process EnableAmendment transactions.
+ * Handle ws ledger messages to process EnableAmendment with no Flags transactions.
  *
  * @param data - The WebSocket message received from connection.
  * @param networks - The WebSocket message received from connection.
