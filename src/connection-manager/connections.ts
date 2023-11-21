@@ -79,7 +79,7 @@ async function setHandlers(
           data as LedgerEntryResponse,
           networks,
         )
-      } else if (data.result?.ledger) {
+      } else if (data.result?.ledger && isInitialNode) {
         void handleWsMessageLedgerEnableAmendments(
           ws,
           data as LedgerResponseCorrected,
