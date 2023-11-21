@@ -155,7 +155,7 @@ export async function deleteAmendmentIncoming(
 ): Promise<void> {
   await query('amendments_incoming')
     .del()
-    .where('amendments_id', '=', amendment_id)
+    .where('amendment_id', '=', amendment_id)
     .andWhere('networks', '=', networks)
     .catch((err) => log.error('Error Saving Amendment Incoming', err))
 }
