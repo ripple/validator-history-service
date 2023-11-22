@@ -1,7 +1,7 @@
 import axios from 'axios'
 import createHash from 'create-hash'
 
-import { AmendmentIncoming, AmendmentsInfo } from '../types'
+import { AmendmentsInfo } from '../types'
 import logger from '../utils/logger'
 
 import { query } from './utils'
@@ -127,37 +127,20 @@ export async function saveAmendmentInfo(
 }
 
 /**
- * Save amendment incoming to a network to the database.
- *
- * @param amendmentIncoming - The input amendment.
- *
- * @returns Void.
- */
-export async function saveAmendmentIncoming(
-  amendmentIncoming: AmendmentIncoming,
-): Promise<void> {
-  await query('amendments_incoming')
-    .insert(amendmentIncoming)
-    .onConflict(['amendment_id', 'networks'])
-    .merge()
-    .catch((err) => log.error('Error Saving Amendment Incoming', err))
-}
-
-/**
  * Delete an amendment incoming when majority is lost or when the amendment is enabled.
  *
  * @param amendment_id -- The id of the amendment incoming to delete.
  * @param networks -- The networks of the amendment being voted.
  */
-export async function deleteAmendmentIncoming(
+export async function deleteAmendmentStatus(
   amendment_id: string,
   networks: string,
 ): Promise<void> {
-  await query('amendments_incoming')
+  await query('amendments_status')
     .del()
     .where('amendment_id', '=', amendment_id)
     .andWhere('networks', '=', networks)
-    .catch((err) => log.error('Error Saving Amendment Incoming', err))
+    .catch((err) => log.error('Error Saving Amendment Status', err))
 }
 
 export async function fetchAmendmentInfo(): Promise<void> {

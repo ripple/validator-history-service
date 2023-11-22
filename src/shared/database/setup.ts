@@ -21,10 +21,9 @@ export default async function setupTables(): Promise<void> {
   await setupHourlyAgreementTable()
   await setupDailyAgreementTable()
   await setupNetworksTable()
-  await setupAmendmentsEnabledTable()
+  await setupAmendmentsStatusTable()
   await setupAmendmentsInfoTable()
   await setupBallotTable()
-  await setupAmendmentsIncomingTable()
   await fetchAmendmentInfo()
   await addAmendmentsDataFromJSON()
 }
@@ -213,10 +212,10 @@ async function setupNetworksTable(): Promise<void> {
   })
 }
 
-async function setupAmendmentsEnabledTable(): Promise<void> {
-  const hasAmendmentsEnabled = await db().schema.hasTable('amendments_enabled')
-  if (!hasAmendmentsEnabled) {
-    await db().schema.createTable('amendments_enabled', (table) => {
+async function setupAmendmentsStatusTable(): Promise<void> {
+  const hasAmendmentsStatus = await db().schema.hasTable('amendments_status')
+  if (!hasAmendmentsStatus) {
+    await db().schema.createTable('amendments_status', (table) => {
       table.string('amendment_id')
       table.string('networks')
       table.integer('ledger_index')
@@ -225,19 +224,17 @@ async function setupAmendmentsEnabledTable(): Promise<void> {
       table.primary(['amendment_id', 'networks'])
     })
   }
-}
+  // TODO: remove this in the next deployment.
+  const hasAmendmentsEnabled = await db().schema.hasTable('amendments_enabled')
+  if (hasAmendmentsEnabled) {
+    await db().schema.dropTable('amendments_enabled')
+  }
 
-async function setupAmendmentsIncomingTable(): Promise<void> {
   const hasAmendmentsIncoming = await db().schema.hasTable(
     'amendments_incoming',
   )
-  if (!hasAmendmentsIncoming) {
-    await db().schema.createTable('amendments_incoming', (table) => {
-      table.string('amendment_id')
-      table.string('networks')
-      table.dateTime('eta')
-      table.primary(['amendment_id', 'networks'])
-    })
+  if (hasAmendmentsIncoming) {
+    await db().schema.dropTable('amendments_incoming')
   }
 }
 

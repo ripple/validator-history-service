@@ -57,11 +57,11 @@ interface LedgerResponseCorrected extends LedgerResponse {
   >
 }
 
-interface AmendmentEnabled {
+interface AmendmentStatus {
   amendment_id: string
   networks: string
   ledger_index?: number
-  tx_hash: string
+  tx_hash?: string
   date?: Date
 }
 
@@ -237,12 +237,6 @@ interface AmendmentsInfo {
   deprecated: boolean
 }
 
-interface AmendmentIncoming {
-  amendment_id: string
-  networks: string
-  eta: Date
-}
-
 export {
   Node,
   Crawl,
@@ -267,7 +261,6 @@ export {
   Chain,
   ValidatorKeys,
   LedgerResponseCorrected,
-  AmendmentEnabled,
+  AmendmentStatus,
   AmendmentsInfo,
-  AmendmentIncoming,
 }

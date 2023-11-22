@@ -1,17 +1,16 @@
 import { rippleTimeToUnixTime } from 'xrpl'
 
-import amendmentEnabledData from '../data/amendments_enabled.json'
-import amendmentIncomingData from '../data/amendments_incoming.json'
 import amendmentInfoData from '../data/amendments_info.json'
-import { AmendmentEnabled, AmendmentsInfo } from '../types'
+import amendmentStatusData from '../data/amendments_status.json'
+import { AmendmentStatus, AmendmentsInfo } from '../types'
 import logger from '../utils/logger'
 
-import { saveAmendmentInfo, saveAmendmentIncoming } from './amendments'
+import { saveAmendmentInfo } from './amendments'
 import { query } from './utils'
 
 const log = logger({ name: 'database-agreement' })
 
-interface AmendmentEnabledJson {
+interface AmendmentStatusJson {
   networks: string
   amendments: Array<{
     id: string
@@ -21,27 +20,21 @@ interface AmendmentEnabledJson {
   }>
 }
 
-interface amendmentIncomingJson {
-  amendment_id: string
-  networks: string
-  eta: number
-}
-
 /**
- * Save amendment enabled on a network to the database.
+ * Save amendment Status on a network to the database.
  *
- * @param enabledAmendment - The input amendment.
+ * @param statusAmendment - The input amendment.
  *
  * @returns Void.
  */
-async function saveAmendmentsEnabled(
-  enabledAmendment: AmendmentEnabled,
+async function saveAmendmentsStatus(
+  statusAmendment: AmendmentStatus,
 ): Promise<void> {
-  await query('amendments_enabled')
-    .insert(enabledAmendment)
+  await query('amendments_status')
+    .insert(statusAmendment)
     .onConflict(['amendment_id', 'networks'])
     .merge()
-    .catch((err) => log.error('Error Saving Enabled Amendment', err))
+    .catch((err) => log.error('Error Saving Status Amendment', err))
 }
 
 /**
@@ -59,48 +52,29 @@ async function addAmendmentsInfoFromJSON(): Promise<void> {
 }
 
 /**
- * Add amendments info data from Json file manually to the database.
+ * Add Status amendments data from Json file manually to the database.
  *
  * @returns Void.
  */
-async function addAmendmentsIncomingFromJSON(): Promise<void> {
-  log.info('Adding Amendments Incoming from JSON File...')
-  const data = amendmentIncomingData
-  data.forEach(async (amendmentIncoming: amendmentIncomingJson) => {
-    await saveAmendmentIncoming({
-      amendment_id: amendmentIncoming.amendment_id,
-      networks: amendmentIncoming.networks,
-      eta: new Date(rippleTimeToUnixTime(amendmentIncoming.eta)),
-    })
-  })
-  log.info('Finished adding Amendments Incoming from JSON File.')
-}
-
-/**
- * Add enabled amendments data from Json file manually to the database.
- *
- * @returns Void.
- */
-async function addAmendmentsEnabledFromJSON(): Promise<void> {
-  log.info('Adding Enabled Amendments Data from JSON File...')
-  const data = amendmentEnabledData as AmendmentEnabledJson[]
-  data.forEach((networkData: AmendmentEnabledJson) => {
+async function addAmendmentsStatusFromJSON(): Promise<void> {
+  log.info('Adding Amendments Status Data from JSON File...')
+  const data = amendmentStatusData as AmendmentStatusJson[]
+  data.forEach((networkData: AmendmentStatusJson) => {
     networkData.amendments.forEach(async (amendment) => {
-      const enabledData: AmendmentEnabled = {
+      const statusData: AmendmentStatus = {
         amendment_id: amendment.id,
         networks: networkData.networks,
         ledger_index: amendment.ledger_index,
         tx_hash: amendment.tx_hash,
         date: new Date(rippleTimeToUnixTime(amendment.date)),
       }
-      await saveAmendmentsEnabled(enabledData)
+      await saveAmendmentsStatus(statusData)
     })
   })
-  log.info('Finished adding Enabled Amendments Data from JSON File.')
+  log.info('Finished adding Amendments Status Data from JSON File.')
 }
 
 export default async function addAmendmentsDataFromJSON(): Promise<void> {
   await addAmendmentsInfoFromJSON()
-  await addAmendmentsEnabledFromJSON()
-  await addAmendmentsIncomingFromJSON()
+  await addAmendmentsStatusFromJSON()
 }

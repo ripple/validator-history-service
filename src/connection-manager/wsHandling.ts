@@ -4,15 +4,12 @@ import { AMENDMENTS_ID } from 'xrpl/dist/npm/models/ledger'
 
 import {
   query,
-  saveAmendmentEnabled,
-  saveAmendmentsEnabled,
+  saveAmendmentStatus,
+  saveAmendmentsStatus,
 } from '../shared/database'
+import { deleteAmendmentStatus } from '../shared/database/amendments'
 import {
-  deleteAmendmentIncoming,
-  saveAmendmentIncoming,
-} from '../shared/database/amendments'
-import {
-  AmendmentEnabled,
+  AmendmentStatus,
   DatabaseValidator,
   FeeVote,
   LedgerResponseCorrected,
@@ -45,7 +42,7 @@ export function subscribe(ws: WebSocket): void {
 }
 
 /**
- * Sends a ledger_entry WebSocket request to retrieve amendments enabled on a network.
+ * Sends a ledger_entry WebSocket request to retrieve amendments status on a network.
  *
  * @param ws - A WebSocket object.
  */
@@ -179,7 +176,7 @@ export async function handleWsMessageLedgerEntryAmendments(
     data.result.node?.LedgerEntryType === 'Amendments' &&
     data.result.node.Amendments
   ) {
-    await saveAmendmentsEnabled(data.result.node.Amendments, networks)
+    await saveAmendmentsStatus(data.result.node.Amendments, networks)
   }
 }
 
@@ -207,13 +204,13 @@ export async function handleWsMessageLedgerEnableAmendments(
         const incomingAmendment = {
           amendment_id: transaction.Amendment,
           networks,
-          eta: new Date(
+          date: new Date(
             rippleTimeToUnixTime(transaction.date) + FOURTEEN_DAYS_IN_SECONDS,
           ),
         }
-        await saveAmendmentIncoming(incomingAmendment)
+        await saveAmendmentStatus(incomingAmendment)
       } else if (transaction.Flags === LOST_MAJORITY_FLAG) {
-        await deleteAmendmentIncoming(transaction.Amendment, networks)
+        await deleteAmendmentStatus(transaction.Amendment, networks)
       }
     }
   })
@@ -230,7 +227,7 @@ export async function handleWsMessageTxEnableAmendments(
   networks: string | undefined,
 ): Promise<void> {
   if (data.result.TransactionType === 'EnableAmendment' && networks) {
-    const amendment: AmendmentEnabled = {
+    const amendment: AmendmentStatus = {
       amendment_id: data.result.Amendment,
       networks,
       ledger_index: data.result.ledger_index,
@@ -239,7 +236,6 @@ export async function handleWsMessageTxEnableAmendments(
         ? new Date(rippleTimeToUnixTime(data.result.date))
         : undefined,
     }
-    await saveAmendmentEnabled(amendment)
-    await deleteAmendmentIncoming(amendment.amendment_id, networks)
+    await saveAmendmentStatus(amendment)
   }
 }
