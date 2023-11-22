@@ -224,18 +224,6 @@ async function setupAmendmentsStatusTable(): Promise<void> {
       table.primary(['amendment_id', 'networks'])
     })
   }
-  // TODO: remove this in the next deployment.
-  const hasAmendmentsEnabled = await db().schema.hasTable('amendments_enabled')
-  if (hasAmendmentsEnabled) {
-    await db().schema.dropTable('amendments_enabled')
-  }
-
-  const hasAmendmentsIncoming = await db().schema.hasTable(
-    'amendments_incoming',
-  )
-  if (hasAmendmentsIncoming) {
-    await db().schema.dropTable('amendments_incoming')
-  }
 }
 
 async function setupAmendmentsInfoTable(): Promise<void> {
