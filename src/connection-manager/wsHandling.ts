@@ -204,7 +204,7 @@ export async function handleWsMessageLedgerEnableAmendments(
         const incomingAmendment = {
           amendment_id: transaction.Amendment,
           networks,
-          date: new Date(
+          eta: new Date(
             rippleTimeToUnixTime(transaction.date) + FOURTEEN_DAYS_IN_SECONDS,
           ),
         }
@@ -235,6 +235,7 @@ export async function handleWsMessageTxEnableAmendments(
       date: data.result.date
         ? new Date(rippleTimeToUnixTime(data.result.date))
         : undefined,
+      eta: undefined,
     }
     await saveAmendmentStatus(amendment)
   }

@@ -16,7 +16,8 @@ interface AmendmentStatusJson {
     id: string
     ledger_index: number
     tx_hash: string
-    date: number
+    date?: number
+    eta?: number
   }>
 }
 
@@ -66,7 +67,12 @@ async function addAmendmentsStatusFromJSON(): Promise<void> {
         networks: networkData.networks,
         ledger_index: amendment.ledger_index,
         tx_hash: amendment.tx_hash,
-        date: new Date(rippleTimeToUnixTime(amendment.date)),
+        date: amendment.date
+          ? new Date(rippleTimeToUnixTime(amendment.date))
+          : undefined,
+        eta: amendment.eta
+          ? new Date(rippleTimeToUnixTime(amendment.eta))
+          : undefined,
       }
       await saveAmendmentsStatus(statusData)
     })

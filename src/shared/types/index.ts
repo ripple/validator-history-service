@@ -63,6 +63,7 @@ interface AmendmentStatus {
   ledger_index?: number
   tx_hash?: string
   date?: Date
+  eta?: Date
 }
 
 interface Node {

@@ -221,6 +221,7 @@ async function setupAmendmentsStatusTable(): Promise<void> {
       table.integer('ledger_index')
       table.string('tx_hash')
       table.dateTime('date')
+      table.datetime('eta')
       table.primary(['amendment_id', 'networks'])
     })
   }

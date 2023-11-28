@@ -152,7 +152,7 @@ async function getEnabledAmendments(
       'amendments_info.deprecated',
     )
     .where('amendments_status.networks', id)
-    .andWhere('amendments_status.date', '<', new Date().toISOString())
+    .whereNull('amendments_status.eta')
 
   enabled.sort(sortByVersion)
 
@@ -249,7 +249,8 @@ async function getVotingAmendments(id: string): Promise<AmendmentInVoting[]> {
   const incomingAmendments: AmendmentStatus[] = await query('amendments_status')
     .select('*')
     .where('networks', id)
-    .andWhere('date', '>', new Date().toISOString())
+    .whereNotNull('eta')
+    .whereNull('date')
 
   const votingAmendments: AmendmentInVotingMap = {}
 
@@ -259,7 +260,7 @@ async function getVotingAmendments(id: string): Promise<AmendmentInVoting[]> {
 
   for (const amendment of incomingAmendments) {
     if (amendment.amendment_id in votingAmendments) {
-      votingAmendments[amendment.amendment_id].eta = amendment.date
+      votingAmendments[amendment.amendment_id].eta = amendment.eta
     }
   }
 

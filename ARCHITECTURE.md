@@ -120,7 +120,8 @@ This table keeps track of the amendments status on each network.
 | `networks`           |The network(s) where the amendment has been/ will be enabled.      |
 | `ledger_index`       |The ledger where the amendment has been/ will be enabled.          |
 | `tx_hash`            |The transaction hash where the amendment has been/ will be enabled.|
-| `date`               |The date and time when the amendment has been/ will be enabled.    |
+| `eta`                |The estimated date and time when the amendment will be enabled.    |
+| `date`               |The date and time when the amendment has been enabled.             |
 
 
 ### `amendments_info`
