@@ -112,7 +112,7 @@ This table keeps track of the manifests of the validators.
 
 ### `amendments_status`
 
-This table keeps track of the amendments status on each network.
+This table keeps track of the amendments status on each network when either the amendment has been enabled or has reached majority.
 
 | Key                  | Definition                                                        |
 |----------------------|-------------------------------------------------------------------|
