@@ -2,7 +2,7 @@
 import { Request, Response } from 'express'
 
 import { getNetworks, query } from '../../../shared/database'
-import { AmendmentsInfo } from '../../../shared/types'
+import { AmendmentStatus, AmendmentInfo } from '../../../shared/types'
 import { isEarlierVersion } from '../../../shared/utils'
 import logger from '../../../shared/utils/logger'
 
@@ -11,22 +11,22 @@ import { CACHE_INTERVAL_MILLIS } from './utils'
 interface AmendmentsInfoResponse {
   result: 'success' | 'error'
   count: number
-  amendments: AmendmentsInfo[]
+  amendments: AmendmentInfo[]
 }
 
 interface AmendmentsVoteResponse {
   result: 'success' | 'error'
   count: number
-  amendments: Array<AmendmentsEnabled | AmendmentInVoting>
+  amendments: Array<EnabledAmendmentInfo | AmendmentInVoting>
 }
 
 interface SingleAmendmentInfoResponse {
   result: 'success' | 'error'
-  amendment: AmendmentsInfo
+  amendment: AmendmentInfo
 }
 
 interface CacheInfo {
-  amendments: AmendmentsInfo[]
+  amendments: AmendmentInfo[]
   time: number
 }
 
@@ -36,9 +36,10 @@ interface VotingValidators {
   unl: boolean
 }
 
-interface AmendmentsInfoExtended extends AmendmentsInfo {
+interface AmendmentsInfoExtended extends AmendmentInfo {
   threshold: string
   consensus: string
+  eta?: Date
 }
 
 interface AmendmentInVoting extends AmendmentsInfoExtended {
@@ -54,7 +55,7 @@ interface AmendmentInVotingMap {
   }
 }
 
-interface AmendmentsEnabled extends AmendmentsInfo {
+interface EnabledAmendmentInfo extends AmendmentInfo {
   ledger_index?: string
   tx_hash?: string
   date?: Date
@@ -68,7 +69,7 @@ interface BallotAmendmentDb {
 }
 
 interface CacheVote {
-  networks: Map<string, Array<AmendmentsEnabled | AmendmentInVoting>>
+  networks: Map<string, Array<EnabledAmendmentInfo | AmendmentInVoting>>
   time: number
 }
 
@@ -82,7 +83,7 @@ const cacheInfo: CacheInfo = {
 }
 
 const cacheVote: CacheVote = {
-  networks: new Map<string, Array<AmendmentsEnabled | AmendmentInVoting>>(),
+  networks: new Map<string, Array<EnabledAmendmentInfo | AmendmentInVoting>>(),
   time: Date.now(),
 }
 
@@ -97,8 +98,8 @@ const cacheEnabled = new Map<string, Set<string>>()
  * @returns 1 or -1.
  */
 function sortByVersion(
-  prev: AmendmentsInfo | AmendmentInVoting,
-  next: AmendmentsInfo | AmendmentInVoting,
+  prev: AmendmentInfo | AmendmentInVoting,
+  next: AmendmentInfo | AmendmentInVoting,
 ): number {
   if (isEarlierVersion(prev.rippled_version, next.rippled_version)) {
     return 1
@@ -129,30 +130,33 @@ void cacheAmendmentsInfo()
  * @param id - The network id.
  * @returns List of enabled amendments.
  */
-async function getEnabledAmendments(id: string): Promise<AmendmentsEnabled[]> {
-  const enabled = await query('amendments_enabled')
+async function getEnabledAmendments(
+  id: string,
+): Promise<EnabledAmendmentInfo[]> {
+  const enabled = await query('amendments_status')
     .leftJoin(
       'amendments_info',
-      'amendments_enabled.amendment_id',
+      'amendments_status.amendment_id',
       'amendments_info.id',
     )
     .select(
-      'amendments_enabled.amendment_id AS id',
-      'amendments_enabled.ledger_index',
-      'amendments_enabled.tx_hash',
-      'amendments_enabled.date',
+      'amendments_status.amendment_id AS id',
+      'amendments_status.ledger_index',
+      'amendments_status.tx_hash',
+      'amendments_status.date',
       'amendments_info.name',
       'amendments_info.rippled_version',
       'amendments_info.deprecated',
     )
-    .where('amendments_enabled.networks', id)
+    .where('amendments_status.networks', id)
+    .whereNull('amendments_status.eta')
 
   enabled.sort(sortByVersion)
 
   if (!cacheEnabled.has(id)) {
     cacheEnabled.set(id, new Set())
   }
-  enabled.forEach((amendment: AmendmentsEnabled) => {
+  enabled.forEach((amendment: EnabledAmendmentInfo) => {
     cacheEnabled.get(id)?.add(amendment.id)
   })
 
@@ -222,11 +226,12 @@ async function calculateConsensus(
 }
 
 /**
- * Retrieves amendments enabled on a network.
+ * Retrieves amendments in voting on a network.
  *
  * @param id - The network id.
- * @returns List of enabled amendments.
+ * @returns List of amendments in voting.
  */
+// eslint-disable-next-line max-lines-per-function, max-statements -- Disabled for this function.
 async function getVotingAmendments(id: string): Promise<AmendmentInVoting[]> {
   const inNetworks: BallotAmendmentDb[] = await query('ballot')
     .leftJoin('validators', 'ballot.signing_key', 'validators.signing_key')
@@ -238,11 +243,23 @@ async function getVotingAmendments(id: string): Promise<AmendmentInVoting[]> {
     )
     .where('validators.networks', id)
 
+  const incomingAmendments: AmendmentStatus[] = await query('amendments_status')
+    .select('*')
+    .where('networks', id)
+    .whereNotNull('eta')
+    .whereNull('date')
+
   const votingAmendments: AmendmentInVotingMap = {}
 
   inNetworks.forEach((val) => {
     parseAmendmentVote(val, votingAmendments)
   })
+
+  for (const amendment of incomingAmendments) {
+    if (amendment.amendment_id in votingAmendments) {
+      votingAmendments[amendment.amendment_id].eta = amendment.eta
+    }
+  }
 
   if (Date.now() - cacheInfo.time > CACHE_INTERVAL_MILLIS) {
     await cacheAmendmentsInfo()
@@ -267,6 +284,7 @@ async function getVotingAmendments(id: string): Promise<AmendmentInVoting[]> {
         deprecated: value.deprecated,
         threshold: value.threshold,
         consensus: value.consensus,
+        eta: value.eta,
         voted: {
           count: value.validators.length,
           validators: value.validators,
@@ -317,7 +335,7 @@ export async function handleAmendmentsInfo(
     if (Date.now() - cacheInfo.time > CACHE_INTERVAL_MILLIS) {
       await cacheAmendmentsInfo()
     }
-    const amendments: AmendmentsInfo[] = cacheInfo.amendments
+    const amendments: AmendmentInfo[] = cacheInfo.amendments
     const response: AmendmentsInfoResponse = {
       result: 'success',
       count: amendments.length,
@@ -346,7 +364,7 @@ export async function handleAmendmentInfo(
     if (Date.now() - cacheInfo.time > CACHE_INTERVAL_MILLIS) {
       await cacheAmendmentsInfo()
     }
-    const amendments: AmendmentsInfo[] = cacheInfo.amendments.filter(
+    const amendments: AmendmentInfo[] = cacheInfo.amendments.filter(
       (amend) => amend.name === param || amend.id === param,
     )
     if (amendments.length === 0) {
@@ -390,7 +408,7 @@ export async function handleAmendmentsVote(
       await cacheAmendmentsVote()
     }
     const networkVotes:
-      | Array<AmendmentsEnabled | AmendmentInVoting>
+      | Array<EnabledAmendmentInfo | AmendmentInVoting>
       | undefined = cacheVote.networks.get(network)
     if (networkVotes) {
       const response: AmendmentsVoteResponse = {
@@ -423,14 +441,14 @@ export async function handleAmendmentVote(
       await cacheAmendmentsVote()
     }
     const networkVotes:
-      | Array<AmendmentsEnabled | AmendmentInVoting>
+      | Array<EnabledAmendmentInfo | AmendmentInVoting>
       | undefined = cacheVote.networks.get(network)
     if (networkVotes === undefined) {
       res.send({ result: 'error', message: 'network not found' })
     }
 
     const amendment = (
-      networkVotes as Array<AmendmentsEnabled | AmendmentInVoting>
+      networkVotes as Array<EnabledAmendmentInfo | AmendmentInVoting>
     ).filter((amend) => amend.id === identifier || amend.name === identifier)
 
     if (amendment.length > 0) {

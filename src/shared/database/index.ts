@@ -5,7 +5,7 @@ import {
   Validator,
   Location,
   DatabaseNetwork,
-  AmendmentEnabled,
+  AmendmentStatus,
   Ballot,
 } from '../types'
 import logger from '../utils/logger'
@@ -242,37 +242,37 @@ export async function saveValidator(
 }
 
 /**
- * Saves list of amendments enabled on a network to the database.
+ * Saves list of amendments status on a network to the database.
  *
  * @param amendments - The list of amendments to be saved.
  * @param networks - The networks to be saved.
  */
-export async function saveAmendmentsEnabled(
+export async function saveAmendmentsStatus(
   amendments: string[],
   networks: string | undefined,
 ): Promise<void> {
   amendments.forEach(async (amendment) => {
-    await query('amendments_enabled')
+    await query('amendments_status')
       .insert({ amendment_id: amendment, networks })
       .onConflict(['amendment_id', 'networks'])
       .merge()
-      .catch((err) => log.error('Error Saving Enabled Amendment', err))
+      .catch((err) => log.error('Error Saving Status Amendment', err))
   })
 }
 
 /**
- * Saves an amendment enabled on a network to the database.
+ * Saves an amendment status on a network to the database.
  *
  * @param amendment - The amendment to be saved.
  */
-export async function saveAmendmentEnabled(
-  amendment: AmendmentEnabled,
+export async function saveAmendmentStatus(
+  amendment: AmendmentStatus,
 ): Promise<void> {
-  await query('amendments_enabled')
+  await query('amendments_status')
     .insert(amendment)
     .onConflict(['amendment_id', 'networks'])
     .merge()
-    .catch((err) => log.error('Error Saving Enabled Amendment', err))
+    .catch((err) => log.error('Error Saving Amendment Status', err))
 }
 
 /**

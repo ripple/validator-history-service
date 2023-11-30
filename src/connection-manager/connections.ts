@@ -76,14 +76,14 @@ async function setHandlers(
       }
       if (data.result?.node) {
         void handleWsMessageLedgerEntryAmendments(
-          ws,
           data as LedgerEntryResponse,
           networks,
         )
-      } else if (data.result?.ledger) {
+      } else if (data.result?.ledger && isInitialNode) {
         void handleWsMessageLedgerEnableAmendments(
           ws,
           data as LedgerResponseCorrected,
+          networks,
         )
       } else if (data.result?.Amendment) {
         void handleWsMessageTxEnableAmendments(data as TxResponse, networks)
@@ -93,6 +93,7 @@ async function setHandlers(
           ledger_hashes,
           networks,
           networkFee,
+          ws,
         )
       }
     })

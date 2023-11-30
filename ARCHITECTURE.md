@@ -110,17 +110,18 @@ This table keeps track of the manifests of the validators.
 | `seq`                |The sequence number of this manifest.                       |
 
 
-### `amendments_enabled`
+### `amendments_status`
 
-This table keeps track of the amendments enabled on each network.
+This table keeps track of the amendments status on each network when either the amendment has been enabled or has reached majority.
 
-| Key                  | Definition                                               |
-|----------------------|----------------------------------------------------------|
-| `amendment_id`       |The amendment id.                                         |
-| `networks`           |The network(s) where the amendment has been enabled.         |
-| `ledger_index`       |The ledger where the amendment has been enabled.          |
-| `tx_hash`            |The transaction hash where the amendment has been enabled.|
-| `date`               |The date and time when the amendment has been enabled.    |
+| Key                  | Definition                                                        |
+|----------------------|-------------------------------------------------------------------|
+| `amendment_id`       |The amendment id.                                                  |
+| `networks`           |The network(s) where the amendment has been/ will be enabled.      |
+| `ledger_index`       |The ledger where the amendment has been/ will be enabled.          |
+| `tx_hash`            |The transaction hash where the amendment has been/ will be enabled.|
+| `eta`                |The estimated date and time when the amendment will be enabled.    |
+| `date`               |The date and time when the amendment has been enabled.             |
 
 
 ### `amendments_info`

@@ -4,11 +4,12 @@ import { AMENDMENTS_ID } from 'xrpl/dist/npm/models/ledger'
 
 import {
   query,
-  saveAmendmentEnabled,
-  saveAmendmentsEnabled,
+  saveAmendmentStatus,
+  saveAmendmentsStatus,
 } from '../shared/database'
+import { deleteAmendmentStatus } from '../shared/database/amendments'
 import {
-  AmendmentEnabled,
+  AmendmentStatus,
   DatabaseValidator,
   FeeVote,
   LedgerResponseCorrected,
@@ -21,6 +22,9 @@ import agreement from './agreement'
 import { handleManifest } from './manifests'
 
 const LEDGER_HASHES_SIZE = 10
+const GOT_MAJORITY_FLAG = 65536
+const LOST_MAJORITY_FLAG = 131072
+const FOURTEEN_DAYS_IN_SECONDS = 14 * 24 * 60 * 60
 
 /**
  * Subscribes a WebSocket to manifests and validations streams.
@@ -38,7 +42,7 @@ export function subscribe(ws: WebSocket): void {
 }
 
 /**
- * Sends a ledger_entry WebSocket request to retrieve amendments enabled on a network.
+ * Sends a ledger_entry WebSocket request to retrieve amendments status on a network.
  *
  * @param ws - A WebSocket object.
  */
@@ -104,13 +108,16 @@ function isFlagLedgerPlusOne(ledger_index: number): boolean {
  * @param ledger_hashes - The list of recent ledger hashes.
  * @param networks - The networks of subscribed node.
  * @param network_fee - The map of default fee for the network to be used in case the validator does not vote for a new fee.
+ * @param ws - The WebSocket message received from.
  * @returns Void.
  */
+// eslint-disable-next-line max-params -- Disabled for this function.
 export async function handleWsMessageSubscribeTypes(
   data: ValidationRaw | StreamManifest | StreamLedger | LedgerEntryResponse,
   ledger_hashes: string[],
   networks: string | undefined,
   network_fee: Map<string, FeeVote>,
+  ws: WebSocket,
 ): Promise<void> {
   if (data.type === 'validationReceived') {
     const validationData = data as ValidationRaw
@@ -149,18 +156,19 @@ export async function handleWsMessageSubscribeTypes(
     if (ledger_hashes.length > LEDGER_HASHES_SIZE) {
       ledger_hashes.shift()
     }
+    if (isFlagLedgerPlusOne(current_ledger.ledger_index)) {
+      getEnableAmendmentLedger(ws, current_ledger.ledger_index)
+    }
   }
 }
 
 /**
  * Handle ws ledger_entry amendments messages.
  *
- * @param ws - A WebSocket object.
  * @param data - The WebSocket message received from connection.
  * @param networks - The networks of subscribed node.
  */
 export async function handleWsMessageLedgerEntryAmendments(
-  ws: WebSocket,
   data: LedgerEntryResponse,
   networks: string | undefined,
 ): Promise<void> {
@@ -168,10 +176,7 @@ export async function handleWsMessageLedgerEntryAmendments(
     data.result.node?.LedgerEntryType === 'Amendments' &&
     data.result.node.Amendments
   ) {
-    await saveAmendmentsEnabled(data.result.node.Amendments, networks)
-  }
-  if (isFlagLedgerPlusOne(data.result.ledger_current_index)) {
-    getEnableAmendmentLedger(ws, data.result.ledger_current_index)
+    await saveAmendmentsStatus(data.result.node.Amendments, networks)
   }
 }
 
@@ -180,24 +185,39 @@ export async function handleWsMessageLedgerEntryAmendments(
  *
  * @param ws - A WebSocket object.
  * @param data - The WebSocket message received from connection.
+ * @param networks - The networks of the WebSocket node.
  */
 export async function handleWsMessageLedgerEnableAmendments(
   ws: WebSocket,
   data: LedgerResponseCorrected,
+  networks: string | undefined,
 ): Promise<void> {
   data.result.ledger.transactions?.forEach(async (transaction) => {
     if (
       typeof transaction !== 'string' &&
       transaction.TransactionType === 'EnableAmendment' &&
-      !transaction.Flags
+      networks
     ) {
-      getEnableAmendmentTx(ws, transaction.hash)
+      if (!transaction.Flags) {
+        getEnableAmendmentTx(ws, transaction.hash)
+      } else if (transaction.Flags === GOT_MAJORITY_FLAG) {
+        const incomingAmendment = {
+          amendment_id: transaction.Amendment,
+          networks,
+          eta: new Date(
+            rippleTimeToUnixTime(transaction.date) + FOURTEEN_DAYS_IN_SECONDS,
+          ),
+        }
+        await saveAmendmentStatus(incomingAmendment)
+      } else if (transaction.Flags === LOST_MAJORITY_FLAG) {
+        await deleteAmendmentStatus(transaction.Amendment, networks)
+      }
     }
   })
 }
 
 /**
- * Handle ws ledger messages to process EnableAmendment transactions.
+ * Handle ws ledger messages to process EnableAmendment with no Flags transactions.
  *
  * @param data - The WebSocket message received from connection.
  * @param networks - The WebSocket message received from connection.
@@ -206,8 +226,8 @@ export async function handleWsMessageTxEnableAmendments(
   data: TxResponse,
   networks: string | undefined,
 ): Promise<void> {
-  if (data.result.TransactionType === 'EnableAmendment') {
-    const amendment: AmendmentEnabled = {
+  if (data.result.TransactionType === 'EnableAmendment' && networks) {
+    const amendment: AmendmentStatus = {
       amendment_id: data.result.Amendment,
       networks,
       ledger_index: data.result.ledger_index,
@@ -215,7 +235,8 @@ export async function handleWsMessageTxEnableAmendments(
       date: data.result.date
         ? new Date(rippleTimeToUnixTime(data.result.date))
         : undefined,
+      eta: undefined,
     }
-    await saveAmendmentEnabled(amendment)
+    await saveAmendmentStatus(amendment)
   }
 }

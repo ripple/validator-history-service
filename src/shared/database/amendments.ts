@@ -1,7 +1,7 @@
 import axios from 'axios'
 import createHash from 'create-hash'
 
-import { AmendmentsInfo } from '../types'
+import { AmendmentInfo } from '../types'
 import logger from '../utils/logger'
 
 import { query } from './utils'
@@ -116,7 +116,9 @@ async function fetchMinRippledVersions(): Promise<void> {
  * @param amendment - The amendment to be saved.
  * @returns Void.
  */
-async function saveAmendmentInfo(amendment: AmendmentsInfo): Promise<void> {
+export async function saveAmendmentInfo(
+  amendment: AmendmentInfo,
+): Promise<void> {
   await query('amendments_info')
     .insert(amendment)
     .onConflict('id')
@@ -124,12 +126,29 @@ async function saveAmendmentInfo(amendment: AmendmentsInfo): Promise<void> {
     .catch((err) => log.error('Error Saving AmendmentInfo', err))
 }
 
-export default async function fetchAmendmentInfo(): Promise<void> {
+/**
+ * Delete an amendment incoming when majority is lost or when the amendment is enabled.
+ *
+ * @param amendment_id -- The id of the amendment incoming to delete.
+ * @param networks -- The networks of the amendment being voted.
+ */
+export async function deleteAmendmentStatus(
+  amendment_id: string,
+  networks: string,
+): Promise<void> {
+  await query('amendments_status')
+    .del()
+    .where('amendment_id', '=', amendment_id)
+    .andWhere('networks', '=', networks)
+    .catch((err) => log.error('Error Saving Amendment Status', err))
+}
+
+export async function fetchAmendmentInfo(): Promise<void> {
   log.info('Fetch amendments info from data sources...')
   await nameOfAmendmentID()
   await fetchMinRippledVersions()
   amendmentIDs.forEach(async (value, id) => {
-    const amendment: AmendmentsInfo = {
+    const amendment: AmendmentInfo = {
       id,
       name: value.name,
       rippled_version: rippledVersions.get(value.name),

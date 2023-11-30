@@ -37,12 +37,13 @@ interface StreamLedger {
   type: string
 }
 
-// TODO: use xrpl LedgerResponse type once hash has been added to transactions in the response.
+// TODO: use xrpl LedgerResponse type once hash and date has been added to transactions in the response.
 interface LedgerCorrected extends LedgerXRPL {
   transactions: Array<
     (Transaction | PseudoTransaction) & {
       metaData?: TransactionMetadata
       hash: string
+      date: number
     }
   >
 }
@@ -58,11 +59,19 @@ interface LedgerResponseCorrected extends LedgerResponse {
 
 interface AmendmentEnabled {
   amendment_id: string
-  networks?: string
+  networks: string
   ledger_index?: number
-  tx_hash: string
+  tx_hash?: string
   date?: Date
 }
+
+interface AmendmentPending {
+  amendment_id: string
+  networks: string
+  eta?: Date
+}
+
+type AmendmentStatus = AmendmentEnabled & AmendmentPending
 
 interface Node {
   public_key: string
@@ -229,7 +238,7 @@ interface DailyAgreement {
   agreement: AgreementScore
 }
 
-interface AmendmentsInfo {
+interface AmendmentInfo {
   id: string
   name: string
   rippled_version?: string
@@ -260,6 +269,6 @@ export {
   Chain,
   ValidatorKeys,
   LedgerResponseCorrected,
-  AmendmentEnabled,
-  AmendmentsInfo,
+  AmendmentStatus,
+  AmendmentInfo,
 }
