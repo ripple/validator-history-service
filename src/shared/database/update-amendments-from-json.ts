@@ -35,7 +35,7 @@ async function saveAmendmentsStatus(
     .insert(statusAmendment)
     .onConflict(['amendment_id', 'networks'])
     .merge()
-    .catch((err) => log.error('Error Saving Status Amendment', err))
+    .catch((err) => log.error('Error Saving Amendment Status', err))
 }
 
 /**
