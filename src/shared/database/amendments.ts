@@ -1,7 +1,7 @@
 import axios from 'axios'
 import createHash from 'create-hash'
 
-import { AmendmentsInfo } from '../types'
+import { AmendmentInfo } from '../types'
 import logger from '../utils/logger'
 
 import { query } from './utils'
@@ -117,7 +117,7 @@ async function fetchMinRippledVersions(): Promise<void> {
  * @returns Void.
  */
 export async function saveAmendmentInfo(
-  amendment: AmendmentsInfo,
+  amendment: AmendmentInfo,
 ): Promise<void> {
   await query('amendments_info')
     .insert(amendment)
@@ -148,7 +148,7 @@ export async function fetchAmendmentInfo(): Promise<void> {
   await nameOfAmendmentID()
   await fetchMinRippledVersions()
   amendmentIDs.forEach(async (value, id) => {
-    const amendment: AmendmentsInfo = {
+    const amendment: AmendmentInfo = {
       id,
       name: value.name,
       rippled_version: rippledVersions.get(value.name),

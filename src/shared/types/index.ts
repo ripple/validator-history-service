@@ -57,14 +57,21 @@ interface LedgerResponseCorrected extends LedgerResponse {
   >
 }
 
-interface AmendmentStatus {
+interface AmendmentEnabled {
   amendment_id: string
   networks: string
   ledger_index?: number
   tx_hash?: string
   date?: Date
+}
+
+interface AmendmentPending {
+  amendment_id: string
+  networks: string
   eta?: Date
 }
+
+type AmendmentStatus = AmendmentEnabled & AmendmentPending
 
 interface Node {
   public_key: string
@@ -231,7 +238,7 @@ interface DailyAgreement {
   agreement: AgreementScore
 }
 
-interface AmendmentsInfo {
+interface AmendmentInfo {
   id: string
   name: string
   rippled_version?: string
@@ -263,5 +270,5 @@ export {
   ValidatorKeys,
   LedgerResponseCorrected,
   AmendmentStatus,
-  AmendmentsInfo,
+  AmendmentInfo,
 }

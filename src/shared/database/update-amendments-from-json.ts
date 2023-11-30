@@ -2,7 +2,7 @@ import { rippleTimeToUnixTime } from 'xrpl'
 
 import amendmentInfoData from '../data/amendments_info.json'
 import amendmentStatusData from '../data/amendments_status.json'
-import { AmendmentStatus, AmendmentsInfo } from '../types'
+import { AmendmentStatus, AmendmentInfo } from '../types'
 import logger from '../utils/logger'
 
 import { saveAmendmentInfo } from './amendments'
@@ -46,7 +46,7 @@ async function saveAmendmentsStatus(
 async function addAmendmentsInfoFromJSON(): Promise<void> {
   log.info('Adding Amendments Information from JSON File...')
   const data = amendmentInfoData
-  data.forEach(async (amendmentInfo: AmendmentsInfo) => {
+  data.forEach(async (amendmentInfo: AmendmentInfo) => {
     await saveAmendmentInfo(amendmentInfo)
   })
   log.info('Finished adding Amendments Information from JSON File.')
