@@ -82,7 +82,7 @@ interface ValidationRaw {
   type: string
   validation_public_key: string
   server_version?: string
-  networks?: string
+  networks?: number
   amendments?: string[]
   base_fee?: number
   reserve_base?: number
@@ -121,7 +121,7 @@ interface Validator {
   partial: boolean
   last_ledger_time: Date
   server_version?: string
-  networks?: string
+  networks?: number
 }
 
 interface DatabaseValidator extends Validator {
@@ -140,7 +140,7 @@ interface DatabaseValidator extends Validator {
 }
 
 interface DatabaseNetwork {
-  id: string
+  id: number
   entry: string
   port?: number
   unls: string

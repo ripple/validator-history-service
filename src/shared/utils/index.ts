@@ -114,7 +114,7 @@ function blobToValidators(blob: UNLBlob): Set<string> {
  *
  * @returns An array of sets containing the signing keys of validators on each list.
  */
-export async function getLists(): Promise<Record<string, Set<string>>> {
+export async function getLists(): Promise<Record<number, Set<string>>> {
   const lists = {}
   const promises: Array<Promise<void>> = []
   const networks = await getNetworks()

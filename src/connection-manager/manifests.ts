@@ -29,10 +29,10 @@ let jobsStarted = false
 /**
  * Get the first UNL in the list of UNLs for the network with name `networkName`.
  *
- * @param networkName - The name of the network.
+ * @param networkName - The id of the network.
  * @returns The first UNL in the list of UNLs for the network.
  */
-async function getFirstUNL(networkName: string): Promise<string> {
+async function getFirstUNL(networkName: number): Promise<string> {
   const networks = await getNetworks()
   const network = networks.filter((ntwk) => ntwk.id === networkName)[0]
   return network.unls[0]
@@ -96,7 +96,7 @@ export async function updateUNLManifests(): Promise<void> {
  * @param network - The network to update.
  * @returns A promise that resolves to void once all UNL validators are saved.
  */
-async function updateUNLManifestNetwork(network: string): Promise<void> {
+async function updateUNLManifestNetwork(network: number): Promise<void> {
   try {
     log.info('Fetching UNL...')
     const unl: UNLBlob = await fetchValidatorList(await getFirstUNL(network))
@@ -135,7 +135,6 @@ export async function updateManifestsFromRippled(): Promise<void> {
 
     const handleManifestPromises: Array<Promise<void>> = []
     for (const manifestHex of manifests) {
-      // eslint-disable-next-line max-depth -- necessary depth
       if (manifestHex) {
         handleManifestPromises.push(handleManifest(manifestHex))
       }
@@ -191,7 +190,7 @@ export async function updateUnls(): Promise<void> {
           return res.map((idx: { signing_key: string }) => idx.signing_key)
         })
 
-      const networkUNL = await getFirstUNL(name)
+      const networkUNL = await getFirstUNL(Number(name))
       await query('validators')
         .whereIn('signing_key', keys)
         .update({ unl: networkUNL })

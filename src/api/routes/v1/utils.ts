@@ -46,7 +46,7 @@ export async function getChains(
   })
 
   let requestedField
-  if (networks.includes(param)) {
+  if (networks.includes(Number(param))) {
     requestedField = 'networks'
   } else if (unls.includes(param)) {
     requestedField = 'unl'

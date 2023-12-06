@@ -111,7 +111,7 @@ class Crawler {
    *
    * @param network - 'mainnet' 'testnet' or 'devnet'.
    */
-  public async saveConnections(network: string): Promise<void> {
+  public async saveConnections(network: number): Promise<void> {
     for (const [key, connections] of this.connections) {
       void query('crawls')
         .where({ public_key: key })

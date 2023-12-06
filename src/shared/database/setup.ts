@@ -52,6 +52,19 @@ async function setupCrawlsTable(): Promise<void> {
       table.string('incomplete_shards').after('complete_shards')
     })
   }
+
+  await query('crawls')
+    .columnInfo('networks')
+    .then(async (columnInfo) => {
+      if (columnInfo.type.includes('character')) {
+        await db().schema.alterTable('crawls', (table) => {
+          table.dropColumn('networks')
+        })
+        await db().schema.alterTable('crawls', (table) => {
+          table.integer('networks').after('connected')
+        })
+      }
+    })
 }
 
 async function setupLocationTable(): Promise<void> {
@@ -123,16 +136,19 @@ async function setupValidatorsTable(): Promise<void> {
       table.json('agreement_30day')
     })
   }
-  if (!(await db().schema.hasColumn('validators', 'server_version'))) {
-    await db().schema.alterTable('validators', (table) => {
-      table.string('server_version').after('domain_verified')
+
+  await query('validators')
+    .columnInfo('networks')
+    .then(async (columnInfo) => {
+      if (columnInfo.type.includes('character')) {
+        await db().schema.alterTable('validators', (table) => {
+          table.dropColumn('networks')
+        })
+        await db().schema.alterTable('validators', (table) => {
+          table.integer('networks').after('connected')
+        })
+      }
     })
-  }
-  if (!(await db().schema.hasColumn('validators', 'networks'))) {
-    await db().schema.alterTable('validators', (table) => {
-      table.string('networks').after('chain')
-    })
-  }
 }
 
 async function setupHourlyAgreementTable(): Promise<void> {
