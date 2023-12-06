@@ -134,7 +134,7 @@ export async function saveAmendmentInfo(
  */
 export async function deleteAmendmentStatus(
   amendment_id: string,
-  networks: string,
+  networks: number,
 ): Promise<void> {
   await query('amendments_status')
     .del()

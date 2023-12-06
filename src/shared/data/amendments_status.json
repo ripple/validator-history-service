@@ -1,6 +1,6 @@
 [
     {
-        "networks": "main",
+        "networks": 0,
         "amendments": [
             {
                 "id": "42426C4D4F1009EE67080A9B7965B44656D7714D104A72F9B4369F97ABF044EE",
@@ -323,7 +323,7 @@
         ]
     },
     {
-        "networks": "test",
+        "networks": 1,
         "amendments": [
             {
                 "id": "DF8B4536989BDACE3F934F29423848B9F1D76D09BE6A1FCFE7E7F06AA26ABEAD",
@@ -382,7 +382,7 @@
         ]
     },
     {
-        "networks": "dev",
+        "networks": 2,
         "amendments": [
             {
                 "id": "AF8DF7465C338AE64B1E937D6C8DA138C0D63AD5134A68792BBBE1F63356C422",
@@ -639,7 +639,7 @@
         ]
     },
     {
-        "networks": "xahau-test",
+        "networks": 21338,
         "amendments": [
             {
                 "id": "F5751842D26FC057B92CAA435ABF4F1428C2BCC4180D18775ADE92CB2643BBA3",

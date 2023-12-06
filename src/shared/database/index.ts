@@ -249,7 +249,7 @@ export async function saveValidator(
  */
 export async function saveAmendmentsStatus(
   amendments: string[],
-  networks: string | undefined,
+  networks: number | undefined,
 ): Promise<void> {
   amendments.forEach(async (amendment) => {
     await query('amendments_status')

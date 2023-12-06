@@ -59,7 +59,7 @@ interface LedgerResponseCorrected extends LedgerResponse {
 
 interface AmendmentEnabled {
   amendment_id: string
-  networks: string
+  networks: number
   ledger_index?: number
   tx_hash?: string
   date?: Date
@@ -67,7 +67,7 @@ interface AmendmentEnabled {
 
 interface AmendmentPending {
   amendment_id: string
-  networks: string
+  networks: number
   eta?: Date
 }
 

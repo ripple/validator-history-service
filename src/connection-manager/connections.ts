@@ -24,7 +24,7 @@ const log = logger({ name: 'connections' })
 const ports = [443, 80, 6005, 6006, 51233, 51234]
 const protocols = ['wss://', 'ws://']
 const connections: Map<string, WebSocket> = new Map()
-const networkFee: Map<string, FeeVote> = new Map()
+const networkFee: Map<number, FeeVote> = new Map()
 const CM_INTERVAL = 60 * 60 * 1000
 const WS_TIMEOUT = 10000
 const REPORTING_INTERVAL = 15 * 60 * 1000
@@ -42,7 +42,7 @@ let cmStarted = false
 async function setHandlers(
   ip: string,
   ws: WebSocket,
-  networks: string | undefined,
+  networks: number | undefined,
   isInitialNode = false,
 ): Promise<void> {
   const ledger_hashes: string[] = []
@@ -118,7 +118,7 @@ async function setHandlers(
 interface WsNode {
   ip: string
   ws_url?: string
-  networks?: string
+  networks?: number
 }
 
 /**

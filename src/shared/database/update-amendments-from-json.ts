@@ -11,7 +11,7 @@ import { query } from './utils'
 const log = logger({ name: 'database-agreement' })
 
 interface AmendmentStatusJson {
-  networks: string
+  networks: number
   amendments: Array<{
     id: string
     ledger_index: number

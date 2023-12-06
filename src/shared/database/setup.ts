@@ -240,7 +240,21 @@ async function setupAmendmentsStatusTable(): Promise<void> {
   if (!hasAmendmentsStatus) {
     await db().schema.createTable('amendments_status', (table) => {
       table.string('amendment_id')
-      table.string('networks')
+      table.integer('networks')
+      table.integer('ledger_index')
+      table.string('tx_hash')
+      table.dateTime('date')
+      table.datetime('eta')
+      table.primary(['amendment_id', 'networks'])
+    })
+  }
+
+  const networkIds = await query('amendments_status').pluck('networks')
+  if (networkIds.includes('main')) {
+    await db().schema.dropTableIfExists('amendments_status')
+    await db().schema.createTable('amendments_status', (table) => {
+      table.string('amendment_id')
+      table.integer('networks')
       table.integer('ledger_index')
       table.string('tx_hash')
       table.dateTime('date')

@@ -17,11 +17,11 @@ import {
   StreamManifest,
   ValidationRaw,
 } from '../shared/types'
+import { getNetworkId } from '../shared/utils'
 
 import agreement from './agreement'
 import { handleManifest } from './manifests'
 
-const LEDGER_HASHES_SIZE = 10
 const GOT_MAJORITY_FLAG = 65536
 const LOST_MAJORITY_FLAG = 131072
 const FOURTEEN_DAYS_IN_SECONDS = 14 * 24 * 60 * 60
@@ -115,15 +115,12 @@ function isFlagLedgerPlusOne(ledger_index: number): boolean {
 export async function handleWsMessageSubscribeTypes(
   data: ValidationRaw | StreamManifest | StreamLedger | LedgerEntryResponse,
   ledger_hashes: string[],
-  networks: string | undefined,
-  network_fee: Map<string, FeeVote>,
+  networks: number | undefined,
+  network_fee: Map<number, FeeVote>,
   ws: WebSocket,
 ): Promise<void> {
   if (data.type === 'validationReceived') {
     const validationData = data as ValidationRaw
-    if (ledger_hashes.includes(validationData.ledger_hash)) {
-      validationData.networks = networks
-    }
 
     // Get network of the validation if ledger_hash is not in cache.
     const validationNetworkDb: DatabaseValidator | undefined = await query(
@@ -132,12 +129,12 @@ export async function handleWsMessageSubscribeTypes(
       .select('*')
       .where('signing_key', validationData.validation_public_key)
       .first()
-    const validationNetwork =
-      validationNetworkDb?.networks ?? validationData.networks
+    validationData.networks =
+      validationNetworkDb?.networks ?? (await getNetworkId(ws.url))
 
     // Get the fee for the network to be used in case the validator does not vote for a new fee.
-    if (validationNetwork) {
-      validationData.ledger_fee = network_fee.get(validationNetwork)
+    if (validationData.networks) {
+      validationData.ledger_fee = network_fee.get(validationData.networks)
     }
     void agreement.handleValidation(validationData)
   } else if (data.type === 'manifestReceived') {
@@ -153,9 +150,6 @@ export async function handleWsMessageSubscribeTypes(
       }
       network_fee.set(networks, fee)
     }
-    if (ledger_hashes.length > LEDGER_HASHES_SIZE) {
-      ledger_hashes.shift()
-    }
     if (isFlagLedgerPlusOne(current_ledger.ledger_index)) {
       getEnableAmendmentLedger(ws, current_ledger.ledger_index)
     }
@@ -170,7 +164,7 @@ export async function handleWsMessageSubscribeTypes(
  */
 export async function handleWsMessageLedgerEntryAmendments(
   data: LedgerEntryResponse,
-  networks: string | undefined,
+  networks: number | undefined,
 ): Promise<void> {
   if (
     data.result.node?.LedgerEntryType === 'Amendments' &&
@@ -190,7 +184,7 @@ export async function handleWsMessageLedgerEntryAmendments(
 export async function handleWsMessageLedgerEnableAmendments(
   ws: WebSocket,
   data: LedgerResponseCorrected,
-  networks: string | undefined,
+  networks: number | undefined,
 ): Promise<void> {
   data.result.ledger.transactions?.forEach(async (transaction) => {
     if (
@@ -224,7 +218,7 @@ export async function handleWsMessageLedgerEnableAmendments(
  */
 export async function handleWsMessageTxEnableAmendments(
   data: TxResponse,
-  networks: string | undefined,
+  networks: number | undefined,
 ): Promise<void> {
   if (data.result.TransactionType === 'EnableAmendment' && networks) {
     const amendment: AmendmentStatus = {
