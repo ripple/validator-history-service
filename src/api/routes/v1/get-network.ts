@@ -18,7 +18,7 @@ const log = logger({ name: 'api-get-network' })
 async function crawlNode(
   host: string,
   port: number,
-): Promise<{ crawl: Crawl; port: number } | undefined> {
+): Promise<{ crawl: Crawler; port: number } | undefined> {
   const crawl = await crawlNodeOriginal(host, port)
   if (crawl == null) {
     return undefined
