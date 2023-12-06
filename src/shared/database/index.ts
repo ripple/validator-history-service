@@ -5,6 +5,7 @@ import {
   Validator,
   Location,
   DatabaseNetwork,
+  AmendmentStatus,
   Ballot,
 } from '../types'
 import logger from '../utils/logger'
@@ -238,6 +239,40 @@ export async function saveValidator(
   await query('validators')
     .where({ signing_key: validator.signing_key, revoked: null })
     .update({ revoked: false })
+}
+
+/**
+ * Saves list of amendments status on a network to the database.
+ *
+ * @param amendments - The list of amendments to be saved.
+ * @param networks - The networks to be saved.
+ */
+export async function saveAmendmentsStatus(
+  amendments: string[],
+  networks: string | undefined,
+): Promise<void> {
+  amendments.forEach(async (amendment) => {
+    await query('amendments_status')
+      .insert({ amendment_id: amendment, networks })
+      .onConflict(['amendment_id', 'networks'])
+      .merge()
+      .catch((err) => log.error('Error Saving Status Amendment', err))
+  })
+}
+
+/**
+ * Saves an amendment status on a network to the database.
+ *
+ * @param amendment - The amendment to be saved.
+ */
+export async function saveAmendmentStatus(
+  amendment: AmendmentStatus,
+): Promise<void> {
+  await query('amendments_status')
+    .insert(amendment)
+    .onConflict(['amendment_id', 'networks'])
+    .merge()
+    .catch((err) => log.error('Error Saving Amendment Status', err))
 }
 
 /**

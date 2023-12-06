@@ -1,4 +1,6 @@
+/* eslint-disable max-lines-per-function  -- Disable for this file with complex websocket rules. */
 import WebSocket from 'ws'
+import { LedgerEntryResponse, TxResponse } from 'xrpl'
 
 import {
   query,
@@ -6,17 +8,17 @@ import {
   clearConnectionsDb,
   getNetworks,
 } from '../shared/database'
-import {
-  DatabaseValidator,
-  FeeVote,
-  StreamLedger,
-  StreamManifest,
-  ValidationRaw,
-} from '../shared/types'
+import { FeeVote, LedgerResponseCorrected } from '../shared/types'
 import logger from '../shared/utils/logger'
 
-import agreement from './agreement'
-import { handleManifest } from './manifests'
+import {
+  getAmendmentLedgerEntry,
+  handleWsMessageLedgerEnableAmendments,
+  handleWsMessageLedgerEntryAmendments,
+  handleWsMessageSubscribeTypes,
+  handleWsMessageTxEnableAmendments,
+  subscribe,
+} from './wsHandling'
 
 const log = logger({ name: 'connections' })
 const ports = [443, 80, 6005, 6006, 51233, 51234]
@@ -26,86 +28,7 @@ const networkFee: Map<string, FeeVote> = new Map()
 const CM_INTERVAL = 60 * 60 * 1000
 const WS_TIMEOUT = 10000
 const REPORTING_INTERVAL = 15 * 60 * 1000
-const LEDGER_HASHES_SIZE = 10
 let cmStarted = false
-
-/**
- * Subscribes a WebSocket to manifests and validations streams.
- *
- * @param ws - A WebSocket object.
- */
-function subscribe(ws: WebSocket): void {
-  ws.send(
-    JSON.stringify({
-      id: 2,
-      command: 'subscribe',
-      streams: ['manifests', 'validations', 'ledger'],
-    }),
-  )
-}
-
-/**
- * Retrieves the network information of a validation from either the validation itself or from the database.
- *
- * @param validationData -- The raw validation data.
- * @returns The networks information.
- */
-async function getValidationNetwork(
-  validationData: ValidationRaw,
-): Promise<string | undefined> {
-  const validationNetworkDb: DatabaseValidator | undefined = await query(
-    'validators',
-  )
-    .select('*')
-    .where('signing_key', validationData.validation_public_key)
-    .first()
-  return validationNetworkDb?.networks ?? validationData.networks
-}
-
-/**
- * Handles a WebSocket message received.
- *
- * @param data - The WebSocket message received from connection.
- * @param ledger_hashes - The list of recent ledger hashes.
- * @param networks - The networks of subscribed node.
- * @returns Void.
- */
-async function handleWsMessageTypes(
-  data: ValidationRaw | StreamManifest | StreamLedger,
-  ledger_hashes: string[],
-  networks: string | undefined,
-): Promise<void> {
-  if (data.type === 'validationReceived') {
-    const validationData = data as ValidationRaw
-    if (ledger_hashes.includes(validationData.ledger_hash)) {
-      validationData.networks = networks
-    }
-
-    const validationNetwork = await getValidationNetwork(validationData)
-
-    // Get the fee for the network to be used in case the validator does not vote for a new fee.
-    if (validationNetwork) {
-      validationData.ledger_fee = networkFee.get(validationNetwork)
-    }
-    void agreement.handleValidation(validationData)
-  } else if (data.type === 'manifestReceived') {
-    void handleManifest(data as StreamManifest)
-  } else if (data.type.includes('ledger')) {
-    const current_ledger = data as StreamLedger
-    ledger_hashes.push(current_ledger.ledger_hash)
-    if (networks) {
-      const fee: FeeVote = {
-        fee_base: current_ledger.fee_base,
-        reserve_base: current_ledger.reserve_base,
-        reserve_inc: current_ledger.reserve_inc,
-      }
-      networkFee.set(networks, fee)
-    }
-    if (ledger_hashes.length > LEDGER_HASHES_SIZE) {
-      ledger_hashes.shift()
-    }
-  }
-}
 
 /**
  * Sets the handlers for each WebSocket object.
@@ -113,12 +36,14 @@ async function handleWsMessageTypes(
  * @param ip - The ip address of the node we are trying to reach.
  * @param ws - A WebSocket object.
  * @param networks - The networks of the node we are trying to reach where it retrieves validations.
+ * @param isInitialNode - Whether source node is an entry/initial node for the network.
  * @returns A Promise that resolves to void once a connection has been created or timeout has occured.
  */
 async function setHandlers(
   ip: string,
   ws: WebSocket,
   networks: string | undefined,
+  isInitialNode = false,
 ): Promise<void> {
   const ledger_hashes: string[] = []
   return new Promise(function setHandlersPromise(resolve, _reject) {
@@ -130,6 +55,15 @@ async function setHandlers(
       void saveNodeWsUrl(ws.url, true)
       connections.set(ip, ws)
       subscribe(ws)
+
+      // Use LedgerEntry to look for amendments that has already been enabled on a network when connections
+      // first start, or when a new network is added. This only need to be ran only once on the initial node
+      // on the network table per network, as new enabled amendments afterwards will be added when there's a
+      // EnableAmendment tx happens, which would provide more information compared to ledger_entry (please
+      // look at handleWsMessageLedgerEnableAmendments function for more details).
+      if (isInitialNode) {
+        getAmendmentLedgerEntry(ws)
+      }
       resolve()
     })
     ws.on('message', function handleMessage(message: string) {
@@ -140,7 +74,28 @@ async function setHandlers(
         log.error('Error parsing validation message', error)
         return
       }
-      void handleWsMessageTypes(data, ledger_hashes, networks)
+      if (data.result?.node) {
+        void handleWsMessageLedgerEntryAmendments(
+          data as LedgerEntryResponse,
+          networks,
+        )
+      } else if (data.result?.ledger && isInitialNode) {
+        void handleWsMessageLedgerEnableAmendments(
+          ws,
+          data as LedgerResponseCorrected,
+          networks,
+        )
+      } else if (data.result?.Amendment) {
+        void handleWsMessageTxEnableAmendments(data as TxResponse, networks)
+      } else {
+        void handleWsMessageSubscribeTypes(
+          data,
+          ledger_hashes,
+          networks,
+          networkFee,
+          ws,
+        )
+      }
     })
     ws.on('close', () => {
       if (connections.get(ip)?.url === ws.url) {
@@ -173,6 +128,9 @@ interface WsNode {
  * @returns A promise that resolves to void once a valid endpoint to the node has been found or timeout occurs.
  */
 async function findConnection(node: WsNode): Promise<void> {
+  const networkInitialIps = (await getNetworks()).map(
+    (network) => network.entry,
+  )
   if (!node.ip || node.ip.search(':') !== -1) {
     return Promise.resolve()
   }
@@ -191,7 +149,14 @@ async function findConnection(node: WsNode): Promise<void> {
     for (const protocol of protocols) {
       const url = `${protocol}${node.ip}:${port}`
       const ws = new WebSocket(url, { handshakeTimeout: WS_TIMEOUT })
-      promises.push(setHandlers(node.ip, ws, node.networks))
+      promises.push(
+        setHandlers(
+          node.ip,
+          ws,
+          node.networks,
+          networkInitialIps.includes(node.ip),
+        ),
+      )
     }
   }
   await Promise.all(promises)

@@ -3,6 +3,8 @@ import { Request, Response } from 'express'
 import { query } from '../../../shared/database'
 import logger from '../../../shared/utils/logger'
 
+import { CACHE_INTERVAL_MILLIS } from './utils'
+
 const log = logger({ name: 'api-nodes' })
 
 interface NodeResponse {
@@ -162,7 +164,7 @@ void cacheNodes()
  */
 export async function handleNode(req: Request, res: Response): Promise<void> {
   try {
-    if (Date.now() - cache.time > 60 * 1000) {
+    if (Date.now() - cache.time > CACHE_INTERVAL_MILLIS) {
       await cacheNodes()
     }
 
@@ -198,7 +200,7 @@ export async function handleNode(req: Request, res: Response): Promise<void> {
  */
 export async function handleNodes(req: Request, res: Response): Promise<void> {
   try {
-    if (Date.now() - cache.time > 60 * 1000) {
+    if (Date.now() - cache.time > CACHE_INTERVAL_MILLIS) {
       await cacheNodes()
     }
 
@@ -230,7 +232,7 @@ export async function handleTopology(
   res: Response,
 ): Promise<void> {
   try {
-    if (Date.now() - cache.time > 60 * 1000) {
+    if (Date.now() - cache.time > CACHE_INTERVAL_MILLIS) {
       await cacheNodes()
     }
 

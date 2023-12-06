@@ -7,7 +7,6 @@ There are 3 folders in `src`, corresponding to the 3 processes that the VHS runs
 * `connection-manager` manages the connections to rippled, and listens to validation and manifest streams.
 * `crawler` finds validators and overlay nodes.
 
-
 ## API Endpoints
 
 * `/`: Information about the endpoints.
@@ -23,7 +22,10 @@ There are 3 folders in `src`, corresponding to the 3 processes that the VHS runs
   * `/network/validator/:publicKey`: Returns information about a specific validator.
   * `/network/validator/:publicKey/manifests`: Returns the manifests of a specific validator.
   * `/network/validator/:publicKey/reports`: Returns more detailed information about the reliability of a specific validator.
-
+  * `/network/amendments/info`: Returns general information about known amendments.
+  * `/network/amendments/vote/:network`: Returns list of enabled and in voting amendments on a specific network.
+  * `/network/amendment/info/:nameOrID`: Returns general information about a specific amendment by name or ID.
+  * `/network/amendment/vote/:network/:nameOrID`: Returns the voting status of a specific amendment by name or ID.
 
 ## SQL Table Schemas
 
@@ -73,6 +75,7 @@ This table keeps track of how reliable validators have been, on an hourly level.
 | `start`              |The time that the data starts.         |
 | `agreement`          |Data about the reliability of the node.|
 
+
 ### `location`
 
 This table keeps track of the physical location of all of the nodes that the network is aware of.
@@ -105,6 +108,46 @@ This table keeps track of the manifests of the validators.
 | `domain_verified`    |Whether the domain has been verified.                       |
 | `revoked`            |Whether the manifest has been revoked.                      |
 | `seq`                |The sequence number of this manifest.                       |
+
+
+### `amendments_status`
+
+This table keeps track of the amendments status on each network when either the amendment has been enabled or has reached majority.
+
+| Key                  | Definition                                                        |
+|----------------------|-------------------------------------------------------------------|
+| `amendment_id`       |The amendment id.                                                  |
+| `networks`           |The network(s) where the amendment has been/ will be enabled.      |
+| `ledger_index`       |The ledger where the amendment has been/ will be enabled.          |
+| `tx_hash`            |The transaction hash where the amendment has been/ will be enabled.|
+| `eta`                |The estimated date and time when the amendment will be enabled.    |
+| `date`               |The date and time when the amendment has been enabled.             |
+
+
+### `amendments_info`
+
+This table keeps track of the general information of all known amendments.
+
+| Key                  | Definition                                                 |
+|----------------------|------------------------------------------------------------|
+| `id`                 |The amendment id.                                           |
+| `name`               |The name of the amendment.                                  |
+| `rippled_version`    |The rippled version when the amendment is first enabled     |
+| `deprecated`         |Whether the amendment has been deprecated/retired           |
+
+
+### `ballot`
+
+This table keeps track of the most current voting data for the validators.
+
+| Key                  | Definition                                                          |
+|----------------------|---------------------------------------------------------------------|
+| `signing_key`        |The signing key of the validator.                                    |
+| `ledger_index`       |The most recent ledger index where voting data was retrieved.        |
+| `amendments`         |The amendments this validator wants to be added to the protocol.     |
+| `base_fee`           |The unscaled transaction cost this validator wants to set.           |
+| `reserve_base`       |The minimum reserve requirement this validator wants to set.         |
+| `reserve_inc`        |The increment in the reserve requirement this validator wants to set.|
 
 
 ### `ballot`
