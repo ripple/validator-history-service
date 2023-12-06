@@ -60,7 +60,7 @@
   "dependencies": {
     "@maxmind/geoip2-node": "^4.1.0",
     "@types/bunyan": "^1.8.7",
-    "axios": "^0.21.1",
+    "axios": "^1.6.2",
     "bunyan": "^1.8.15",
     "create-hash": "^1.2.0",
     "dotenv": "^16.3.1",
