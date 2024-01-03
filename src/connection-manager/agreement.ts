@@ -275,7 +275,7 @@ class Agreement {
       const validationHash = validations.get(missedLedger[0])?.ledger_hash
       log.warn(
         `Chain ${chain.id} had a validator (${
-          validator_keys.signing_key
+          validator_keys.master_key ?? validator_keys.signing_key
         }) miss a ledger (${missedLedger[0]}) due to ${
           validationHash
             ? `a mismatched hash of ${validationHash}`
