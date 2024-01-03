@@ -17,6 +17,9 @@ import {
   ValidationRaw,
   ValidatorKeys,
   Ballot,
+  LedgerHash,
+  LedgerIndex,
+  Chain,
 } from '../shared/types'
 import logger from '../shared/utils/logger'
 
@@ -28,39 +31,35 @@ const AGREEMENT_INTERVAL = 60 * 60 * 1000
 const PURGE_INTERVAL = 10 * 60 * 1000
 
 /**
- * Calculates the intersection of two sets.
+ * Calculates the difference between a validator's validations and the consensus ledger hash.
  *
- * @param set1 - The first set.
- * @param set2 - The second set.
- * @returns The intersection.
- */
-function setIntersection<T>(set1: Iterable<T>, set2: Map<T, unknown>): Set<T> {
-  const intersection: Set<T> = new Set()
-
-  for (const key of set1) {
-    if (set2.has(key)) {
-      intersection.add(key)
-    }
-  }
-
-  return intersection
-}
-
-/**
- * Calculates the difference of two sets.
- *
- * @param set1 - The first set.
- * @param set2 - The second set.
  * @returns Set1 - set2.
+ * @param ledgers - A map of validated ledger hashes and indexes.
+ * @param validations - A map of validated ledger hashes and raw validations.
  */
-function setDifference<T>(set1: Iterable<T>, set2: Map<T, unknown>): Set<T> {
-  const difference: Set<T> = new Set()
-
-  for (const key of set1) {
-    if (!set2.has(key)) {
-      difference.add(key)
-    }
+function differences(
+  ledgers: Map<LedgerHash, LedgerIndex>,
+  validations: Map<LedgerIndex, ValidationRaw>,
+): {
+  missed: Set<[LedgerIndex, LedgerHash]>
+  correct: Set<[LedgerIndex, LedgerHash]>
+} {
+  const difference = {
+    missed: new Set<[LedgerIndex, LedgerHash]>(),
+    correct: new Set<[LedgerIndex, LedgerHash]>(),
   }
+
+  ledgers.forEach((ledgerIndex, ledgerHash: LedgerHash) => {
+    const tuple: [LedgerIndex, LedgerHash] = [ledgerIndex, ledgerHash]
+    if (
+      validations.has(ledgerIndex) &&
+      validations.get(ledgerIndex)?.ledger_hash === ledgerHash
+    ) {
+      difference.correct.add(tuple)
+    } else {
+      difference.missed.add(tuple)
+    }
+  })
 
   return difference
 }
@@ -124,8 +123,10 @@ function isPreceedingFlagLedger(ledger_index: string): boolean {
  *
  */
 class Agreement {
-  private readonly validationsByPublicKey: Map<string, Map<string, number>> =
-    new Map()
+  private readonly validationsByPublicKey: Map<
+    string,
+    Map<LedgerIndex, ValidationRaw>
+  > = new Map()
 
   private reported_at = new Date()
 
@@ -155,11 +156,7 @@ class Agreement {
 
       for (const signing_key of chain.validators) {
         promises.push(
-          this.calculateValidatorAgreement(
-            signing_key,
-            ledger_hashes,
-            chain.incomplete,
-          ),
+          this.calculateValidatorAgreement(signing_key, ledger_hashes, chain),
         )
       }
     }
@@ -180,10 +177,12 @@ class Agreement {
   public async handleValidation(validation: ValidationRaw): Promise<void> {
     const signing_key = validation.validation_public_key
 
-    const hashes = this.validationsByPublicKey.get(signing_key) ?? new Map()
+    const hashes =
+      this.validationsByPublicKey.get(signing_key) ??
+      new Map<LedgerIndex, ValidationRaw>()
 
-    if (!hashes.has(validation.ledger_hash)) {
-      hashes.set(validation.ledger_hash, Date.now())
+    if (!hashes.has(validation.ledger_index)) {
+      hashes.set(validation.ledger_hash, validation)
       this.validationsByPublicKey.set(signing_key, hashes)
       const validator: Validator = {
         master_key: validation.master_key,
@@ -229,12 +228,12 @@ class Agreement {
    *
    * @param signing_key - Signing key to calculate agreement for.
    * @param ledger_hashes - Ledger hashes seen on this validators chain.
-   * @param incomplete - Are the ledgers heard incomplete.
+   * @param chain - The chain ledgers belong to.
    */
   private async calculateValidatorAgreement(
     signing_key: string,
-    ledger_hashes: Set<string>,
-    incomplete: boolean,
+    ledger_hashes: Map<LedgerHash, LedgerIndex>,
+    chain: Chain,
   ): Promise<void> {
     const master_key = await signingToMaster(signing_key)
     const validator_keys = { master_key, signing_key }
@@ -243,7 +242,7 @@ class Agreement {
       validator_keys,
       this.validationsByPublicKey.get(signing_key) ?? new Map(),
       ledger_hashes,
-      incomplete,
+      chain,
     )
 
     await updateDailyAgreement(validator_keys)
@@ -255,23 +254,35 @@ class Agreement {
    * @param validator_keys - Signing keys of validations for one validator.
    * @param validations - Set of ledger_hashes validated by signing_key.
    * @param ledgers - Set of ledger_hashes validated by network.
-   * @param incomplete - Is this agreement score incomplete.
+   * @param chain - The chain ledgers belong to.
    * @returns Void.
    */
   private async calculateHourlyAgreement(
     validator_keys: ValidatorKeys,
-    validations: Map<string, number>,
-    ledgers: Set<string>,
-    incomplete: boolean,
+    validations: Map<LedgerIndex, ValidationRaw>,
+    ledgers: Map<LedgerHash, LedgerIndex>,
+    chain: Chain,
   ): Promise<void> {
-    const missed = setDifference(ledgers, validations)
-    const validated = setIntersection(ledgers, validations)
+    const difference = differences(ledgers, validations)
 
     const agreement: AgreementScore = {
-      validated: validated.size,
-      missed: missed.size,
-      incomplete,
+      validated: difference.correct.size,
+      missed: difference.missed.size,
+      incomplete: chain.incomplete,
     }
+
+    difference.missed.forEach((missedLedger) => {
+      const validationHash = validations.get(missedLedger[0])?.ledger_hash
+      log.warn(
+        `Chain ${chain.id} had a validator (${
+          validator_keys.signing_key
+        }) miss a ledger (${missedLedger[0]}) due to ${
+          validationHash
+            ? `a mismatched hash of ${validationHash}`
+            : `no validation message`
+        }`,
+      )
+    })
     await saveHourlyAgreement({
       main_key: validator_keys.master_key ?? validator_keys.signing_key,
       start: this.reported_at,
@@ -293,9 +304,9 @@ class Agreement {
      *
      * @param validations - Validations map to delete old hashes.
      */
-    function purgeValidations(validations: Map<string, number>): void {
-      for (const [hash, time] of validations) {
-        if (time < twoHoursAgo) {
+    function purgeValidations(validations: Map<string, ValidationRaw>): void {
+      for (const [hash, validation] of validations) {
+        if (validation.signing_time < twoHoursAgo) {
           validations.delete(hash)
         }
       }

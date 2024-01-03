@@ -8,19 +8,22 @@ import {
 import { Ledger as LedgerXRPL } from 'xrpl/dist/npm/models/ledger'
 import { Manifest, StreamManifest } from 'xrpl-validator-domains'
 
+type LedgerIndex = string
+type LedgerHash = string
+
 interface Chain {
   id: string
   current: number
   first: number
   validators: Set<string>
   updated: number
-  ledgers: Set<string>
+  ledgers: Map<LedgerHash, LedgerIndex>
   incomplete: boolean
 }
 
 interface Ledger {
-  ledger_hash: string
-  ledger_index: number
+  ledger_hash: LedgerHash
+  ledger_index: LedgerIndex
   validations: Set<string>
   first_seen: number
 }
@@ -28,8 +31,8 @@ interface Ledger {
 interface StreamLedger {
   fee_base: number
   fee_ref: number
-  ledger_hash: string
-  ledger_index: number
+  ledger_hash: LedgerHash
+  ledger_index: LedgerIndex
   ledger_time: number
   reserve_base: number
   reserve_inc: number
@@ -265,6 +268,8 @@ export {
   AgreementScore,
   Location,
   Ledger,
+  LedgerIndex,
+  LedgerHash,
   StreamLedger,
   Chain,
   ValidatorKeys,

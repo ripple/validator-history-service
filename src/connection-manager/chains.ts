@@ -24,7 +24,7 @@ function sortChainLength(chain1: Chain, chain2: Chain): number {
  * @param chain - Chain to update.
  */
 function addLedgerToChain(ledger: Ledger, chain: Chain): void {
-  chain.ledgers.add(ledger.ledger_hash)
+  chain.ledgers.set(ledger.ledger_hash, ledger.ledger_index)
   for (const validator of ledger.validations) {
     chain.validators.add(validator)
   }
@@ -169,7 +169,7 @@ class Chains {
   private addNewChain(ledger: Ledger): void {
     const current = ledger.ledger_index
     const validators = ledger.validations
-    const ledgerSet = new Set([ledger.ledger_hash])
+    const ledgerSet = new Map().set(ledger.ledger_hash, ledger.ledger_index)
 
     const chain: Chain = {
       id: this.getNextChainID(),
