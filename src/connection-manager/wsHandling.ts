@@ -12,6 +12,7 @@ import {
   AmendmentStatus,
   DatabaseValidator,
   FeeVote,
+  LedgerIndex,
   LedgerResponseCorrected,
   StreamLedger,
   StreamManifest,
@@ -62,7 +63,7 @@ export function getAmendmentLedgerEntry(ws: WebSocket): void {
  * @param ws - A WebSocket object.
  * @param ledger_index -- The index of the ledger.
  */
-function getEnableAmendmentLedger(ws: WebSocket, ledger_index: number): void {
+function getEnableAmendmentLedger(ws: WebSocket, ledger_index: string): void {
   ws.send(
     JSON.stringify({
       command: 'ledger',
@@ -94,8 +95,8 @@ function getEnableAmendmentTx(ws: WebSocket, transaction: string): void {
  * @param ledger_index - The index of the ledger.
  * @returns Boolean.
  */
-function isFlagLedgerPlusOne(ledger_index: number): boolean {
-  if (ledger_index % 256 === 1) {
+function isFlagLedgerPlusOne(ledger_index: LedgerIndex): boolean {
+  if (Number(ledger_index) % 256 === 1) {
     return true
   }
   return false

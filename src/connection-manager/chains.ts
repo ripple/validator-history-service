@@ -1,7 +1,7 @@
 import { Knex } from 'knex'
 
 import { query } from '../shared/database'
-import { Ledger, ValidationRaw, Chain } from '../shared/types'
+import { Ledger, ValidationRaw, Chain, LedgerHash } from '../shared/types'
 import { getLists, overlaps } from '../shared/utils'
 import logger from '../shared/utils/logger'
 
@@ -29,7 +29,7 @@ function addLedgerToChain(ledger: Ledger, chain: Chain): void {
     chain.validators.add(validator)
   }
 
-  chain.current = ledger.ledger_index
+  chain.current = Number(ledger.ledger_index)
   chain.updated = ledger.first_seen
 }
 
@@ -70,7 +70,7 @@ async function saveValidatorChains(chain: Chain): Promise<void> {
  *
  */
 class Chains {
-  private readonly ledgersByHash: Map<string, Ledger> = new Map()
+  private readonly ledgersByHash: Map<LedgerHash, Ledger> = new Map()
   private chains: Chain[] = []
   private index = 0
 
@@ -81,7 +81,7 @@ class Chains {
    */
   public updateLedgers(validation: ValidationRaw): void {
     const { ledger_hash, validation_public_key: signing_key } = validation
-    const ledger_index = Number(validation.ledger_index)
+    const ledger_index = validation.ledger_index
 
     const ledger: Ledger | undefined = this.ledgersByHash.get(ledger_hash)
 
@@ -118,7 +118,10 @@ class Chains {
       }
     }
 
-    list.sort((ledger1, ledger2) => ledger1.ledger_index - ledger2.ledger_index)
+    list.sort(
+      (ledger1, ledger2) =>
+        Number(ledger1.ledger_index) - Number(ledger2.ledger_index),
+    )
 
     for (const ledger of list) {
       this.updateChains(ledger)
@@ -173,8 +176,8 @@ class Chains {
 
     const chain: Chain = {
       id: this.getNextChainID(),
-      current,
-      first: current,
+      current: Number(current),
+      first: Number(current),
       validators,
       updated: ledger.first_seen,
       ledgers: ledgerSet,
@@ -191,7 +194,7 @@ class Chains {
    * @param ledger - The Ledger being handled in order to update the chains.
    */
   private updateChains(ledger: Ledger): void {
-    const next = ledger.ledger_index
+    const next = Number(ledger.ledger_index)
     const validators = ledger.validations
 
     const chainAtNextIndex: Chain | undefined = this.chains
@@ -228,7 +231,8 @@ class Chains {
     )
 
     if (chainWithThisValidator !== undefined) {
-      const skipped = ledger.ledger_index - chainWithThisValidator.current
+      const skipped =
+        Number(ledger.ledger_index) - chainWithThisValidator.current
       log.warn(`Possibly skipped ${skipped} ledgers`)
       if (skipped > 1 && skipped < 20) {
         chainWithThisValidator.incomplete = true
