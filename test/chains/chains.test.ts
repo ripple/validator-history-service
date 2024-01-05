@@ -33,7 +33,8 @@ describe('Creates chains', () => {
       validators: Set<string>
     }> = chains.calculateChainsFromLedgers()
 
-    const ledgerHashes = constructed[0].ledgers.keys()
+    const ledgerHashes = Array.from(constructed[0].ledgers.keys())
+    console.log('hashes', ledgerHashes)
     expect(ledgerHashes).toContain('LEDGER1')
     expect(ledgerHashes).toContain('LEDGER2')
     expect(ledgerHashes).toContain('LEDGER3')
