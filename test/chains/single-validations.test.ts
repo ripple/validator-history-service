@@ -1,5 +1,6 @@
 import chains from '../../src/connection-manager/chains'
 import { destroy, query, setupTables } from '../../src/shared/database'
+import { LedgerHash, LedgerIndex } from '../../src/shared/types'
 
 import singleValidations from './fixtures/single-validations.json'
 
@@ -28,7 +29,7 @@ describe('Single Validations', () => {
     // Mock date.now
     Date.now = (): number => time
     const constructed: Array<{
-      ledgers: Set<string>
+      ledgers: Map<LedgerHash, LedgerIndex>
       validators: Set<string>
     }> = chains.calculateChainsFromLedgers()
 

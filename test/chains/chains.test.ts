@@ -1,5 +1,6 @@
 import chains from '../../src/connection-manager/chains'
 import { destroy, query, setupTables } from '../../src/shared/database'
+import { LedgerHash, LedgerIndex } from '../../src/shared/types'
 
 import validations from './fixtures/all-validations.json'
 
@@ -28,13 +29,14 @@ describe('Creates chains', () => {
     // Mock date.now
     Date.now = (): number => time
     const constructed: Array<{
-      ledgers: Set<string>
+      ledgers: Map<LedgerHash, LedgerIndex>
       validators: Set<string>
     }> = chains.calculateChainsFromLedgers()
 
-    expect(constructed[0].ledgers).toContain('LEDGER1')
-    expect(constructed[0].ledgers).toContain('LEDGER2')
-    expect(constructed[0].ledgers).toContain('LEDGER3')
+    const ledgerHashes = constructed[0].ledgers.keys()
+    expect(ledgerHashes).toContain('LEDGER1')
+    expect(ledgerHashes).toContain('LEDGER2')
+    expect(ledgerHashes).toContain('LEDGER3')
 
     expect(constructed[0].validators).toContain('VALIDATOR1')
     expect(constructed[0].validators).toContain('VALIDATOR2')
@@ -45,11 +47,11 @@ describe('Creates chains', () => {
     await chains.purgeChains()
 
     const constructed: Array<{
-      ledgers: Set<string>
+      ledgers: Map<LedgerHash, LedgerIndex>
       validators: Set<string>
     }> = chains.calculateChainsFromLedgers()
 
-    expect(constructed[0].ledgers).toEqual(new Set())
+    expect(constructed[0].ledgers).toEqual(new Map())
 
     expect(constructed[0].validators).toContain('VALIDATOR1')
     expect(constructed[0].validators).toContain('VALIDATOR2')
