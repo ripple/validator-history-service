@@ -2,6 +2,7 @@ import 'dotenv/config'
 
 import Crawler from '../crawler/crawl'
 import { setupTables, getNetworks } from '../shared/database'
+import { fetchAmendmentInfo } from '../shared/database/amendments'
 
 import agreement from './agreement'
 import startConnections from './connections'
@@ -18,6 +19,7 @@ async function start(): Promise<void> {
     promises.push(crawler.crawl(network))
   }
   await Promise.all(promises)
+  await fetchAmendmentInfo()
   await startConnections()
   await doManifestJobs()
   agreement.start()
