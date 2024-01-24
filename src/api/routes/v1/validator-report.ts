@@ -35,7 +35,7 @@ function formatResponse(response: DatabaseResponse): ScoreResponse {
   } = response
   const denominator = validated + missed
   const score: number = denominator === 0 ? 0 : validated / denominator
-  date.setHours(23, 0, 0, 0)
+  date.setHours(0, 0, 0, 0)
 
   return {
     validation_public_key: master_key,
