@@ -24,7 +24,7 @@ import { handleManifest } from './manifests'
 const LEDGER_HASHES_SIZE = 10
 const GOT_MAJORITY_FLAG = 65536
 const LOST_MAJORITY_FLAG = 131072
-const FOURTEEN_DAYS_IN_SECONDS = 14 * 24 * 60 * 60
+const FOURTEEN_DAYS_IN_MILLISECONDS = 14 * 24 * 60 * 60 * 1000
 
 /**
  * Subscribes a WebSocket to manifests and validations streams.
@@ -69,21 +69,6 @@ function getEnableAmendmentLedger(ws: WebSocket, ledger_index: number): void {
       ledger_index,
       transactions: true,
       expand: true,
-    }),
-  )
-}
-
-/**
- * Sends a tx WebSocket request to retrieve EnableAmendment transaction details.
- *
- * @param ws - A WebSocket object.
- * @param transaction -- The hash of the transaction.
- */
-function getEnableAmendmentTx(ws: WebSocket, transaction: string): void {
-  ws.send(
-    JSON.stringify({
-      command: 'tx',
-      transaction,
     }),
   )
 }
@@ -199,13 +184,32 @@ export async function handleWsMessageLedgerEnableAmendments(
       networks
     ) {
       if (!transaction.Flags) {
-        getEnableAmendmentTx(ws, transaction.hash)
+        const enabledAmendment = {
+          amendment_id: transaction.Amendment,
+          networks,
+          eta: new Date(
+            rippleTimeToUnixTime(data.result.ledger.close_time) +
+              FOURTEEN_DAYS_IN_MILLISECONDS,
+          ),
+        }
+
+        const amendment: AmendmentStatus = {
+          amendment_id: transaction.Amendment,
+          networks,
+          ledger_index: data.result.ledger_index,
+          tx_hash: transaction.hash,
+          date: new Date(rippleTimeToUnixTime(data.result.ledger.close_time)),
+          eta: undefined,
+        }
+        await saveAmendmentStatus(amendment)
+        await saveAmendmentStatus(enabledAmendment)
       } else if (transaction.Flags === GOT_MAJORITY_FLAG) {
         const incomingAmendment = {
           amendment_id: transaction.Amendment,
           networks,
           eta: new Date(
-            rippleTimeToUnixTime(transaction.date) + FOURTEEN_DAYS_IN_SECONDS,
+            rippleTimeToUnixTime(data.result.ledger.close_time) +
+              FOURTEEN_DAYS_IN_MILLISECONDS,
           ),
         }
         await saveAmendmentStatus(incomingAmendment)
@@ -214,29 +218,4 @@ export async function handleWsMessageLedgerEnableAmendments(
       }
     }
   })
-}
-
-/**
- * Handle ws ledger messages to process EnableAmendment with no Flags transactions.
- *
- * @param data - The WebSocket message received from connection.
- * @param networks - The WebSocket message received from connection.
- */
-export async function handleWsMessageTxEnableAmendments(
-  data: TxResponse,
-  networks: string | undefined,
-): Promise<void> {
-  if (data.result.TransactionType === 'EnableAmendment' && networks) {
-    const amendment: AmendmentStatus = {
-      amendment_id: data.result.Amendment,
-      networks,
-      ledger_index: data.result.ledger_index,
-      tx_hash: data.result.hash,
-      date: data.result.date
-        ? new Date(rippleTimeToUnixTime(data.result.date))
-        : undefined,
-      eta: undefined,
-    }
-    await saveAmendmentStatus(amendment)
-  }
 }

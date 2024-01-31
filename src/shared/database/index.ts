@@ -268,6 +268,7 @@ export async function saveAmendmentsStatus(
 export async function saveAmendmentStatus(
   amendment: AmendmentStatus,
 ): Promise<void> {
+  console.log(`saveAmendmentStatus`, amendment)
   await query('amendments_status')
     .insert(amendment)
     .onConflict(['amendment_id', 'networks'])
