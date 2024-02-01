@@ -1,5 +1,5 @@
 import WebSocket from 'ws'
-import { LedgerEntryResponse, rippleTimeToUnixTime, TxResponse } from 'xrpl'
+import { LedgerEntryResponse, rippleTimeToUnixTime } from 'xrpl'
 import { AMENDMENTS_ID } from 'xrpl/dist/npm/models/ledger'
 
 import {
@@ -17,6 +17,7 @@ import {
   StreamManifest,
   ValidationRaw,
 } from '../shared/types'
+import logger from '../shared/utils/logger'
 
 import agreement from './agreement'
 import { handleManifest } from './manifests'
@@ -25,6 +26,8 @@ const LEDGER_HASHES_SIZE = 10
 const GOT_MAJORITY_FLAG = 65536
 const LOST_MAJORITY_FLAG = 131072
 const FOURTEEN_DAYS_IN_MILLISECONDS = 14 * 24 * 60 * 60 * 1000
+
+const log = logger({ name: 'connections' })
 
 /**
  * Subscribes a WebSocket to manifests and validations streams.
@@ -173,10 +176,13 @@ export async function handleWsMessageLedgerEntryAmendments(
  * @param networks - The networks of the WebSocket node.
  */
 export async function handleWsMessageLedgerEnableAmendments(
-  ws: WebSocket,
   data: LedgerResponseCorrected,
   networks: string | undefined,
 ): Promise<void> {
+  log.info(
+    `Flag + 1 ledger found for ${networks} at index ${data.result.ledger.ledger_index}`,
+  )
+  log.info(`Searching for EnableAmendment transaction(s)...`)
   data.result.ledger.transactions?.forEach(async (transaction) => {
     if (
       typeof transaction !== 'string' &&
@@ -184,16 +190,9 @@ export async function handleWsMessageLedgerEnableAmendments(
       networks
     ) {
       if (!transaction.Flags) {
-        const enabledAmendment = {
-          amendment_id: transaction.Amendment,
-          networks,
-          eta: new Date(
-            rippleTimeToUnixTime(data.result.ledger.close_time) +
-              FOURTEEN_DAYS_IN_MILLISECONDS,
-          ),
-        }
-
-        const amendment: AmendmentStatus = {
+        log.info(`EnableAmendment transaction found for amendment ${transaction.Amendment} on ${networks} \n
+                  Amendment has been enabled.`)
+        const enabledAmendment: AmendmentStatus = {
           amendment_id: transaction.Amendment,
           networks,
           ledger_index: data.result.ledger_index,
@@ -201,9 +200,10 @@ export async function handleWsMessageLedgerEnableAmendments(
           date: new Date(rippleTimeToUnixTime(data.result.ledger.close_time)),
           eta: undefined,
         }
-        await saveAmendmentStatus(amendment)
         await saveAmendmentStatus(enabledAmendment)
       } else if (transaction.Flags === GOT_MAJORITY_FLAG) {
+        log.info(`EnableAmendment transaction found for amendment ${transaction.Amendment} on ${networks} \n
+                  Amendment has reached majority.`)
         const incomingAmendment = {
           amendment_id: transaction.Amendment,
           networks,
@@ -214,6 +214,8 @@ export async function handleWsMessageLedgerEnableAmendments(
         }
         await saveAmendmentStatus(incomingAmendment)
       } else if (transaction.Flags === LOST_MAJORITY_FLAG) {
+        log.info(`EnableAmendment transaction found for amendment ${transaction.Amendment} on ${networks} \n
+                  Amendment has lost majority.`)
         await deleteAmendmentStatus(transaction.Amendment, networks)
       }
     }
