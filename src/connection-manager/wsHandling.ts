@@ -1,3 +1,4 @@
+/* eslint-disable import/max-dependencies -- Disbale for this file which uses a lot of types. */
 import WebSocket from 'ws'
 import { LedgerEntryResponse, rippleTimeToUnixTime } from 'xrpl'
 import { AMENDMENTS_ID } from 'xrpl/dist/npm/models/ledger'
@@ -171,7 +172,6 @@ export async function handleWsMessageLedgerEntryAmendments(
 /**
  * Handle ws ledger messages to search for EnableAmendment transactions.
  *
- * @param ws - A WebSocket object.
  * @param data - The WebSocket message received from connection.
  * @param networks - The networks of the WebSocket node.
  */
@@ -179,10 +179,12 @@ export async function handleWsMessageLedgerEnableAmendments(
   data: LedgerResponseCorrected,
   networks: string | undefined,
 ): Promise<void> {
-  log.info(
-    `Flag + 1 ledger found for ${networks} at index ${data.result.ledger.ledger_index}`,
-  )
-  log.info(`Searching for EnableAmendment transaction(s)...`)
+  if (networks) {
+    log.info(
+      `Flag + 1 ledger found for ${networks} at index ${data.result.ledger.ledger_index}`,
+    )
+    log.info(`Searching for EnableAmendment transaction(s)...`)
+  }
   data.result.ledger.transactions?.forEach(async (transaction) => {
     if (
       typeof transaction !== 'string' &&

@@ -2,10 +2,10 @@ import { handleWsMessageLedgerEnableAmendments } from '../../src/connection-mana
 import { destroy, query, setupTables } from '../../src/shared/database'
 import { LedgerResponseCorrected } from '../../src/shared/types'
 
-import ledgerResponseGotMajority from './fixtures/ledgerWithTfMajority.json'
 import ledgerResponseNoFlag from './fixtures/ledgerWithNoFlag.json'
+import ledgerResponseGotMajority from './fixtures/ledgerWithTfMajority.json'
 
-const flushPromises = () => new Promise(setImmediate)
+const flushPromises = async (): Promise<void> => new Promise(setImmediate)
 
 describe('Amendments', () => {
   beforeAll(async () => {
