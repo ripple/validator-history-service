@@ -28,6 +28,8 @@ const networkFee: Map<string, FeeVote> = new Map()
 const CM_INTERVAL = 60 * 60 * 1000
 const WS_TIMEOUT = 10000
 const REPORTING_INTERVAL = 15 * 60 * 1000
+const CLOSING_CODES = [1005, 1006, 1008]
+let connectionsInitialized = false
 let cmStarted = false
 
 /**
@@ -97,7 +99,16 @@ async function setHandlers(
         )
       }
     })
-    ws.on('close', () => {
+    ws.on('close', (code, reason) => {
+      if (connectionsInitialized) {
+        log.error(
+          `Websocket closed for ${ws.url} on ${networks} with code ${code} and reason ${reason}.`,
+        )
+        if (CLOSING_CODES.includes(code)) {
+          log.info(`Reconnecting to ${ws.url} on ${networks}...`)
+          setHandlers(ip, ws, networks)
+        }
+      }
       if (connections.get(ip)?.url === ws.url) {
         connections.delete(ip)
         void saveNodeWsUrl(ws.url, false)
@@ -188,10 +199,12 @@ async function createConnections(): Promise<void> {
   })
 
   const promises: Array<Promise<void>> = []
+  connectionsInitialized = false
   nodes.forEach((node: WsNode) => {
     promises.push(findConnection(node))
   })
   await Promise.all(promises)
+  connectionsInitialized = true
   log.info(`${connections.size} connections created`)
 }
 
