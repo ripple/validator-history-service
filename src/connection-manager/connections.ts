@@ -99,14 +99,19 @@ async function setHandlers(
         )
       }
     })
-    ws.on('close', (code, reason) => {
+    ws.on('close', async (code, reason) => {
       if (connectionsInitialized) {
         log.error(
-          `Websocket closed for ${ws.url} on ${networks} with code ${code} and reason ${reason}.`,
+          `Websocket closed for ${ws.url} on ${
+            networks ?? 'unknown network'
+          } with code ${code} and reason ${reason.toString('utf-8')}.`,
         )
         if (CLOSING_CODES.includes(code)) {
-          log.info(`Reconnecting to ${ws.url} on ${networks}...`)
-          setHandlers(ip, ws, networks)
+          log.info(
+            `Reconnecting to ${ws.url} on ${networks ?? 'unknown network'}...`,
+          )
+          await setHandlers(ip, ws, networks)
+          return
         }
       }
       if (connections.get(ip)?.url === ws.url) {
