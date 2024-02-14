@@ -110,7 +110,14 @@ async function setHandlers(
           log.info(
             `Reconnecting to ${ws.url} on ${networks ?? 'unknown network'}...`,
           )
-          await setHandlers(ip, ws, networks)
+          // Open a new Websocket connection for the same url
+          const newWS = new WebSocket(ws.url, { handshakeTimeout: WS_TIMEOUT })
+          // Clean up the old Websocket connection
+          connections.delete(ip)
+          ws.terminate()
+          resolve()
+
+          await setHandlers(ip, newWS, networks, isInitialNode)
           return
         }
       }
