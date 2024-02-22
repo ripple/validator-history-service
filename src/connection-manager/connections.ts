@@ -28,6 +28,7 @@ const networkFee: Map<string, FeeVote> = new Map()
 const CM_INTERVAL = 60 * 60 * 1000
 const WS_TIMEOUT = 10000
 const REPORTING_INTERVAL = 15 * 60 * 1000
+const INACTIVITY_THRESHOLD = 1 * 60 * 1000
 let cmStarted = false
 
 /**
@@ -47,7 +48,30 @@ async function setHandlers(
 ): Promise<void> {
   const ledger_hashes: string[] = []
   return new Promise(function setHandlersPromise(resolve, _reject) {
+    let lastMessageTime = Date.now()
     ws.on('open', () => {
+      const checkInactivityInterval = setInterval(async () => {
+        const currentTime = Date.now()
+        const inactivityDuration = currentTime - lastMessageTime
+
+        if (inactivityDuration > INACTIVITY_THRESHOLD) {
+          log.error(
+            `No message received in the last minute for ${ws.url} on ${
+              networks ?? 'unknown network'
+            }. Reconnecting...`,
+          )
+          // Open a new Websocket connection for the same url
+          const newWS = new WebSocket(ws.url, { handshakeTimeout: WS_TIMEOUT })
+          // Clean up the old Websocket connection
+          connections.delete(ip)
+          ws.terminate()
+          resolve()
+
+          await setHandlers(ip, newWS, networks, isInitialNode)
+          clearInterval(checkInactivityInterval)
+        }
+      }, INACTIVITY_THRESHOLD)
+
       if (connections.has(ip)) {
         resolve()
         return
@@ -67,6 +91,7 @@ async function setHandlers(
       resolve()
     })
     ws.on('message', function handleMessage(message: string) {
+      lastMessageTime = Date.now()
       let data
       try {
         data = JSON.parse(message)
