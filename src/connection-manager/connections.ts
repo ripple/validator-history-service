@@ -64,6 +64,7 @@ async function setHandlers(
           const newWS = new WebSocket(ws.url, { handshakeTimeout: WS_TIMEOUT })
           // Clean up the old Websocket connection
           connections.delete(ip)
+          ws.close(1000, 'No activity in the last 5 minutes')
           ws.terminate()
           resolve()
 
