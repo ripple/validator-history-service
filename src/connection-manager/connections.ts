@@ -28,15 +28,12 @@ const networkFee: Map<string, FeeVote> = new Map()
 const CM_INTERVAL = 60 * 60 * 1000
 const WS_TIMEOUT = 10000
 const REPORTING_INTERVAL = 15 * 60 * 1000
-/*
-The frequent closing codes seen so far after connections established include:
 
-1008: Policy error: client is too slow. (Most frequent)
-1006: Abnormal Closure: The connection was closed abruptly without a proper handshake or a clean closure.
-1005: No Status Received: An empty or undefined status code is used to indicate no further details about the closure.
-
-Reconnection should happen after seeing these codes for established connections.
- */
+// The frequent closing codes seen so far after connections established include:
+//  1008: Policy error: client is too slow. (Most frequent)
+//  1006: Abnormal Closure: The connection was closed abruptly without a proper handshake or a clean closure.
+//  1005: No Status Received: An empty or undefined status code is used to indicate no further details about the closure.
+// Reconnection should happen after seeing these codes for established connections.
 const CLOSING_CODES = [1005, 1006, 1008]
 let connectionsInitialized = false
 let cmStarted = false
