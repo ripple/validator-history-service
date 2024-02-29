@@ -28,6 +28,14 @@ const networkFee: Map<string, FeeVote> = new Map()
 const CM_INTERVAL = 60 * 60 * 1000
 const WS_TIMEOUT = 10000
 const REPORTING_INTERVAL = 15 * 60 * 1000
+
+// The frequent closing codes seen so far after connections established include:
+//  1008: Policy error: client is too slow. (Most frequent)
+//  1006: Abnormal Closure: The connection was closed abruptly without a proper handshake or a clean closure.
+//  1005: No Status Received: An empty or undefined status code is used to indicate no further details about the closure.
+// Reconnection should happen after seeing these codes for established connections.
+const CLOSING_CODES = [1005, 1006, 1008]
+let connectionsInitialized = false
 let cmStarted = false
 
 /**
@@ -97,7 +105,32 @@ async function setHandlers(
         )
       }
     })
-    ws.on('close', () => {
+    ws.on('close', async (code, reason) => {
+      const nodeNetworks = networks ?? 'unknown network'
+      if (connectionsInitialized) {
+        log.error(
+          `Websocket closed for ${
+            ws.url
+          } on ${nodeNetworks} with code ${code} and reason ${reason.toString(
+            'utf-8',
+          )}.`,
+        )
+        if (CLOSING_CODES.includes(code)) {
+          log.info(
+            `Reconnecting to ${ws.url} on ${networks ?? 'unknown network'}...`,
+          )
+          // Open a new Websocket connection for the same url
+          const newWS = new WebSocket(ws.url, { handshakeTimeout: WS_TIMEOUT })
+          // Clean up the old Websocket connection
+          connections.delete(ip)
+          ws.terminate()
+          resolve()
+
+          await setHandlers(ip, newWS, networks, isInitialNode)
+          // return since the old websocket connection has already been terminated
+          return
+        }
+      }
       if (connections.get(ip)?.url === ws.url) {
         connections.delete(ip)
         void saveNodeWsUrl(ws.url, false)
@@ -188,10 +221,12 @@ async function createConnections(): Promise<void> {
   })
 
   const promises: Array<Promise<void>> = []
+  connectionsInitialized = false
   nodes.forEach((node: WsNode) => {
     promises.push(findConnection(node))
   })
   await Promise.all(promises)
+  connectionsInitialized = true
   log.info(`${connections.size} connections created`)
 }
 
