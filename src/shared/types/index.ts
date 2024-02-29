@@ -43,7 +43,6 @@ interface LedgerCorrected extends LedgerXRPL {
     (Transaction | PseudoTransaction) & {
       metaData?: TransactionMetadata
       hash: string
-      date: number
     }
   >
 }
