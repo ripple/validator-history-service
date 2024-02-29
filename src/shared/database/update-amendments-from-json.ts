@@ -8,6 +8,8 @@ import logger from '../utils/logger'
 import { saveAmendmentInfo } from './amendments'
 import { query } from './utils'
 
+const FOURTEEN_DAYS_IN_MILLISECONDS = 14 * 24 * 60 * 60 * 1000
+
 const log = logger({ name: 'database-agreement' })
 
 interface AmendmentStatusJson {
@@ -71,7 +73,10 @@ async function addAmendmentsStatusFromJSON(): Promise<void> {
           ? new Date(rippleTimeToUnixTime(amendment.date))
           : undefined,
         eta: amendment.eta
-          ? new Date(rippleTimeToUnixTime(amendment.eta))
+          ? new Date(
+              rippleTimeToUnixTime(amendment.eta) +
+                FOURTEEN_DAYS_IN_MILLISECONDS,
+            )
           : undefined,
       }
       await saveAmendmentsStatus(statusData)

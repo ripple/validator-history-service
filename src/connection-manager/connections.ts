@@ -1,6 +1,6 @@
 /* eslint-disable max-lines-per-function  -- Disable for this file with complex websocket rules. */
 import WebSocket from 'ws'
-import { LedgerEntryResponse, TxResponse } from 'xrpl'
+import { LedgerEntryResponse } from 'xrpl'
 
 import {
   query,
@@ -8,6 +8,7 @@ import {
   clearConnectionsDb,
   getNetworks,
 } from '../shared/database'
+import { fetchAmendmentInfo } from '../shared/database/amendments'
 import { FeeVote, LedgerResponseCorrected } from '../shared/types'
 import logger from '../shared/utils/logger'
 
@@ -16,7 +17,6 @@ import {
   handleWsMessageLedgerEnableAmendments,
   handleWsMessageLedgerEntryAmendments,
   handleWsMessageSubscribeTypes,
-  handleWsMessageTxEnableAmendments,
   subscribe,
 } from './wsHandling'
 
@@ -82,6 +82,7 @@ async function setHandlers(
         log.error('Error parsing validation message', error)
         return
       }
+
       if (data.result?.node) {
         void handleWsMessageLedgerEntryAmendments(
           data as LedgerEntryResponse,
@@ -89,12 +90,9 @@ async function setHandlers(
         )
       } else if (data.result?.ledger && isInitialNode) {
         void handleWsMessageLedgerEnableAmendments(
-          ws,
           data as LedgerResponseCorrected,
           networks,
         )
-      } else if (data.result?.Amendment) {
-        void handleWsMessageTxEnableAmendments(data as TxResponse, networks)
       } else {
         void handleWsMessageSubscribeTypes(
           data,
@@ -242,6 +240,7 @@ setInterval(() => {
 export default async function startConnections(): Promise<void> {
   if (!cmStarted) {
     cmStarted = true
+    await fetchAmendmentInfo()
     await clearConnectionsDb()
     await createConnections()
     setInterval(() => {
