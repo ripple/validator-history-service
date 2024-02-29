@@ -8,6 +8,7 @@ import {
   clearConnectionsDb,
   getNetworks,
 } from '../shared/database'
+import { fetchAmendmentInfo } from '../shared/database/amendments'
 import { FeeVote, LedgerResponseCorrected } from '../shared/types'
 import logger from '../shared/utils/logger'
 
@@ -239,6 +240,7 @@ setInterval(() => {
 export default async function startConnections(): Promise<void> {
   if (!cmStarted) {
     cmStarted = true
+    await fetchAmendmentInfo()
     await clearConnectionsDb()
     await createConnections()
     setInterval(() => {
