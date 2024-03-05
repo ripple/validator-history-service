@@ -179,47 +179,48 @@ export async function handleWsMessageLedgerEnableAmendments(
   data: LedgerResponseCorrected,
   networks: string | undefined,
 ): Promise<void> {
-  if (networks) {
-    log.info(
-      `Flag + 1 ledger found for ${networks} at index ${data.result.ledger.ledger_index}`,
-    )
-    log.info(`Searching for EnableAmendment transaction(s)...`)
+  if (!networks || !data.result.ledger.transactions) {
+    return
   }
-  data.result.ledger.transactions?.forEach(async (transaction) => {
+  log.info(
+    `Flag + 1 ledger found for ${networks} at index ${data.result.ledger.ledger_index}`,
+  )
+  log.info(`Searching for EnableAmendment transaction(s)...`)
+  for (const transaction of data.result.ledger.transactions) {
     if (
-      typeof transaction !== 'string' &&
-      transaction.TransactionType === 'EnableAmendment' &&
-      networks
+      typeof transaction === 'string' ||
+      transaction.TransactionType !== 'EnableAmendment'
     ) {
-      if (!transaction.Flags) {
-        log.info(`EnableAmendment transaction found for amendment ${transaction.Amendment} on ${networks} \n
-                  Amendment has been enabled.`)
-        const enabledAmendment: AmendmentStatus = {
-          amendment_id: transaction.Amendment,
-          networks,
-          ledger_index: data.result.ledger_index,
-          tx_hash: transaction.hash,
-          date: new Date(rippleTimeToUnixTime(data.result.ledger.close_time)),
-          eta: undefined,
-        }
-        await saveAmendmentStatus(enabledAmendment)
-      } else if (transaction.Flags === GOT_MAJORITY_FLAG) {
-        log.info(`EnableAmendment transaction found for amendment ${transaction.Amendment} on ${networks} \n
-                  Amendment has reached majority.`)
-        const incomingAmendment = {
-          amendment_id: transaction.Amendment,
-          networks,
-          eta: new Date(
-            rippleTimeToUnixTime(data.result.ledger.close_time) +
-              FOURTEEN_DAYS_IN_MILLISECONDS,
-          ),
-        }
-        await saveAmendmentStatus(incomingAmendment)
-      } else if (transaction.Flags === LOST_MAJORITY_FLAG) {
-        log.info(`EnableAmendment transaction found for amendment ${transaction.Amendment} on ${networks} \n
-                  Amendment has lost majority.`)
-        await deleteAmendmentStatus(transaction.Amendment, networks)
-      }
+      continue
     }
-  })
+    if (!transaction.Flags) {
+      log.info(`EnableAmendment transaction found for amendment ${transaction.Amendment} on ${networks} \n
+                  Amendment has been enabled.`)
+      const enabledAmendment: AmendmentStatus = {
+        amendment_id: transaction.Amendment,
+        networks,
+        ledger_index: data.result.ledger_index,
+        tx_hash: transaction.hash,
+        date: new Date(rippleTimeToUnixTime(data.result.ledger.close_time)),
+        eta: undefined,
+      }
+      await saveAmendmentStatus(enabledAmendment)
+    } else if (transaction.Flags === GOT_MAJORITY_FLAG) {
+      log.info(`EnableAmendment transaction found for amendment ${transaction.Amendment} on ${networks} \n
+                  Amendment has reached majority.`)
+      const incomingAmendment = {
+        amendment_id: transaction.Amendment,
+        networks,
+        eta: new Date(
+          rippleTimeToUnixTime(data.result.ledger.close_time) +
+            FOURTEEN_DAYS_IN_MILLISECONDS,
+        ),
+      }
+      await saveAmendmentStatus(incomingAmendment)
+    } else if (transaction.Flags === LOST_MAJORITY_FLAG) {
+      log.info(`EnableAmendment transaction found for amendment ${transaction.Amendment} on ${networks} \n
+                  Amendment has lost majority.`)
+      await deleteAmendmentStatus(transaction.Amendment, networks)
+    }
+  }
 }
