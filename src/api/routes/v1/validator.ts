@@ -9,6 +9,7 @@ import {
   formatAgreementScore,
   formatAmendments,
   getChains,
+  getParamType,
 } from './utils'
 
 const log = logger({ name: 'api-validator' })
@@ -296,13 +297,26 @@ export async function handleValidators(
     }
 
     const { param } = req.params
-    const chains = await getChains(param)
-    const validators =
-      chains == null
-        ? cache.validators
-        : cache.validators.filter((validator) =>
-            chains.includes(validator.chain),
-          )
+    const paramType = await getParamType(param)
+
+    console.log(paramType)
+
+    let validators
+    if (paramType === 'networks') {
+      validators = cache.validators.filter(
+        (validator) => validator.networks === param,
+      )
+    } else if (paramType === 'unl') {
+      const chains = await getChains(param)
+      validators =
+        chains == null
+          ? cache.validators
+          : cache.validators.filter((validator) =>
+              chains.includes(validator.chain),
+            )
+    } else {
+      validators = cache.validators
+    }
 
     const response: ValidatorsResponse = {
       result: 'success',
