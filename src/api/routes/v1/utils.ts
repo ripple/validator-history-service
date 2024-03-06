@@ -53,8 +53,8 @@ export async function formatAmendments(
 /**
  * Get param type from validator API call.
  *
- * @param param - The UNL/Networks of the chain.
- *
+ * @param param - The input parameter.
+ * @returns The type of the input parameter (unl/networks/unknown).
  */
 export async function getParamType(
   param: string | undefined,
@@ -70,7 +70,8 @@ export async function getParamType(
   })
   if (networks.includes(param)) {
     return 'networks'
-  } else if (unls.includes(param)) {
+  }
+  if (unls.includes(param)) {
     return 'unl'
   }
 

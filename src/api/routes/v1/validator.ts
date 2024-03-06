@@ -299,8 +299,6 @@ export async function handleValidators(
     const { param } = req.params
     const paramType = await getParamType(param)
 
-    console.log(paramType)
-
     let validators
     if (paramType === 'networks') {
       validators = cache.validators.filter(
