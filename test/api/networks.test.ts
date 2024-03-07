@@ -1,4 +1,5 @@
 import { Request, Response } from 'express'
+
 import handleNetworks from '../../src/api/routes/v1/networks'
 import { setupTables, destroy, query } from '../../src/shared/database'
 import networks from '../../src/shared/database/networks'
@@ -14,6 +15,7 @@ describe('networks endpoint', () => {
   })
 
   test('should respond with success and returns all networks', async () => {
+    // eslint-disable-next-line @typescript-eslint/consistent-type-assertions -- Disable for mock request.
     const req = {} as Request
     const sendMock = jest.fn()
     const statusMock = {
