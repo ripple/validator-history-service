@@ -51,15 +51,15 @@ export async function formatAmendments(
 }
 
 /**
- * Get the chains associated with the given UNL.
+ * Get param type from validator API call.
  *
- * @param param - The UNL/Networks of the chain.
- * @returns The chains associated with that UNL.
+ * @param param - The input parameter.
+ * @returns The type of the input parameter (unl/networks/unknown).
  */
-export async function getChains(
+export async function getParamType(
   param: string | undefined,
-): Promise<string[] | undefined> {
-  if (param == null) {
+): Promise<'networks' | 'unl' | undefined> {
+  if (!param) {
     return undefined
   }
   const networksDb = await getNetworks()
@@ -68,19 +68,26 @@ export async function getChains(
   networksDb.forEach((network) => {
     unls.push(...network.unls)
   })
-
-  let requestedField
   if (networks.includes(param)) {
-    requestedField = 'networks'
-  } else if (unls.includes(param)) {
-    requestedField = 'unl'
-  } else {
-    return []
+    return 'networks'
+  }
+  if (unls.includes(param)) {
+    return 'unl'
   }
 
+  return undefined
+}
+
+/**
+ * Get the chains associated with the given UNL.
+ *
+ * @param unl - The UNL of the chain.
+ * @returns The chains associated with that UNL.
+ */
+export async function getChains(unl: string): Promise<string[] | undefined> {
   const results = await query('validators')
     .select('chain')
     .distinct()
-    .where(requestedField, param)
+    .where('unl', unl)
   return results.map((result) => result.chain as string)
 }
