@@ -17,12 +17,11 @@ describe('networks endpoint', () => {
   test('should respond with success and returns all networks', async () => {
     // eslint-disable-next-line @typescript-eslint/consistent-type-assertions -- Disable for mock request.
     const req = {} as Request
-    const sendMock = jest.fn()
-    const statusMock = {
-      send: sendMock,
+    const res = {
+      send: jest.fn(),
     } as unknown as Response
 
-    await handleNetworks(req, statusMock)
+    await handleNetworks(req, res)
 
     const expectedResult = {
       result: 'success',
@@ -30,6 +29,6 @@ describe('networks endpoint', () => {
       networks,
     }
 
-    expect(statusMock.send).toHaveBeenCalledWith(expectedResult)
+    expect(res.send).toHaveBeenCalledWith(expectedResult)
   })
 })
