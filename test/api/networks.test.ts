@@ -27,11 +27,9 @@ describe('networks endpoint', () => {
     const expectedResult = {
       result: 'success',
       count: networks.length,
-      networks: networks,
+      networks,
     }
 
-    expect(statusMock.send).toHaveBeenCalledWith(
-      expect.objectContaining(expectedResult),
-    )
+    expect(statusMock.send).toHaveBeenCalledWith(expectedResult)
   })
 })
