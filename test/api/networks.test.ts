@@ -24,19 +24,14 @@ describe('networks endpoint', () => {
 
     await handleNetworks(req, statusMock)
 
+    const expectedResult = {
+      result: 'success',
+      count: networks.length,
+      networks: networks,
+    }
+
     expect(statusMock.send).toHaveBeenCalledWith(
-      expect.objectContaining({
-        result: 'success',
-        count: networks.length,
-        networks: expect.arrayContaining([
-          expect.objectContaining({
-            id: 'main',
-            entry: 'p2p.livenet.ripple.com',
-            port: 51235,
-            unls: expect.any(Array),
-          }),
-        ]),
-      }),
+      expect.objectContaining(expectedResult),
     )
   })
 })
