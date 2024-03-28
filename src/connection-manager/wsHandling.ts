@@ -1,6 +1,11 @@
 /* eslint-disable import/max-dependencies -- Disbale for this file which uses a lot of types. */
 import WebSocket from 'ws'
-import { LedgerEntryResponse, rippleTimeToUnixTime } from 'xrpl'
+import {
+  Client,
+  LedgerEntryResponse,
+  LedgerResponse,
+  rippleTimeToUnixTime,
+} from 'xrpl'
 import { AMENDMENTS_ID } from 'xrpl/dist/npm/models/ledger'
 
 import {
@@ -27,6 +32,11 @@ const LEDGER_HASHES_SIZE = 10
 const GOT_MAJORITY_FLAG = 65536
 const LOST_MAJORITY_FLAG = 131072
 const FOURTEEN_DAYS_IN_MILLISECONDS = 14 * 24 * 60 * 60 * 1000
+const NETWORKS_HOSTS = new Map([
+  ['main', 'ws://s2.ripple.com:51233'],
+  ['test', 'wss://s.altnet.rippletest.net:51233'],
+  ['dev', 'wss://s.devnet.rippletest.net:51233'],
+])
 
 const log = logger({ name: 'connections' })
 
@@ -224,4 +234,70 @@ export async function handleWsMessageLedgerEnableAmendments(
       }
     }),
   )
+}
+
+/**
+ * Backtracking a network to update amendment status in case of Websocket disconnection.
+ *
+ * @param networks - The network being tracked.
+ * @param url - The Faucet URL of the network.
+ * @returns Void.
+ */
+async function backtrackNetworkAmendmentStatus(
+  networks: string,
+  url: string,
+): Promise<void> {
+  try {
+    log.info(`Backtracking to update amendment status for ${networks}...`)
+    const client = new Client(url)
+    await client.connect()
+    const ledgerResponse: LedgerResponse = await client.request({
+      command: 'ledger',
+      ledger_index: 'validated',
+    })
+    const currentLedger = ledgerResponse.result.ledger_index
+
+    // a flag + 1 ledger typically comes in every 10 to 15 minutes.
+    const fourFlagPlusOneLedgerBefore =
+      (Math.floor(currentLedger / 256) - 3) * 256 + 1
+
+    for (
+      let index = fourFlagPlusOneLedgerBefore;
+      index < currentLedger;
+      index += 256
+    ) {
+      const ledger: LedgerResponse = await client.request({
+        command: 'ledger',
+        transactions: true,
+        ledger_index: index,
+        expand: true,
+      })
+
+      await handleWsMessageLedgerEnableAmendments(
+        ledger as LedgerResponseCorrected,
+        networks,
+      )
+    }
+
+    await client.disconnect()
+
+    log.info(`Finished backtracked amendment status for ${networks}...`)
+  } catch (error) {
+    log.error(
+      `Failed to backtrack amendment status for ${networks} due to error: ${String(
+        error,
+      )}`,
+    )
+  }
+}
+
+/**
+ * Backtrack amendment status periodically to ensure changes are captured.
+ *
+ * @returns Void.
+ */
+export async function backtrackAmendmentStatus(): Promise<void> {
+  for (const [networks, url] of NETWORKS_HOSTS) {
+    await backtrackNetworkAmendmentStatus(networks, url)
+  }
 }

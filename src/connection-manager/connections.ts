@@ -13,6 +13,7 @@ import { FeeVote, LedgerResponseCorrected } from '../shared/types'
 import logger from '../shared/utils/logger'
 
 import {
+  backtrackAmendmentStatus,
   getAmendmentLedgerEntry,
   handleWsMessageLedgerEnableAmendments,
   handleWsMessageLedgerEntryAmendments,
@@ -28,6 +29,7 @@ const networkFee: Map<string, FeeVote> = new Map()
 const CM_INTERVAL = 60 * 60 * 1000
 const WS_TIMEOUT = 10000
 const REPORTING_INTERVAL = 15 * 60 * 1000
+const BACKTRACK_INTERVAL = 30 * 60 * 1000
 
 // The frequent closing codes seen so far after connections established include:
 //  1008: Policy error: client is too slow. (Most frequent)
@@ -243,8 +245,14 @@ export default async function startConnections(): Promise<void> {
     await fetchAmendmentInfo()
     await clearConnectionsDb()
     await createConnections()
+    await backtrackAmendmentStatus()
     setInterval(() => {
+      void fetchAmendmentInfo()
       void createConnections()
     }, CM_INTERVAL)
+
+    setInterval(() => {
+      void backtrackAmendmentStatus()
+    }, BACKTRACK_INTERVAL)
   }
 }
