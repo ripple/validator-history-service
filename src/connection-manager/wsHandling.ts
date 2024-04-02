@@ -239,16 +239,16 @@ export async function handleWsMessageLedgerEnableAmendments(
 /**
  * Backtracking a network to update amendment status in case of Websocket disconnection.
  *
- * @param networks - The network being tracked.
+ * @param network - The network being tracked.
  * @param url - The Faucet URL of the network.
  * @returns Void.
  */
 async function backtrackNetworkAmendmentStatus(
-  networks: string,
+  network: string,
   url: string,
 ): Promise<void> {
   try {
-    log.info(`Backtracking to update amendment status for ${networks}...`)
+    log.info(`Backtracking to update amendment status for ${network}...`)
     const client = new Client(url)
     await client.connect()
     const ledgerResponse: LedgerResponse = await client.request({
@@ -275,16 +275,16 @@ async function backtrackNetworkAmendmentStatus(
 
       await handleWsMessageLedgerEnableAmendments(
         ledger as LedgerResponseCorrected,
-        networks,
+        network,
       )
     }
 
     await client.disconnect()
 
-    log.info(`Finished backtracked amendment status for ${networks}...`)
+    log.info(`Finished backtracked amendment status for ${network}...`)
   } catch (error) {
     log.error(
-      `Failed to backtrack amendment status for ${networks} due to error: ${String(
+      `Failed to backtrack amendment status for ${network} due to error: ${String(
         error,
       )}`,
     )
