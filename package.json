@@ -1,6 +1,6 @@
 {
   "name": "validator-history-service",
-  "version": "0.7.0",
+  "version": "0.7.1",
   "description": "Service for ingesting, aggregating, storing, and disbursing validation related data",
   "main": "./build/index.js",
   "scripts": {
