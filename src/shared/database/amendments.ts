@@ -29,7 +29,7 @@ const AMENDMENT_VERSION_REGEX =
 async function fetchAmendmentNames(): Promise<Map<string, boolean> | null> {
   try {
     const response = await axios.get(
-      'https://raw.githubusercontent.com/ripple/rippled/develop/src/ripple/protocol/impl/Feature.cpp',
+      'https://raw.githubusercontent.com/XRPLF/rippled/develop/src/libxrpl/protocol/Feature.cpp',
     )
     const text = response.data
     const amendmentNames: Map<string, boolean> = new Map()
