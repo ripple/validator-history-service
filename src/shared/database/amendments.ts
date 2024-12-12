@@ -1,5 +1,6 @@
 import axios from 'axios'
 import createHash from 'create-hash'
+import { Client, FeatureResponse } from 'xrpl'
 
 import { AmendmentInfo } from '../types'
 import logger from '../utils/logger'
@@ -18,6 +19,12 @@ const RETIRED_AMENDMENT_REGEX =
 
 const AMENDMENT_VERSION_REGEX =
   /\| \[(?<amendmentName>[a-zA-Z0-9_]+)\][^\n]+\| (?<version>v[0-9]*\.[0-9]*\.[0-9]*|TBD) *\|/u
+
+export const NETWORKS_HOSTS = new Map([
+  ['main', 'ws://s2.ripple.com:51233'],
+  ['test', 'wss://s.altnet.rippletest.net:51233'],
+  ['dev', 'wss://s.devnet.rippletest.net:51233'],
+])
 
 // TODO: Clean this up when this PR is merged:
 // https://github.com/XRPLF/rippled/pull/4781
@@ -81,6 +88,35 @@ async function nameOfAmendmentID(): Promise<void> {
         deprecated,
       })
     })
+  }
+}
+
+/**
+ * @param network
+ * @param url
+ */
+async function getNetworkAmendmentName(
+  network: string,
+  url: string,
+): Promise<void> {
+  try {
+    log.info(`Backtracking to update amendment status for ${network}...`)
+    const client = new Client(url)
+    await client.connect()
+    const featureResponse: FeatureResponse = await client.request({
+      command: 'ledger',
+      ledger_index: 'validated',
+    })
+
+    await client.disconnect()
+
+    log.info(`Finished backtracked amendment status for ${network}...`)
+  } catch (error) {
+    log.error(
+      `Failed to backtrack amendment status for ${network} due to error: ${String(
+        error,
+      )}`,
+    )
   }
 }
 

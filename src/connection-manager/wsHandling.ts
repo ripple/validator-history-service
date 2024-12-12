@@ -13,7 +13,10 @@ import {
   saveAmendmentStatus,
   saveAmendmentsStatus,
 } from '../shared/database'
-import { deleteAmendmentStatus } from '../shared/database/amendments'
+import {
+  NETWORKS_HOSTS,
+  deleteAmendmentStatus,
+} from '../shared/database/amendments'
 import {
   AmendmentStatus,
   DatabaseValidator,
@@ -32,11 +35,6 @@ const LEDGER_HASHES_SIZE = 10
 const GOT_MAJORITY_FLAG = 65536
 const LOST_MAJORITY_FLAG = 131072
 const FOURTEEN_DAYS_IN_MILLISECONDS = 14 * 24 * 60 * 60 * 1000
-const NETWORKS_HOSTS = new Map([
-  ['main', 'ws://s2.ripple.com:51233'],
-  ['test', 'wss://s.altnet.rippletest.net:51233'],
-  ['dev', 'wss://s.devnet.rippletest.net:51233'],
-])
 
 const log = logger({ name: 'connections' })
 
