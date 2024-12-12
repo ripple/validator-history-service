@@ -7,6 +7,7 @@ import {
   rippleTimeToUnixTime,
 } from 'xrpl'
 import { AMENDMENTS_ID } from 'xrpl/dist/npm/models/ledger'
+import { LedgerResponseExpanded } from 'xrpl/dist/npm/models/methods/ledger'
 
 import {
   query,
@@ -21,7 +22,6 @@ import {
   AmendmentStatus,
   DatabaseValidator,
   FeeVote,
-  LedgerResponseCorrected,
   StreamLedger,
   StreamManifest,
   ValidationRaw,
@@ -184,7 +184,7 @@ export async function handleWsMessageLedgerEntryAmendments(
  * @param networks - The networks of the WebSocket node.
  */
 export async function handleWsMessageLedgerEnableAmendments(
-  data: LedgerResponseCorrected,
+  data: LedgerResponseExpanded,
   networks: string | undefined,
 ): Promise<void> {
   if (!networks || !data.result.ledger.transactions) {
@@ -272,7 +272,7 @@ async function backtrackNetworkAmendmentStatus(
       })
 
       await handleWsMessageLedgerEnableAmendments(
-        ledger as LedgerResponseCorrected,
+        ledger as LedgerResponseExpanded,
         network,
       )
     }

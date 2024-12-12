@@ -64,14 +64,14 @@
     "bunyan": "^1.8.15",
     "create-hash": "^1.2.0",
     "dotenv": "^16.3.1",
-    "express": "4.21.1",
+    "express": "4.21.2",
     "knex": "2.5.1",
     "moment": "2.30.1",
     "nconf": "^0.12.0",
     "pg": "8.12.0",
     "ripple-address-codec": "^5.0.0",
     "ws": "^8.13.0",
-    "xrpl": "^2.13.0",
+    "xrpl": "^4.0.0",
     "xrpl-validator-domains": "0.1.0"
   },
   "directories": {
