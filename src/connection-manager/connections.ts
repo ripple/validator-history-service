@@ -1,6 +1,7 @@
 /* eslint-disable max-lines-per-function  -- Disable for this file with complex websocket rules. */
 import WebSocket from 'ws'
 import { LedgerEntryResponse } from 'xrpl'
+import { LedgerResponseExpanded } from 'xrpl/dist/npm/models/methods/ledger'
 
 import {
   query,
@@ -9,7 +10,7 @@ import {
   getNetworks,
 } from '../shared/database'
 import { fetchAmendmentInfo } from '../shared/database/amendments'
-import { FeeVote, LedgerResponseCorrected } from '../shared/types'
+import { FeeVote } from '../shared/types'
 import logger from '../shared/utils/logger'
 
 import {
@@ -92,7 +93,7 @@ async function setHandlers(
         )
       } else if (data.result?.ledger && isInitialNode) {
         void handleWsMessageLedgerEnableAmendments(
-          data as LedgerResponseCorrected,
+          data as LedgerResponseExpanded,
           networks,
         )
       } else {

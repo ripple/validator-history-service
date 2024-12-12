@@ -1,6 +1,7 @@
+import { LedgerResponseExpanded } from 'xrpl/dist/npm/models/methods/ledger'
+
 import { handleWsMessageLedgerEnableAmendments } from '../../src/connection-manager/wsHandling'
 import { destroy, query, setupTables } from '../../src/shared/database'
-import { LedgerResponseCorrected } from '../../src/shared/types'
 
 import ledgerResponseNoFlag from './fixtures/ledgerWithNoFlag.json'
 import ledgerResponseGotMajority from './fixtures/ledgerWithTfMajority.json'
@@ -26,7 +27,7 @@ describe('Amendments', () => {
 
   test('Correctly finds EnableAmendment tx with tfGotMajority Flag (eta available) from ledger response', async () => {
     await handleWsMessageLedgerEnableAmendments(
-      ledgerResponseGotMajority as LedgerResponseCorrected,
+      ledgerResponseGotMajority as LedgerResponseExpanded,
       'main',
     )
 
@@ -47,7 +48,7 @@ describe('Amendments', () => {
 
   test('Correctly finds EnableAmendment tx with No Flag (amendment has been enabled) from ledger response', async () => {
     await handleWsMessageLedgerEnableAmendments(
-      ledgerResponseNoFlag as LedgerResponseCorrected,
+      ledgerResponseNoFlag as LedgerResponseExpanded,
       'main',
     )
 
