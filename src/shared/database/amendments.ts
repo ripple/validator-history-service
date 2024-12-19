@@ -1,5 +1,9 @@
 import axios from 'axios'
-import createHash from 'create-hash'
+import { Client, ErrorResponse } from 'xrpl'
+import {
+  FeatureAllResponse,
+  FeatureOneResponse,
+} from 'xrpl/dist/npm/models/methods/feature'
 
 import { AmendmentInfo } from '../types'
 import logger from '../utils/logger'
@@ -10,77 +14,168 @@ const log = logger({ name: 'amendments' })
 
 const amendmentIDs = new Map<string, { name: string; deprecated: boolean }>()
 const rippledVersions = new Map<string, string>()
-
-const ACTIVE_AMENDMENT_REGEX =
-  /^\s*REGISTER_F[A-Z]+\s*\((?<amendmentName>\S+),\s*.*$/u
-const RETIRED_AMENDMENT_REGEX =
-  /^ .*retireFeature\("(?<amendmentName>\S+)"\)[,;].*$/u
+// TODO: Use feature RPC instead when this issue is fixed and released:
+// https://github.com/XRPLF/rippled/issues/4730
+const RETIRED_AMENDMENTS = [
+  'MultiSign',
+  'TrustSetAuth',
+  'FeeEscalation',
+  'PayChan',
+  'CryptoConditions',
+  'TickSize',
+  'fix1368',
+  'Escrow',
+  'fix1373',
+  'EnforceInvariants',
+  'SortedDirectories',
+  'fix1201',
+  'fix1512',
+  'fix1523',
+  'fix1528',
+]
 
 const AMENDMENT_VERSION_REGEX =
   /\| \[(?<amendmentName>[a-zA-Z0-9_]+)\][^\n]+\| (?<version>v[0-9]*\.[0-9]*\.[0-9]*|TBD) *\|/u
 
-// TODO: Clean this up when this PR is merged:
-// https://github.com/XRPLF/rippled/pull/4781
+export const NETWORKS_HOSTS = new Map([
+  ['main', 'ws://s2.ripple.com:51233'],
+  ['test', 'wss://s.altnet.rippletest.net:51233'],
+  ['dev', 'wss://s.devnet.rippletest.net:51233'],
+])
+
 /**
- * Fetch a list of amendments names from rippled file.
+ * Fetch amendments information including id, name, and deprecated status.
  *
- * @returns The list of amendment names.
+ * @returns Void.
  */
-async function fetchAmendmentNames(): Promise<Map<string, boolean> | null> {
-  try {
-    const response = await axios.get(
-      'https://raw.githubusercontent.com/XRPLF/rippled/develop/src/libxrpl/protocol/Feature.cpp',
-    )
-    const text = response.data
-    const amendmentNames: Map<string, boolean> = new Map()
-    text.split('\n').forEach((line: string) => {
-      const name = ACTIVE_AMENDMENT_REGEX.exec(line)
-      if (name) {
-        amendmentNames.set(name[1], name[0].includes('VoteBehavior::Obsolete'))
-      } else {
-        const name2 = RETIRED_AMENDMENT_REGEX.exec(line)
-        if (name2) {
-          amendmentNames.set(name2[1], true)
-        }
-      }
-    })
-    return amendmentNames
-  } catch (err) {
-    log.error('Error getting amendment names', err)
-    return null
+async function fetchAmendmentsList(): Promise<void> {
+  for (const [network, url] of NETWORKS_HOSTS) {
+    await fetchNetworkAmendments(network, url)
   }
 }
 
 /**
- * Extracts Amendment ID from Amendment name inside a buffer.
+ * Fetch amendments information including id, name, and deprecated status of a network.
  *
- * @param buffer -- The buffer containing the amendment name.
- *
- * @returns The amendment ID string.
- */
-function sha512Half(buffer: Buffer): string {
-  return createHash('sha512')
-    .update(buffer)
-    .digest('hex')
-    .toUpperCase()
-    .slice(0, 64)
-}
-
-/**
- * Maps the id of Amendments to its corresponding names.
+ * @param network - The network being retrieved.
+ * @param url - The Faucet URL of the network.
  *
  * @returns Void.
  */
-async function nameOfAmendmentID(): Promise<void> {
-  // The Amendment ID is the hash of the Amendment name
-  const amendmentNames = await fetchAmendmentNames()
-  if (amendmentNames !== null) {
-    amendmentNames.forEach((deprecated, name) => {
-      amendmentIDs.set(sha512Half(Buffer.from(name, 'ascii')), {
-        name,
-        deprecated,
-      })
+async function fetchNetworkAmendments(
+  network: string,
+  url: string,
+): Promise<void> {
+  try {
+    log.info(`Updating amendment info for ${network}...`)
+    const client = new Client(url)
+    await client.connect()
+    const featureResponse: FeatureAllResponse = await client.request({
+      command: 'feature',
     })
+
+    const features = featureResponse.result.features
+
+    for (const id of Object.keys(features)) {
+      amendmentIDs.set(id, {
+        name: features[id].name,
+        deprecated: RETIRED_AMENDMENTS.includes(features[id].name),
+      })
+    }
+
+    await client.disconnect()
+
+    log.info(`Finished updating amendment info for ${network}...`)
+  } catch (error) {
+    log.error(
+      `Failed to update amendment info for ${network} due to error: ${String(
+        error,
+      )}`,
+    )
+  }
+}
+
+/**
+ * Find an amendment info from a network and add to current map.
+ *
+ * @param amendment_id - The id of the amendment to fetch.
+ * @param url - The Faucet URL of the network.
+ *
+ * @returns True if the amendment is found, false otherwise.
+ */
+async function findSingleAmendment(
+  amendment_id: string,
+  url: string,
+): Promise<boolean> {
+  try {
+    log.info(`Updating amendment info for ${amendment_id}...`)
+    const client = new Client(url)
+    await client.connect()
+    const featureResponse: FeatureOneResponse | ErrorResponse =
+      await client.request({
+        command: 'feature',
+        feature: amendment_id,
+      })
+
+    if ('result' in featureResponse) {
+      const feature = featureResponse.result[amendment_id]
+      amendmentIDs.set(amendment_id, {
+        name: feature.name,
+        deprecated: RETIRED_AMENDMENTS.includes(feature.name),
+      })
+      return true
+    }
+
+    await client.disconnect()
+    return false
+  } catch (_error) {
+    return false
+  }
+}
+
+/**
+ * Fetch for a single amendment across networks. Returns when the first one is found.
+ *
+ * @param amendment_id - The id of the amendment to search.
+ *
+ * @returns Void.
+ */
+async function fetchSingleAmendmentFromNetworks(
+  amendment_id: string,
+): Promise<void> {
+  for (const url of Object.values(NETWORKS_HOSTS)) {
+    const found = await findSingleAmendment(amendment_id, url)
+    if (found) {
+      break
+    }
+  }
+}
+
+/**
+ * Fetch amendments in voting that are not available in feature-all RPC.
+ *
+ * @returns Void.
+ */
+async function fetchMissingAmendments(): Promise<void> {
+  const voting = new Set<string>()
+  const votingDb = await query('ballot')
+    .select('amendments')
+    .then(async (res) =>
+      res.map((vote: { amendments: string | null }) => vote.amendments),
+    )
+  for (const amendmentsDb of votingDb) {
+    if (!amendmentsDb) {
+      continue
+    }
+    const amendments = amendmentsDb.split(',')
+    for (const amendment of amendments) {
+      voting.add(amendment)
+    }
+  }
+  for (const amendment of voting) {
+    if (!amendmentIDs.has(amendment)) {
+      await fetchSingleAmendmentFromNetworks(amendment)
+    }
   }
 }
 
@@ -145,7 +240,8 @@ export async function deleteAmendmentStatus(
 
 export async function fetchAmendmentInfo(): Promise<void> {
   log.info('Fetch amendments info from data sources...')
-  await nameOfAmendmentID()
+  await fetchAmendmentsList()
+  await fetchMissingAmendments()
   await fetchMinRippledVersions()
   amendmentIDs.forEach(async (value, id) => {
     const amendment: AmendmentInfo = {
