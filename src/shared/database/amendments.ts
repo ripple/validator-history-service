@@ -96,14 +96,14 @@ async function fetchNetworkAmendments(
 }
 
 /**
- * Fetch an amendment info from a network.
+ * Find an amendment info from a network and add to current map.
  *
  * @param amendment_id - The id of the amendment to fetch.
  * @param url - The Faucet URL of the network.
  *
  * @returns True if the amendment is found, false otherwise.
  */
-async function fetchSingleAmendment(
+async function findSingleAmendment(
   amendment_id: string,
   url: string,
 ): Promise<boolean> {
@@ -134,15 +134,17 @@ async function fetchSingleAmendment(
 }
 
 /**
- * Search for a single amendment across networks.
+ * Fetch for a single amendment across networks. Returns when the first one is found.
  *
  * @param amendment_id - The id of the amendment to search.
  *
  * @returns Void.
  */
-async function findSingleAmendment(amendment_id: string): Promise<void> {
+async function fetchSingleAmendmentFromNetworks(
+  amendment_id: string,
+): Promise<void> {
   for (const url of Object.values(NETWORKS_HOSTS)) {
-    const found = await fetchSingleAmendment(amendment_id, url)
+    const found = await findSingleAmendment(amendment_id, url)
     if (found) {
       break
     }
@@ -156,20 +158,23 @@ async function findSingleAmendment(amendment_id: string): Promise<void> {
  */
 async function fetchMissingAmendments(): Promise<void> {
   const voting = new Set<string>()
-  await query('ballot')
+  const votingDb = await query('ballot')
     .select('amendments')
-    .then((res) => {
-      for (const obj of res) {
-        const amendmentsString = obj.amendments
-        const amendments = amendmentsString ? amendmentsString.split(',') : []
-        for (const amendment of amendments) {
-          voting.add(amendment)
-        }
-      }
-    })
+    .then(async (res) =>
+      res.map((vote: { amendments: string | null }) => vote.amendments),
+    )
+  for (const amendmentsDb of votingDb) {
+    if (!amendmentsDb) {
+      continue
+    }
+    const amendments = amendmentsDb.split(',')
+    for (const amendment of amendments) {
+      voting.add(amendment)
+    }
+  }
   for (const amendment of voting) {
     if (!amendmentIDs.has(amendment)) {
-      await findSingleAmendment(amendment)
+      await fetchSingleAmendmentFromNetworks(amendment)
     }
   }
 }
