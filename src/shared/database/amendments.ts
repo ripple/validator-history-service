@@ -14,6 +14,8 @@ const log = logger({ name: 'amendments' })
 
 const amendmentIDs = new Map<string, { name: string; deprecated: boolean }>()
 const rippledVersions = new Map<string, string>()
+// TODO: Use feature RPC instead when this issue is fixed and released:
+// https://github.com/XRPLF/rippled/issues/4730
 const RETIRED_AMENDMENTS = [
   'MultiSign',
   'TrustSetAuth',
