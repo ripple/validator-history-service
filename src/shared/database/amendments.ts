@@ -13,7 +13,7 @@ import { query } from './utils'
 const log = logger({ name: 'amendments' })
 
 const amendmentIDs = new Map<string, { name: string; deprecated: boolean }>()
-const votingAmendments = new Set<string>()
+const votingAmendmentsToTrack = new Set<string>()
 const rippledVersions = new Map<string, string>()
 // TODO: Use feature RPC instead when this issue is fixed and released:
 // https://github.com/XRPLF/rippled/issues/4730
@@ -82,12 +82,12 @@ async function fetchNetworkAmendments(
         name: featuresAll[id].name,
         deprecated: RETIRED_AMENDMENTS.includes(featuresAll[id].name),
       })
-      votingAmendments.delete(id)
+      votingAmendmentsToTrack.delete(id)
     }
 
     // Some amendments in voting are not available in feature all request.
     // This loop tries to fetch them in feature one.
-    for (const amendment_id of votingAmendments) {
+    for (const amendment_id of votingAmendmentsToTrack) {
       await fetchSingleAmendment(amendment_id, client)
     }
 
@@ -126,7 +126,7 @@ async function fetchSingleAmendment(
       name: feature.name,
       deprecated: RETIRED_AMENDMENTS.includes(feature.name),
     })
-    votingAmendments.delete(amendment_id)
+    votingAmendmentsToTrack.delete(amendment_id)
   }
 }
 
@@ -147,7 +147,7 @@ async function fetchVotingAmendments(): Promise<void> {
     }
     const amendments = amendmentsDb.split(',')
     for (const amendment of amendments) {
-      votingAmendments.add(amendment)
+      votingAmendmentsToTrack.add(amendment)
     }
   }
 }
