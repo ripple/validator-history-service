@@ -78,17 +78,23 @@ async function fetchNetworkAmendments(
     const featuresAll = featureAllResponse.result.features
 
     for (const id of Object.keys(featuresAll)) {
-      amendmentIDs.set(id, {
-        name: featuresAll[id].name,
-        deprecated: RETIRED_AMENDMENTS.includes(featuresAll[id].name),
-      })
-      votingAmendmentsToTrack.delete(id)
+      addAmendmentToCache(id, featuresAll[id].name)
     }
 
     // Some amendments in voting are not available in feature all request.
     // This loop tries to fetch them in feature one.
     for (const amendment_id of votingAmendmentsToTrack) {
-      await fetchSingleAmendment(amendment_id, client)
+      const featureOneResponse: FeatureOneResponse | ErrorResponse =
+        await client.request({
+          command: 'feature',
+          feature: amendment_id,
+        })
+
+      // eslint-disable-next-line max-depth -- The depth is only 2, try catch should not count.
+      if ('result' in featureOneResponse) {
+        const feature = featureOneResponse.result[amendment_id]
+        addAmendmentToCache(amendment_id, feature.name)
+      }
     }
 
     await client.disconnect()
@@ -104,30 +110,17 @@ async function fetchNetworkAmendments(
 }
 
 /**
- * Fetch an amendment info from a network and add to current map.
+ * Add an amendment to amendmentIds cache and remove it from the votingAmendmentToTrack cache.
  *
- * @param amendment_id - The id of the amendment to fetch.
- * @param client - The Client with a websocket connection to a rippled server.
- * @returns Void.
+ * @param id - The id of the amendment to add.
+ * @param name - The name of the amendment to add.
  */
-async function fetchSingleAmendment(
-  amendment_id: string,
-  client: Client,
-): Promise<void> {
-  const featureResponse: FeatureOneResponse | ErrorResponse =
-    await client.request({
-      command: 'feature',
-      feature: amendment_id,
-    })
-
-  if ('result' in featureResponse) {
-    const feature = featureResponse.result[amendment_id]
-    amendmentIDs.set(amendment_id, {
-      name: feature.name,
-      deprecated: RETIRED_AMENDMENTS.includes(feature.name),
-    })
-    votingAmendmentsToTrack.delete(amendment_id)
-  }
+function addAmendmentToCache(id: string, name: string): void {
+  amendmentIDs.set(id, {
+    name,
+    deprecated: RETIRED_AMENDMENTS.includes(name),
+  })
+  votingAmendmentsToTrack.delete(id)
 }
 
 /**
