@@ -13,6 +13,7 @@ import { query } from './utils'
 const log = logger({ name: 'amendments' })
 
 const amendmentIDs = new Map<string, { name: string; deprecated: boolean }>()
+const votingAmendments = new Set<string>()
 const rippledVersions = new Map<string, string>()
 // TODO: Use feature RPC instead when this issue is fixed and released:
 // https://github.com/XRPLF/rippled/issues/4730
@@ -70,17 +71,24 @@ async function fetchNetworkAmendments(
     log.info(`Updating amendment info for ${network}...`)
     const client = new Client(url)
     await client.connect()
-    const featureResponse: FeatureAllResponse = await client.request({
+    const featureAllResponse: FeatureAllResponse = await client.request({
       command: 'feature',
     })
 
-    const features = featureResponse.result.features
+    const featuresAll = featureAllResponse.result.features
 
-    for (const id of Object.keys(features)) {
+    for (const id of Object.keys(featuresAll)) {
       amendmentIDs.set(id, {
-        name: features[id].name,
-        deprecated: RETIRED_AMENDMENTS.includes(features[id].name),
+        name: featuresAll[id].name,
+        deprecated: RETIRED_AMENDMENTS.includes(featuresAll[id].name),
       })
+      votingAmendments.delete(id)
+    }
+
+    // Some amendments in voting are not available in feature all request.
+    // This loop tries to fetch them in feature one.
+    for (const amendment_id of votingAmendments) {
+      await fetchSingleAmendment(amendment_id, client)
     }
 
     await client.disconnect()
@@ -96,68 +104,38 @@ async function fetchNetworkAmendments(
 }
 
 /**
- * Find an amendment info from a network and add to current map.
+ * Fetch an amendment info from a network and add to current map.
  *
  * @param amendment_id - The id of the amendment to fetch.
- * @param url - The Faucet URL of the network.
- *
- * @returns True if the amendment is found, false otherwise.
- */
-async function findSingleAmendment(
-  amendment_id: string,
-  url: string,
-): Promise<boolean> {
-  try {
-    log.info(`Updating amendment info for ${amendment_id}...`)
-    const client = new Client(url)
-    await client.connect()
-    const featureResponse: FeatureOneResponse | ErrorResponse =
-      await client.request({
-        command: 'feature',
-        feature: amendment_id,
-      })
-
-    if ('result' in featureResponse) {
-      const feature = featureResponse.result[amendment_id]
-      amendmentIDs.set(amendment_id, {
-        name: feature.name,
-        deprecated: RETIRED_AMENDMENTS.includes(feature.name),
-      })
-      return true
-    }
-
-    await client.disconnect()
-    return false
-  } catch (_error) {
-    return false
-  }
-}
-
-/**
- * Fetch for a single amendment across networks. Returns when the first one is found.
- *
- * @param amendment_id - The id of the amendment to search.
- *
+ * @param client - The Client with a websocket connection to a rippled server.
  * @returns Void.
  */
-async function fetchSingleAmendmentFromNetworks(
+async function fetchSingleAmendment(
   amendment_id: string,
+  client: Client,
 ): Promise<void> {
-  for (const url of Object.values(NETWORKS_HOSTS)) {
-    const found = await findSingleAmendment(amendment_id, url)
-    if (found) {
-      break
-    }
+  const featureResponse: FeatureOneResponse | ErrorResponse =
+    await client.request({
+      command: 'feature',
+      feature: amendment_id,
+    })
+
+  if ('result' in featureResponse) {
+    const feature = featureResponse.result[amendment_id]
+    amendmentIDs.set(amendment_id, {
+      name: feature.name,
+      deprecated: RETIRED_AMENDMENTS.includes(feature.name),
+    })
+    votingAmendments.delete(amendment_id)
   }
 }
 
 /**
- * Fetch amendments in voting that are not available in feature-all RPC.
+ * Fetch amendments in voting.
  *
  * @returns Void.
  */
-async function fetchMissingAmendments(): Promise<void> {
-  const voting = new Set<string>()
+async function fetchVotingAmendments(): Promise<void> {
   const votingDb = await query('ballot')
     .select('amendments')
     .then(async (res) =>
@@ -169,12 +147,7 @@ async function fetchMissingAmendments(): Promise<void> {
     }
     const amendments = amendmentsDb.split(',')
     for (const amendment of amendments) {
-      voting.add(amendment)
-    }
-  }
-  for (const amendment of voting) {
-    if (!amendmentIDs.has(amendment)) {
-      await fetchSingleAmendmentFromNetworks(amendment)
+      votingAmendments.add(amendment)
     }
   }
 }
@@ -240,8 +213,8 @@ export async function deleteAmendmentStatus(
 
 export async function fetchAmendmentInfo(): Promise<void> {
   log.info('Fetch amendments info from data sources...')
+  await fetchVotingAmendments()
   await fetchAmendmentsList()
-  await fetchMissingAmendments()
   await fetchMinRippledVersions()
   amendmentIDs.forEach(async (value, id) => {
     const amendment: AmendmentInfo = {
