@@ -264,11 +264,15 @@ async function backtrackNetworkAmendmentStatus(
       index < currentLedger;
       index += 256
     ) {
+      // Use api V1 instead of the default (V2) since we don't have the correct
+      // LedgerResponseExpanded type for V2
+      // TODO: change to V2 once the issue is fixed.
       const ledger: LedgerResponse = await client.request({
         command: 'ledger',
         transactions: true,
         ledger_index: index,
         expand: true,
+        api_version: 1,
       })
 
       await handleWsMessageLedgerEnableAmendments(
