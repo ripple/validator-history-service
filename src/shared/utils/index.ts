@@ -40,7 +40,7 @@ export async function fetchValidatorList(url: string): Promise<UNLBlob> {
  * @returns The active UNLBlob parsed from UNLV2 format.
  * @throws Error if no active blob found.
  */
-function getActiveBlobV2(unl: UNLV2): UNLBlob {
+export function getActiveBlobV2(unl: UNLV2): UNLBlob {
   let activeBlob
   for (const blobItem of unl.blobs_v2) {
     const currentBlob: UNLBlob = parseBlob(blobItem.blob)
@@ -69,7 +69,7 @@ function getActiveBlobV2(unl: UNLV2): UNLBlob {
  * @param blob - The UNLBlob to parse.
  * @returns The parsed UNLBlob.
  */
-function parseBlob(blob: string): UNLBlob {
+export function parseBlob(blob: string): UNLBlob {
   const buf = Buffer.from(blob, 'base64')
   const blobParsed: UNLBlob = JSON.parse(buf.toString('ascii'))
   return blobParsed
