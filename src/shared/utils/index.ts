@@ -1,8 +1,9 @@
 import axios, { AxiosRequestConfig } from 'axios'
+import { unixTimeToRippleTime } from 'xrpl'
 import { normalizeManifest } from 'xrpl-validator-domains'
 
 import { getNetworks, query } from '../database'
-import { UNL, UNLBlob, UNLValidator } from '../types'
+import { UNL, UNLBlob, UNLV2, UNLValidator } from '../types'
 
 import logger from './logger'
 
@@ -18,14 +19,60 @@ const HTTPS_PORT = 51234
 export async function fetchValidatorList(url: string): Promise<UNLBlob> {
   try {
     const resp = await axios.get(`http://${url}`)
-    const unl: UNL = resp.data
-    const buf = Buffer.from(unl.blob, 'base64')
-    const blobParsed: UNLBlob = JSON.parse(buf.toString('ascii'))
-    return blobParsed
+    const unl: UNL | UNLV2 = resp.data
+    if ('blob' in unl) {
+      return parseBlob(unl.blob)
+    }
+    return getActiveBlobV2(unl)
   } catch (err: unknown) {
     log.error(`Error fetching validator List for ${url}`, err)
     return Promise.reject()
   }
+}
+
+/**
+ * Retrieves the most recent active UNLBlob from a UNLv2 object.
+ *
+ * An active UNLBlob for v2 is one whose effective time is the latest among those
+ * where the current time falls within the effective and expiration range.
+ *
+ * @param unl - The input UNLv2 object.
+ * @returns The active UNLBlob parsed from UNLV2 format.
+ * @throws Error if no active blob found.
+ */
+export function getActiveBlobV2(unl: UNLV2): UNLBlob {
+  let activeBlob
+  for (const blobItem of unl.blobs_v2) {
+    const currentBlob: UNLBlob = parseBlob(blobItem.blob)
+    const now = unixTimeToRippleTime(Date.now())
+    if (
+      currentBlob.effective !== undefined &&
+      currentBlob.effective <= now &&
+      currentBlob.expiration >= now &&
+      (!activeBlob ||
+        (activeBlob.effective && currentBlob.effective > activeBlob.effective))
+    ) {
+      activeBlob = currentBlob
+    }
+  }
+  if (!activeBlob) {
+    throw new Error(
+      `Unable to find an active blob for unl at ${unl.public_key}`,
+    )
+  }
+  return activeBlob
+}
+
+/**
+ * Parse a UNLBlob.
+ *
+ * @param blob - The UNLBlob to parse.
+ * @returns The parsed UNLBlob.
+ */
+export function parseBlob(blob: string): UNLBlob {
+  const buf = Buffer.from(blob, 'base64')
+  const blobParsed: UNLBlob = JSON.parse(buf.toString('ascii'))
+  return blobParsed
 }
 
 /**
