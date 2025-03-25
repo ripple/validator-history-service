@@ -56,10 +56,24 @@ export async function saveNode(node: Node): Promise<void> {
     const ledgersSplit = node.complete_ledgers.split(',')
     node.complete_ledgers = ledgersSplit[ledgersSplit.length - 1]
   }
+
+  const sanitizedNode = {
+    complete_ledgers: null,
+    complete_shards: null,
+    start: null,
+    ip: null,
+    port: null,
+    type: null,
+    server_state: null,
+    io_latency_ms: null,
+    load_factor_server: null,
+    ...node,
+  }
+
   query('crawls')
-    .insert(node)
+    .insert(sanitizedNode)
     .onConflict('public_key')
-    .merge()
+    .merge(sanitizedNode)
     .catch((err: Error) => log.error(err.message))
 }
 
