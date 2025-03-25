@@ -58,15 +58,8 @@ export async function saveNode(node: Node): Promise<void> {
   }
 
   const sanitizedNode = {
-    complete_ledgers: null,
-    complete_shards: null,
-    start: null,
     ip: null,
     port: null,
-    type: null,
-    server_state: null,
-    io_latency_ms: null,
-    load_factor_server: null,
     ...node,
   }
 
