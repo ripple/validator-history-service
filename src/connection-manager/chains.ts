@@ -116,11 +116,6 @@ class Chains {
       }
 
       if (tenSecondsOld) {
-        log.info(
-          `DebugSkipped1:${`${ledger_hash}:${ledger.ledger_index}`}:${Array.from(
-            ledger.validations,
-          ).join(',')}`,
-        )
         this.ledgersByHash.delete(ledger_hash)
       }
     }
@@ -224,7 +219,7 @@ class Chains {
 
     if (chainAtThisIndex !== undefined) {
       log.info(
-        `DebugSkipped2:${`${next}:${ledger.ledger_index}`}:${Array.from(
+        `DebugSkipped1:${`${next}:${ledger.ledger_index}`}:${Array.from(
           validators,
         ).join(',')}`,
       )
@@ -247,7 +242,7 @@ class Chains {
         addLedgerToChain(ledger, chainWithThisValidator)
       } else {
         log.info(
-          `DebugSkipped3:${`${next}:${ledger.ledger_index}`}:${Array.from(
+          `DebugSkipped2:${`${next}:${ledger.ledger_index}`}:${Array.from(
             validators,
           ).join(',')}`,
         )
