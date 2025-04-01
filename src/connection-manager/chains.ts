@@ -1,5 +1,5 @@
-/* eslint-disable max-lines-per-function */
-/* eslint-disable max-statements */
+/* eslint-disable max-lines-per-function -- Disable for this for debug purposes. */
+/* eslint-disable max-statements -- Disable for this for debug purposes. */
 import { Knex } from 'knex'
 
 import { query } from '../shared/database'
