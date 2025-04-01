@@ -1,3 +1,5 @@
+/* eslint-disable max-lines-per-function */
+/* eslint-disable max-statements */
 import { Knex } from 'knex'
 
 import { query } from '../shared/database'
@@ -114,6 +116,11 @@ class Chains {
       }
 
       if (tenSecondsOld) {
+        log.info(
+          `DebugSkipped1:${`${ledger_hash}:${ledger.ledger_index}`}:${Array.from(
+            ledger.validations,
+          ).join(',')}`,
+        )
         this.ledgersByHash.delete(ledger_hash)
       }
     }
@@ -216,6 +223,11 @@ class Chains {
       .shift()
 
     if (chainAtThisIndex !== undefined) {
+      log.info(
+        `DebugSkipped2:${`${next}:${ledger.ledger_index}`}:${Array.from(
+          validators,
+        ).join(',')}`,
+      )
       return
     }
 
@@ -233,6 +245,12 @@ class Chains {
       if (skipped > 1 && skipped < 20) {
         chainWithThisValidator.incomplete = true
         addLedgerToChain(ledger, chainWithThisValidator)
+      } else {
+        log.info(
+          `DebugSkipped3:${`${next}:${ledger.ledger_index}`}:${Array.from(
+            validators,
+          ).join(',')}`,
+        )
       }
     }
 
