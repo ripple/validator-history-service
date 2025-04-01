@@ -59,6 +59,9 @@ async function setHandlers(
   const ledger_hashes: string[] = []
   return new Promise(function setHandlersPromise(resolve, _reject) {
     ws.on('open', () => {
+      if (networks === 'xahau-main') {
+        log.info(`Debug connection opened:${ws.url}`)
+      }
       if (connections.has(ip)) {
         resolve()
         return
@@ -78,6 +81,9 @@ async function setHandlers(
       resolve()
     })
     ws.on('message', function handleMessage(message: string) {
+      if (networks === 'xahau-main') {
+        log.info(`Debug data received:${ws.url}`)
+      }
       let data
       try {
         data = JSON.parse(message)
@@ -107,39 +113,21 @@ async function setHandlers(
       }
     })
     ws.on('close', async (code, reason) => {
-      const nodeNetworks = networks ?? 'unknown network'
-      if (connectionsInitialized) {
-        log.error(
-          `Websocket closed for ${
-            ws.url
-          } on ${nodeNetworks} with code ${code} and reason ${reason.toString(
+      if (networks === 'xahau-main') {
+        log.info(
+          `Debug connection closed:${ws.url}:${code}:${reason.toString(
             'utf-8',
-          )}.`,
+          )}`,
         )
-        if (CLOSING_CODES.includes(code)) {
-          log.info(
-            `Reconnecting to ${ws.url} on ${networks ?? 'unknown network'}...`,
-          )
-          // Open a new Websocket connection for the same url
-          const newWS = new WebSocket(ws.url, { handshakeTimeout: WS_TIMEOUT })
-          // Clean up the old Websocket connection
-          connections.delete(ip)
-          ws.terminate()
-          resolve()
-
-          await setHandlers(ip, newWS, networks, isInitialNode)
-          // return since the old websocket connection has already been terminated
-          return
-        }
       }
-      if (connections.get(ip)?.url === ws.url) {
-        connections.delete(ip)
-        void saveNodeWsUrl(ws.url, false)
-      }
+      connections.delete(ip)
       ws.terminate()
       resolve()
     })
-    ws.on('error', () => {
+    ws.on('error', (err) => {
+      if (networks === 'xahau-main') {
+        log.info(`Debug connection error:${ws.url}:${err.message}`)
+      }
       if (connections.get(ip)?.url === ws.url) {
         connections.delete(ip)
       }
