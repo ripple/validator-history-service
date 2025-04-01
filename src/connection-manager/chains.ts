@@ -1,3 +1,5 @@
+/* eslint-disable max-lines-per-function -- Disable for this for debug purposes. */
+/* eslint-disable max-statements -- Disable for this for debug purposes. */
 import { Knex } from 'knex'
 
 import { query } from '../shared/database'
@@ -216,6 +218,11 @@ class Chains {
       .shift()
 
     if (chainAtThisIndex !== undefined) {
+      log.info(
+        `DebugSkipped1:${`${next}:${ledger.ledger_index}`}:${Array.from(
+          validators,
+        ).join(',')}`,
+      )
       return
     }
 
@@ -233,6 +240,12 @@ class Chains {
       if (skipped > 1 && skipped < 20) {
         chainWithThisValidator.incomplete = true
         addLedgerToChain(ledger, chainWithThisValidator)
+      } else {
+        log.info(
+          `DebugSkipped2:${`${next}:${ledger.ledger_index}`}:${Array.from(
+            validators,
+          ).join(',')}`,
+        )
       }
     }
 

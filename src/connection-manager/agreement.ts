@@ -153,6 +153,8 @@ class Agreement {
     for (const chain of agreementChains) {
       const ledger_hashes = chain.ledgers
 
+      log.info(`Debug: ${chain.id}:${Array.from(chain.validators).join(',')}`)
+
       for (const signing_key of chain.validators) {
         promises.push(
           this.calculateValidatorAgreement(
