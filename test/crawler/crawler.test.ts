@@ -5,6 +5,7 @@ import { destroy, query, setupTables } from '../../src/shared/database'
 import { Node } from '../../src/shared/types'
 
 import network2 from './fixtures/cyclic-network.json'
+import network3 from './fixtures/null-ip-three-node-crawl.json'
 import network1 from './fixtures/three-node-crawl.json'
 
 function mock(): void {
@@ -63,6 +64,31 @@ describe('Runs test crawl', () => {
     expect(results).toContainEqual(network1.result[0])
     expect(results).toContainEqual(network1.result[1])
     expect(results).toContainEqual(network1.result[2])
+  })
+
+  test('successfully updates ip and port to null', async () => {
+    await crawl('1.1.1.1')
+
+    Object.keys(network3.peers).forEach((peer: string) => {
+      nock(`https://${peer}:51235`)
+        .get('/crawl')
+        .reply(
+          200,
+          (network3.peers as Record<string, Record<string, unknown>>)[peer],
+        )
+    })
+
+    await crawl('1.1.1.1')
+
+    const results: Node[] = await query('crawls').select([
+      'ip',
+      'port',
+      'public_key',
+    ])
+
+    expect(results).toContainEqual(network3.result[0])
+    expect(results).toContainEqual(network3.result[1])
+    expect(results).toContainEqual(network3.result[2])
   })
 
   test('successfully crawls cyclic node network', async () => {
