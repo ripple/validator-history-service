@@ -42,7 +42,6 @@ const MAX_DELAY = 30 * 1000 // 30 seconds
 //  1005: No Status Received: An empty or undefined status code is used to indicate no further details about the closure.
 // Reconnection should happen after seeing these codes for established connections.
 const CLOSING_CODES = [1005, 1006, 1008]
-let connectionsInitialized = false
 let cmStarted = false
 
 /**
@@ -262,12 +261,12 @@ async function createConnections(): Promise<void> {
   })
 
   const promises: Array<Promise<void>> = []
-  connectionsInitialized = false
+
   nodes.forEach((node: WsNode) => {
     promises.push(findConnection(node))
   })
   await Promise.all(promises)
-  connectionsInitialized = true
+
   log.info(`${connections.size} connections created`)
 }
 
