@@ -1,3 +1,5 @@
+/* eslint-disable max-statements */
+/* eslint-disable max-depth */
 /* eslint-disable max-lines-per-function  -- Disable for this file with complex websocket rules. */
 import WebSocket from 'ws'
 import { LedgerEntryResponse } from 'xrpl'
@@ -31,6 +33,8 @@ const CM_INTERVAL = 60 * 60 * 1000
 const WS_TIMEOUT = 10000
 const REPORTING_INTERVAL = 15 * 60 * 1000
 const BACKTRACK_INTERVAL = 30 * 60 * 1000
+const BASE_DELAY = 1 * 1000 // 1 second
+const MAX_DELAY = 30 * 1000 // 30 seconds
 
 // The frequent closing codes seen so far after connections established include:
 //  1008: Policy error: client is too slow. (Most frequent)
@@ -44,17 +48,19 @@ let cmStarted = false
 /**
  * Sets the handlers for each WebSocket object.
  *
- * @param ip - The ip address of the node we are trying to reach.
+ * @param ws_url - The WebSocket address of the node we are trying to reach.
  * @param ws - A WebSocket object.
  * @param networks - The networks of the node we are trying to reach where it retrieves validations.
  * @param isInitialNode - Whether source node is an entry/initial node for the network.
+ * @param retryCount - Retry count for exponential backoff.
  * @returns A Promise that resolves to void once a connection has been created or timeout has occured.
  */
 async function setHandlers(
-  ip: string,
+  ws_url: string,
   ws: WebSocket,
   networks: string | undefined,
   isInitialNode = false,
+  retryCount = 0,
 ): Promise<void> {
   const ledger_hashes: string[] = []
   return new Promise(function setHandlersPromise(resolve, _reject) {
@@ -62,12 +68,12 @@ async function setHandlers(
       if (networks === 'xahau-main') {
         log.info(`Debug1 connection opened:${ws.url}`)
       }
-      if (connections.has(ip)) {
+      if (connections.has(ws_url)) {
         resolve()
         return
       }
       void saveNodeWsUrl(ws.url, true)
-      connections.set(ip, ws)
+      connections.set(ws_url, ws)
       subscribe(ws)
 
       // Use LedgerEntry to look for amendments that has already been enabled on a network when connections
@@ -121,32 +127,45 @@ async function setHandlers(
         )
       }
       const nodeNetworks = networks ?? 'unknown network'
-      if (connectionsInitialized) {
-        log.error(
-          `Websocket closed for ${
-            ws.url
-          } on ${nodeNetworks} with code ${code} and reason ${reason.toString(
-            'utf-8',
-          )}.`,
+      log.error(
+        `Websocket closed for ${
+          ws.url
+        } on ${nodeNetworks} with code ${code} and reason ${reason.toString(
+          'utf-8',
+        )}.`,
+      )
+      const delay = BASE_DELAY * 2 ** retryCount
+
+      if (CLOSING_CODES.includes(code) && delay <= MAX_DELAY) {
+        log.info(
+          `Reconnecting to ${ws.url} on ${
+            networks ?? 'unknown network'
+          } after ${delay}ms...`,
         )
-        if (CLOSING_CODES.includes(code)) {
-          log.info(
-            `Reconnecting to ${ws.url} on ${networks ?? 'unknown network'}...`,
-          )
+        // Clean up the old Websocket connection
+        connections.delete(ws_url)
+        ws.terminate()
+        resolve()
+
+        setTimeout(async () => {
           // Open a new Websocket connection for the same url
           const newWS = new WebSocket(ws.url, { handshakeTimeout: WS_TIMEOUT })
-          // Clean up the old Websocket connection
-          connections.delete(ip)
-          ws.terminate()
-          resolve()
 
-          await setHandlers(ip, newWS, networks, isInitialNode)
-          // return since the old websocket connection has already been terminated
-          return
-        }
+          await setHandlers(
+            ws_url,
+            newWS,
+            networks,
+            isInitialNode,
+            retryCount + 1,
+          )
+        }, delay)
+
+        // return since the old websocket connection has already been terminated
+        return
       }
-      if (connections.get(ip)?.url === ws.url) {
-        connections.delete(ip)
+
+      if (connections.get(ws_url)?.url === ws.url) {
+        connections.delete(ws_url)
         void saveNodeWsUrl(ws.url, false)
       }
       ws.terminate()
@@ -156,8 +175,8 @@ async function setHandlers(
       if (networks === 'xahau-main') {
         log.info(`Debug1 connection error:${ws.url}:${err.message}`)
       }
-      if (connections.get(ip)?.url === ws.url) {
-        connections.delete(ip)
+      if (connections.get(ws_url)?.url === ws.url) {
+        connections.delete(ws_url)
       }
       ws.terminate()
       resolve()
@@ -185,13 +204,18 @@ async function findConnection(node: WsNode): Promise<void> {
     return Promise.resolve()
   }
 
-  if (connections.has(node.ip)) {
-    return Promise.resolve()
+  for (const port of ports) {
+    for (const protocol of protocols) {
+      const url = `${protocol}${node.ip}:${port}`
+      if (connections.has(url)) {
+        return Promise.resolve()
+      }
+    }
   }
 
   if (node.ws_url) {
     const ws = new WebSocket(node.ws_url, { handshakeTimeout: WS_TIMEOUT })
-    return setHandlers(node.ip, ws, node.networks)
+    return setHandlers(node.ws_url, ws, node.networks)
   }
 
   const promises: Array<Promise<void>> = []
@@ -201,7 +225,7 @@ async function findConnection(node: WsNode): Promise<void> {
       const ws = new WebSocket(url, { handshakeTimeout: WS_TIMEOUT })
       promises.push(
         setHandlers(
-          node.ip,
+          url,
           ws,
           node.networks,
           networkInitialIps.includes(node.ip),
