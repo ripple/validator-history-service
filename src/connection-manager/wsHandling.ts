@@ -51,6 +51,9 @@ export function subscribe(ws: WebSocket): void {
       streams: ['manifests', 'validations', 'ledger'],
     }),
   )
+  log.info(
+    `Subscribed to manifests, validations, and ledger streams on this websocket endpoint: ${ws.url}`,
+  )
 }
 
 /**

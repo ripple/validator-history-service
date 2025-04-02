@@ -58,7 +58,11 @@ async function setHandlers(
 ): Promise<void> {
   const ledger_hashes: string[] = []
   return new Promise(function setHandlersPromise(resolve, _reject) {
-    ws.on('open', () => {
+    ws.on('open', (err: unknown) => {
+      if (err) {
+        log.error(`Error upon opening websocket: ${err}`)
+        return
+      }
       if (connections.has(ip)) {
         resolve()
         return
@@ -85,6 +89,7 @@ async function setHandlers(
         log.error('Error parsing validation message', error)
         return
       }
+      log.info(`Received message on websocket: ${data}`)
 
       if (data.result?.node) {
         void handleWsMessageLedgerEntryAmendments(
@@ -108,14 +113,15 @@ async function setHandlers(
     })
     ws.on('close', async (code, reason) => {
       const nodeNetworks = networks ?? 'unknown network'
+      log.error(
+        `Websocket closed for ${
+          ws.url
+        } on ${nodeNetworks} with code ${code} and reason ${reason.toString(
+          'utf-8',
+        )}.`,
+      )
+
       if (connectionsInitialized) {
-        log.error(
-          `Websocket closed for ${
-            ws.url
-          } on ${nodeNetworks} with code ${code} and reason ${reason.toString(
-            'utf-8',
-          )}.`,
-        )
         if (CLOSING_CODES.includes(code)) {
           log.info(
             `Reconnecting to ${ws.url} on ${networks ?? 'unknown network'}...`,
@@ -139,7 +145,10 @@ async function setHandlers(
       ws.terminate()
       resolve()
     })
-    ws.on('error', () => {
+    ws.on('error', (err) => {
+      if (err) {
+        log.error(`Error on websocket: ${err}`)
+      }
       if (connections.get(ip)?.url === ws.url) {
         connections.delete(ip)
       }

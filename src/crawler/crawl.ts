@@ -213,6 +213,9 @@ class Crawler {
           node.complete_ledgers,
         )
       ) {
+        log.info(
+          `Node ${normalizedPublicKey} does not have relevant complete ledgers`,
+        )
         continue
       }
 
@@ -229,6 +232,9 @@ class Crawler {
       }
 
       if (this.publicKeysSeen.has(normalizedPublicKey)) {
+        log.info(
+          `Node ${normalizedPublicKey} has already been processed for crawl process`,
+        )
         continue
       }
 
