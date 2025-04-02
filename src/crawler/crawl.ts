@@ -1,3 +1,4 @@
+/* eslint-disable max-statements -- test */
 import moment, { Moment } from 'moment'
 import { encodeNodePublic } from 'ripple-address-codec'
 
@@ -233,7 +234,13 @@ class Crawler {
       }
 
       this.publicKeysSeen.add(normalizedPublicKey)
-      promises.push(saveNode(dbNode))
+
+      // eslint-disable-next-line no-negated-condition -- test
+      if (!dbNode.ip) {
+        promises.push(saveNode({ ...dbNode, ip: undefined }))
+      } else {
+        promises.push(saveNode(dbNode))
+      }
 
       if (node.ip === undefined || node.port === undefined) {
         continue

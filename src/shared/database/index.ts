@@ -57,18 +57,12 @@ export async function saveNode(node: Node): Promise<void> {
     node.complete_ledgers = ledgersSplit[ledgersSplit.length - 1]
   }
 
-  const sanitizedNode = {
-    ip: null,
-    port: null,
-    ...node,
-  }
-
   // console.log('node sanitized', sanitizedNode)
 
   query('crawls')
-    .insert(sanitizedNode)
+    .insert(node)
     .onConflict('public_key')
-    .merge(sanitizedNode)
+    .merge(node)
     .catch((err: Error) => log.error(err.message))
 }
 
