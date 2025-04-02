@@ -66,7 +66,7 @@ describe('Runs test crawl', () => {
     expect(results).toContainEqual(network1.result[2])
   })
 
-  test('successfully updates ip and port to null', async () => {
+  test('successfully updates an existing ip and port to null', async () => {
     // Manually set endpoints to standard 3 node network
     Object.keys(network1.peers).forEach((peer: string) => {
       nock(`https://${peer}:51235`)
