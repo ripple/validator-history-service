@@ -63,7 +63,7 @@ export async function saveNode(node: Node): Promise<void> {
     ...node,
   }
 
-  console.log('node sanitized', sanitizedNode)
+  // console.log('node sanitized', sanitizedNode)
 
   query('crawls')
     .insert(sanitizedNode)
