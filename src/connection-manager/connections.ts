@@ -59,6 +59,9 @@ async function setHandlers(
   const ledger_hashes: string[] = []
   return new Promise(function setHandlersPromise(resolve, _reject) {
     ws.on('open', () => {
+      if (networks === 'xahau-main') {
+        log.info(`Debug1 connection opened:${ws.url}`)
+      }
       if (connections.has(ip)) {
         resolve()
         return
@@ -78,6 +81,9 @@ async function setHandlers(
       resolve()
     })
     ws.on('message', function handleMessage(message: string) {
+      if (networks === 'xahau-main') {
+        log.info(`Debug1 data received:${ws.url}`)
+      }
       let data
       try {
         data = JSON.parse(message)
@@ -107,6 +113,13 @@ async function setHandlers(
       }
     })
     ws.on('close', async (code, reason) => {
+      if (networks === 'xahau-main') {
+        log.info(
+          `Debug1 connection closed:${ws.url}:${code}:${reason.toString(
+            'utf-8',
+          )}`,
+        )
+      }
       const nodeNetworks = networks ?? 'unknown network'
       if (connectionsInitialized) {
         log.error(
@@ -139,7 +152,10 @@ async function setHandlers(
       ws.terminate()
       resolve()
     })
-    ws.on('error', () => {
+    ws.on('error', (err) => {
+      if (networks === 'xahau-main') {
+        log.info(`Debug1 connection error:${ws.url}:${err.message}`)
+      }
       if (connections.get(ip)?.url === ws.url) {
         connections.delete(ip)
       }
