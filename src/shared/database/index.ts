@@ -57,8 +57,6 @@ export async function saveNode(node: Node): Promise<void> {
     node.complete_ledgers = ledgersSplit[ledgersSplit.length - 1]
   }
 
-  // console.log('node sanitized', sanitizedNode)
-
   query('crawls')
     .insert(node)
     .onConflict('public_key')
