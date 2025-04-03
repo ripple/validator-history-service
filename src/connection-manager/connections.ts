@@ -27,6 +27,7 @@ const ports = [443, 80, 6005, 6006, 51233, 51234]
 const protocols = ['wss://', 'ws://']
 const connections: Map<string, WebSocket> = new Map()
 const networkFee: Map<string, FeeVote> = new Map()
+const validationNetworkDb: Map<string, string> = new Map()
 const CM_INTERVAL = 60 * 60 * 1000
 const WS_TIMEOUT = 10000
 const REPORTING_INTERVAL = 15 * 60 * 1000
@@ -60,12 +61,6 @@ async function setHandlers(
   isInitialNode = false,
   retryCount = 0,
 ): Promise<void> {
-  log.info(
-    `Initiated Websocket connection for: ${ws_url} on ${
-      networks ?? 'unknown network'
-    }`,
-  )
-
   const ledger_hashes: string[] = []
   return new Promise(function setHandlersPromise(resolve, _reject) {
     ws.on('open', () => {
@@ -119,6 +114,7 @@ async function setHandlers(
           networks,
           networkFee,
           ws,
+          validationNetworkDb,
         )
       }
     })
@@ -230,6 +226,14 @@ async function findConnection(node: WsNode): Promise<void> {
   return Promise.resolve()
 }
 
+async function getValidationNetworkDb(): Promise<void> {
+  const validatorNetwork: Array<{ signing_key: string; networks: string }> =
+    await query('validators').select('signing_key', 'networks')
+  for (const entry of validatorNetwork) {
+    validationNetworkDb.set(entry.signing_key, entry.networks)
+  }
+}
+
 /**
  * Creates connections to nodes found in the database.
  *
@@ -237,6 +241,8 @@ async function findConnection(node: WsNode): Promise<void> {
  */
 async function createConnections(): Promise<void> {
   log.info('Finding Connections...')
+  validationNetworkDb.clear()
+  await getValidationNetworkDb()
   const tenMinutesAgo = new Date()
   tenMinutesAgo.setMinutes(tenMinutesAgo.getMinutes() - 10)
 

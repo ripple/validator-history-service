@@ -9,18 +9,13 @@ import {
 import { AMENDMENTS_ID } from 'xrpl/dist/npm/models/ledger'
 import { LedgerResponseExpanded } from 'xrpl/dist/npm/models/methods/ledger'
 
-import {
-  query,
-  saveAmendmentStatus,
-  saveAmendmentsStatus,
-} from '../shared/database'
+import { saveAmendmentStatus, saveAmendmentsStatus } from '../shared/database'
 import {
   NETWORKS_HOSTS,
   deleteAmendmentStatus,
 } from '../shared/database/amendments'
 import {
   AmendmentStatus,
-  DatabaseValidator,
   FeeVote,
   StreamLedger,
   StreamManifest,
@@ -106,6 +101,7 @@ function isFlagLedgerPlusOne(ledger_index: number): boolean {
  * @param networks - The networks of subscribed node.
  * @param network_fee - The map of default fee for the network to be used in case the validator does not vote for a new fee.
  * @param ws - The WebSocket message received from.
+ * @param validationNetworkDb -- A map of validator signing_keys to their corresponding networks.
  * @returns Void.
  */
 // eslint-disable-next-line max-params -- Disabled for this function.
@@ -115,6 +111,7 @@ export async function handleWsMessageSubscribeTypes(
   networks: string | undefined,
   network_fee: Map<string, FeeVote>,
   ws: WebSocket,
+  validationNetworkDb: Map<string, string>,
 ): Promise<void> {
   if (data.type === 'validationReceived') {
     const validationData = data as ValidationRaw
@@ -122,15 +119,9 @@ export async function handleWsMessageSubscribeTypes(
       validationData.networks = networks
     }
 
-    // Get network of the validation if ledger_hash is not in cache.
-    const validationNetworkDb: DatabaseValidator | undefined = await query(
-      'validators',
-    )
-      .select('*')
-      .where('signing_key', validationData.validation_public_key)
-      .first()
     const validationNetwork =
-      validationNetworkDb?.networks ?? validationData.networks
+      validationNetworkDb.get(validationData.validation_public_key) ??
+      validationData.networks
 
     // Get the fee for the network to be used in case the validator does not vote for a new fee.
     if (validationNetwork) {
