@@ -101,7 +101,7 @@ function isFlagLedgerPlusOne(ledger_index: number): boolean {
  * @param networks - The networks of subscribed node.
  * @param network_fee - The map of default fee for the network to be used in case the validator does not vote for a new fee.
  * @param ws - The WebSocket message received from.
- * @param validationNetworkDb -- The validation network map to fetch fee data.
+ * @param validationNetworkDb -- A map of validator signing_keys to their corresponding networks.
  * @returns Void.
  */
 // eslint-disable-next-line max-params -- Disabled for this function.

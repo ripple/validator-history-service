@@ -61,12 +61,6 @@ async function setHandlers(
   isInitialNode = false,
   retryCount = 0,
 ): Promise<void> {
-  // log.info(
-  //   `Initiated Websocket connection for: ${ws_url} on ${
-  //     networks ?? 'unknown network'
-  //   }`,
-  // )
-
   const ledger_hashes: string[] = []
   return new Promise(function setHandlersPromise(resolve, _reject) {
     ws.on('open', () => {
@@ -124,21 +118,21 @@ async function setHandlers(
         )
       }
     })
-    ws.on('close', async (code) => {
-      // log.error(
-      //   `Websocket closed for ${ws.url} on ${
-      //     networks ?? 'unknown network'
-      //   } with code ${code} and reason ${reason.toString('utf-8')}.`,
-      // )
+    ws.on('close', async (code, reason) => {
+      log.error(
+        `Websocket closed for ${ws.url} on ${
+          networks ?? 'unknown network'
+        } with code ${code} and reason ${reason.toString('utf-8')}.`,
+      )
 
       const delay = BASE_RETRY_DELAY * 2 ** retryCount
 
       if (CLOSING_CODES.includes(code) && delay <= MAX_RETRY_DELAY) {
-        // log.info(
-        //   `Reconnecting to ${ws.url} on ${
-        //     networks ?? 'unknown network'
-        //   } after ${delay}ms...`,
-        // )
+        log.info(
+          `Reconnecting to ${ws.url} on ${
+            networks ?? 'unknown network'
+          } after ${delay}ms...`,
+        )
         // Clean up the old Websocket connection
         connections.delete(ws.url)
         ws.terminate()
@@ -168,12 +162,12 @@ async function setHandlers(
       ws.terminate()
       resolve()
     })
-    ws.on('error', () => {
-      // log.error(
-      //   `Websocket connection error for ${ws.url} on ${
-      //     networks ?? 'unknown network'
-      //   } - ${err.message}`,
-      // )
+    ws.on('error', (err) => {
+      log.error(
+        `Websocket connection error for ${ws.url} on ${
+          networks ?? 'unknown network'
+        } - ${err.message}`,
+      )
 
       if (connections.get(ws.url)?.url === ws.url) {
         connections.delete(ws.url)
