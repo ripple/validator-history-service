@@ -26,7 +26,7 @@ import chains from './chains'
 
 const log = logger({ name: 'agreement' })
 
-const AGREEMENT_INTERVAL = 0.5 * 60 * 1000
+const AGREEMENT_INTERVAL = 60 * 60 * 1000
 const PURGE_INTERVAL = 10 * 60 * 1000
 
 /**
