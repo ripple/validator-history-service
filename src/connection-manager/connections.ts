@@ -124,7 +124,7 @@ async function setHandlers(
         )
       }
     })
-    ws.on('close', async (code, reason) => {
+    ws.on('close', async (code) => {
       // log.error(
       //   `Websocket closed for ${ws.url} on ${
       //     networks ?? 'unknown network'
@@ -168,7 +168,7 @@ async function setHandlers(
       ws.terminate()
       resolve()
     })
-    ws.on('error', (err) => {
+    ws.on('error', () => {
       // log.error(
       //   `Websocket connection error for ${ws.url} on ${
       //     networks ?? 'unknown network'
