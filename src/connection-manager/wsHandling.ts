@@ -9,18 +9,13 @@ import {
 import { AMENDMENTS_ID } from 'xrpl/dist/npm/models/ledger'
 import { LedgerResponseExpanded } from 'xrpl/dist/npm/models/methods/ledger'
 
-import {
-  query,
-  saveAmendmentStatus,
-  saveAmendmentsStatus,
-} from '../shared/database'
+import { saveAmendmentStatus, saveAmendmentsStatus } from '../shared/database'
 import {
   NETWORKS_HOSTS,
   deleteAmendmentStatus,
 } from '../shared/database/amendments'
 import {
   AmendmentStatus,
-  DatabaseValidator,
   FeeVote,
   StreamLedger,
   StreamManifest,
