@@ -9,18 +9,13 @@ import {
 import { AMENDMENTS_ID } from 'xrpl/dist/npm/models/ledger'
 import { LedgerResponseExpanded } from 'xrpl/dist/npm/models/methods/ledger'
 
-import {
-  query,
-  saveAmendmentStatus,
-  saveAmendmentsStatus,
-} from '../shared/database'
+import { saveAmendmentStatus, saveAmendmentsStatus } from '../shared/database'
 import {
   NETWORKS_HOSTS,
   deleteAmendmentStatus,
 } from '../shared/database/amendments'
 import {
   AmendmentStatus,
-  DatabaseValidator,
   FeeVote,
   StreamLedger,
   StreamManifest,
@@ -123,14 +118,7 @@ export async function handleWsMessageSubscribeTypes(
     }
 
     // Get network of the validation if ledger_hash is not in cache.
-    const validationNetworkDb: DatabaseValidator | undefined = await query(
-      'validators',
-    )
-      .select('*')
-      .where('signing_key', validationData.validation_public_key)
-      .first()
-    const validationNetwork =
-      validationNetworkDb?.networks ?? validationData.networks
+    const validationNetwork = validationData.networks ?? networks
 
     // Get the fee for the network to be used in case the validator does not vote for a new fee.
     if (validationNetwork) {
