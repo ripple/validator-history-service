@@ -123,10 +123,10 @@ function isPreceedingFlagLedger(ledger_index: string): boolean {
 }
 
 /**
- * Finds network name from chain id
+ * Finds network name from chain id.
  *
  * @param chain - A chain object.
- * @returns string.
+ * @returns String.
  */
 async function getNetworkNameFromChainId(chain: Chain): Promise<string> {
   let id = chain.id
