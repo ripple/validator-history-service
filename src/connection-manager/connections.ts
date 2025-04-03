@@ -27,6 +27,7 @@ const ports = [443, 80, 6005, 6006, 51233, 51234]
 const protocols = ['wss://', 'ws://']
 const connections: Map<string, WebSocket> = new Map()
 const networkFee: Map<string, FeeVote> = new Map()
+const validationNetworkDb: Map<string, string> = new Map()
 const CM_INTERVAL = 60 * 60 * 1000
 const WS_TIMEOUT = 10000
 const REPORTING_INTERVAL = 15 * 60 * 1000
@@ -60,11 +61,11 @@ async function setHandlers(
   isInitialNode = false,
   retryCount = 0,
 ): Promise<void> {
-  log.info(
-    `Initiated Websocket connection for: ${ws_url} on ${
-      networks ?? 'unknown network'
-    }`,
-  )
+  // log.info(
+  //   `Initiated Websocket connection for: ${ws_url} on ${
+  //     networks ?? 'unknown network'
+  //   }`,
+  // )
 
   const ledger_hashes: string[] = []
   return new Promise(function setHandlersPromise(resolve, _reject) {
@@ -119,24 +120,25 @@ async function setHandlers(
           networks,
           networkFee,
           ws,
+          validationNetworkDb,
         )
       }
     })
     ws.on('close', async (code, reason) => {
-      log.error(
-        `Websocket closed for ${ws.url} on ${
-          networks ?? 'unknown network'
-        } with code ${code} and reason ${reason.toString('utf-8')}.`,
-      )
+      // log.error(
+      //   `Websocket closed for ${ws.url} on ${
+      //     networks ?? 'unknown network'
+      //   } with code ${code} and reason ${reason.toString('utf-8')}.`,
+      // )
 
       const delay = BASE_RETRY_DELAY * 2 ** retryCount
 
       if (CLOSING_CODES.includes(code) && delay <= MAX_RETRY_DELAY) {
-        log.info(
-          `Reconnecting to ${ws.url} on ${
-            networks ?? 'unknown network'
-          } after ${delay}ms...`,
-        )
+        // log.info(
+        //   `Reconnecting to ${ws.url} on ${
+        //     networks ?? 'unknown network'
+        //   } after ${delay}ms...`,
+        // )
         // Clean up the old Websocket connection
         connections.delete(ws.url)
         ws.terminate()
@@ -167,11 +169,11 @@ async function setHandlers(
       resolve()
     })
     ws.on('error', (err) => {
-      log.error(
-        `Websocket connection error for ${ws.url} on ${
-          networks ?? 'unknown network'
-        } - ${err.message}`,
-      )
+      // log.error(
+      //   `Websocket connection error for ${ws.url} on ${
+      //     networks ?? 'unknown network'
+      //   } - ${err.message}`,
+      // )
 
       if (connections.get(ws.url)?.url === ws.url) {
         connections.delete(ws.url)
@@ -230,6 +232,14 @@ async function findConnection(node: WsNode): Promise<void> {
   return Promise.resolve()
 }
 
+async function getValidationNetworkDb(): Promise<void> {
+  const validatorNetwork: Array<{ signing_key: string; networks: string }> =
+    await query('validators').select('signing_key', 'networks')
+  for (const entry of validatorNetwork) {
+    validationNetworkDb.set(entry.signing_key, entry.networks)
+  }
+}
+
 /**
  * Creates connections to nodes found in the database.
  *
@@ -237,6 +247,8 @@ async function findConnection(node: WsNode): Promise<void> {
  */
 async function createConnections(): Promise<void> {
   log.info('Finding Connections...')
+  validationNetworkDb.clear()
+  await getValidationNetworkDb()
   const tenMinutesAgo = new Date()
   tenMinutesAgo.setMinutes(tenMinutesAgo.getMinutes() - 10)
 
