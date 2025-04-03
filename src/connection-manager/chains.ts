@@ -62,7 +62,7 @@ async function saveValidatorChains(chain: Chain): Promise<void> {
   try {
     await Promise.all(promises)
   } catch (err: unknown) {
-    log.error('Error saving validator chains', err)
+    log.error(`Error saving chain data into validators table: ${err}`)
   }
 }
 
@@ -131,6 +131,7 @@ class Chains {
    * Clears all ledgers seen on a chain and saves the chain for each validator.
    */
   public async purgeChains(): Promise<void> {
+    log.info('Purging chains...')
     const promises: Array<Promise<void>> = []
 
     this.chains = this.chains.filter((chain) => {
@@ -154,6 +155,7 @@ class Chains {
   private getNextChainID(): string {
     if (this.index > 10000) {
       this.index = 0
+      log.error('Chain index overflowed at 10,000. Rounding back to 0.')
     }
 
     const id = `chain.${this.index}`
@@ -215,6 +217,8 @@ class Chains {
       .sort(sortChainLength)
       .shift()
 
+    // `ledger` has already been processed and added into the `chainAtThisIndex`.
+    // TODO: Add an additional check on the ledger_hash parameter to ensure that VHS is not processing conflicting ledgers.
     if (chainAtThisIndex !== undefined) {
       return
     }
@@ -228,8 +232,11 @@ class Chains {
     )
 
     if (chainWithThisValidator !== undefined) {
+      // compute the difference between the most recent ledger versus the stored ledger in `chainWithThisValidator`.
       const skipped = ledger.ledger_index - chainWithThisValidator.current
-      log.warn(`Possibly skipped ${skipped} ledgers`)
+      log.warn(
+        `Skipped ${skipped} ledgers in chain: ${chainWithThisValidator.id}. Processing incoming ledger with hash: ${ledger.ledger_hash} into the said chain.`,
+      )
       if (skipped > 1 && skipped < 20) {
         chainWithThisValidator.incomplete = true
         addLedgerToChain(ledger, chainWithThisValidator)

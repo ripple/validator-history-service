@@ -33,6 +33,8 @@ const TIMEOUT = 6000
 
 /**
  * Crawl endpoint at host:port/crawl.
+ * Refer to the peer_crawler API docs for more information:
+ * https://xrpl.org/docs/references/http-websocket-apis/peer-port-methods/peer-crawler#response-format
  *
  * @param host - Hostname or ip address of peer.
  * @param port - Port to hit /crawl endpoint.
