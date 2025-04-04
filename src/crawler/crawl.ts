@@ -233,7 +233,7 @@ class Crawler {
       }
 
       this.publicKeysSeen.add(normalizedPublicKey)
-      promises.push(saveNode(dbNode))
+      promises.push(saveNode({ ip: undefined, port: undefined, ...dbNode }))
 
       if (node.ip === undefined || node.port === undefined) {
         continue

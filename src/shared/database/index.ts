@@ -56,10 +56,11 @@ export async function saveNode(node: Node): Promise<void> {
     const ledgersSplit = node.complete_ledgers.split(',')
     node.complete_ledgers = ledgersSplit[ledgersSplit.length - 1]
   }
+
   query('crawls')
     .insert(node)
     .onConflict('public_key')
-    .merge()
+    .merge(node)
     .catch((err: Error) => log.error(err.message))
 }
 
