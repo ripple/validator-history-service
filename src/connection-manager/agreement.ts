@@ -17,7 +17,9 @@ import {
   ValidationRaw,
   ValidatorKeys,
   Ballot,
+  Chain,
 } from '../shared/types'
+import { getLists, overlaps } from '../shared/utils'
 import logger from '../shared/utils/logger'
 
 import chains from './chains'
@@ -121,6 +123,30 @@ function isPreceedingFlagLedger(ledger_index: string): boolean {
 }
 
 /**
+ * Finds network name from chain id.
+ *
+ * @param chain - A chain object.
+ * @returns String.
+ */
+async function getNetworkNameFromChainId(chain: Chain): Promise<string> {
+  let id = chain.id
+  const lists = await getLists().catch((err) => {
+    log.error('Error getting validator lists', err)
+    return undefined
+  })
+
+  if (lists != null) {
+    Object.entries(lists).forEach(([network, set]) => {
+      if (overlaps(chain.validators, set)) {
+        id = network
+      }
+    })
+  }
+
+  return id
+}
+
+/**
  *
  */
 class Agreement {
@@ -152,6 +178,14 @@ class Agreement {
 
     for (const chain of agreementChains) {
       const ledger_hashes = chain.ledgers
+
+      const networkName = await getNetworkNameFromChainId(chain)
+
+      log.info(
+        `Agreement: ${chain.id}:${networkName}:${Array.from(
+          chain.validators,
+        ).join(',')}`,
+      )
 
       for (const signing_key of chain.validators) {
         promises.push(

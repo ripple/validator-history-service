@@ -1,11 +1,3 @@
-import {
-  LedgerBinary,
-  LedgerResponse,
-  PseudoTransaction,
-  Transaction,
-  TransactionMetadata,
-} from 'xrpl'
-import { Ledger as LedgerXRPL } from 'xrpl/dist/npm/models/ledger'
 import { Manifest, StreamManifest } from 'xrpl-validator-domains'
 
 interface Chain {
@@ -35,25 +27,6 @@ interface StreamLedger {
   reserve_inc: number
   txn_id: number
   type: string
-}
-
-// TODO: use xrpl LedgerResponse type once hash and date has been added to transactions in the response.
-interface LedgerCorrected extends LedgerXRPL {
-  transactions: Array<
-    (Transaction | PseudoTransaction) & {
-      metaData?: TransactionMetadata
-      hash: string
-    }
-  >
-}
-
-interface LedgerResponseCorrected extends LedgerResponse {
-  result: {
-    ledger: LedgerCorrected | LedgerBinary
-  } & Pick<
-    LedgerResponse['result'],
-    Exclude<keyof LedgerResponse['result'], 'ledger'>
-  >
 }
 
 interface AmendmentEnabled {
@@ -196,6 +169,15 @@ interface UNL {
   blob: string
 }
 
+interface UNLV2 {
+  public_key: string
+  manifest: string
+  blobs_v2: Array<{
+    signature: string
+    blob: string
+  }>
+}
+
 interface UNLValidator {
   // this public key is the validator's master key unlike the validation_public_key in ValidationRaw
   validation_public_key: string
@@ -206,6 +188,7 @@ interface UNLValidator {
 interface UNLBlob {
   sequence: number
   expiration: number
+  effective?: number
   validators: UNLValidator[]
 }
 
@@ -251,6 +234,7 @@ export {
   Manifest,
   StreamManifest,
   UNL,
+  UNLV2,
   UNLBlob,
   UNLValidator,
   DatabaseManifest,
@@ -267,7 +251,6 @@ export {
   StreamLedger,
   Chain,
   ValidatorKeys,
-  LedgerResponseCorrected,
   AmendmentStatus,
   AmendmentInfo,
 }
