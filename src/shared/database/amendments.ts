@@ -1,5 +1,9 @@
 import axios from 'axios'
-import createHash from 'create-hash'
+import { Client, ErrorResponse } from 'xrpl'
+import {
+  FeatureAllResponse,
+  FeatureOneResponse,
+} from 'xrpl/dist/npm/models/methods/feature'
 
 import { AmendmentInfo } from '../types'
 import logger from '../utils/logger'
@@ -9,78 +13,135 @@ import { query } from './utils'
 const log = logger({ name: 'amendments' })
 
 const amendmentIDs = new Map<string, { name: string; deprecated: boolean }>()
+const votingAmendmentsToTrack = new Set<string>()
 const rippledVersions = new Map<string, string>()
-
-const ACTIVE_AMENDMENT_REGEX =
-  /^\s*REGISTER_F[A-Z]+\s*\((?<amendmentName>\S+),\s*.*$/u
-const RETIRED_AMENDMENT_REGEX =
-  /^ .*retireFeature\("(?<amendmentName>\S+)"\)[,;].*$/u
+// TODO: Use feature RPC instead when this issue is fixed and released:
+// https://github.com/XRPLF/rippled/issues/4730
+const RETIRED_AMENDMENTS = [
+  'MultiSign',
+  'TrustSetAuth',
+  'FeeEscalation',
+  'PayChan',
+  'CryptoConditions',
+  'TickSize',
+  'fix1368',
+  'Escrow',
+  'fix1373',
+  'EnforceInvariants',
+  'SortedDirectories',
+  'fix1201',
+  'fix1512',
+  'fix1523',
+  'fix1528',
+]
 
 const AMENDMENT_VERSION_REGEX =
   /\| \[(?<amendmentName>[a-zA-Z0-9_]+)\][^\n]+\| (?<version>v[0-9]*\.[0-9]*\.[0-9]*|TBD) *\|/u
 
-// TODO: Clean this up when this PR is merged:
-// https://github.com/XRPLF/rippled/pull/4781
+export const NETWORKS_HOSTS = new Map([
+  ['main', 'ws://s2.ripple.com:51233'],
+  ['test', 'wss://s.altnet.rippletest.net:51233'],
+  ['dev', 'wss://s.devnet.rippletest.net:51233'],
+])
+
 /**
- * Fetch a list of amendments names from rippled file.
+ * Fetch amendments information including id, name, and deprecated status.
  *
- * @returns The list of amendment names.
+ * @returns Void.
  */
-async function fetchAmendmentNames(): Promise<Map<string, boolean> | null> {
-  try {
-    const response = await axios.get(
-      'https://raw.githubusercontent.com/ripple/rippled/develop/src/ripple/protocol/impl/Feature.cpp',
-    )
-    const text = response.data
-    const amendmentNames: Map<string, boolean> = new Map()
-    text.split('\n').forEach((line: string) => {
-      const name = ACTIVE_AMENDMENT_REGEX.exec(line)
-      if (name) {
-        amendmentNames.set(name[1], name[0].includes('VoteBehavior::Obsolete'))
-      } else {
-        const name2 = RETIRED_AMENDMENT_REGEX.exec(line)
-        if (name2) {
-          amendmentNames.set(name2[1], true)
-        }
-      }
-    })
-    return amendmentNames
-  } catch (err) {
-    log.error('Error getting amendment names', err)
-    return null
+async function fetchAmendmentsList(): Promise<void> {
+  for (const [network, url] of NETWORKS_HOSTS) {
+    await fetchNetworkAmendments(network, url)
   }
 }
 
 /**
- * Extracts Amendment ID from Amendment name inside a buffer.
+ * Fetch amendments information including id, name, and deprecated status of a network.
  *
- * @param buffer -- The buffer containing the amendment name.
- *
- * @returns The amendment ID string.
- */
-function sha512Half(buffer: Buffer): string {
-  return createHash('sha512')
-    .update(buffer)
-    .digest('hex')
-    .toUpperCase()
-    .slice(0, 64)
-}
-
-/**
- * Maps the id of Amendments to its corresponding names.
+ * @param network - The network being retrieved.
+ * @param url - The Faucet URL of the network.
  *
  * @returns Void.
  */
-async function nameOfAmendmentID(): Promise<void> {
-  // The Amendment ID is the hash of the Amendment name
-  const amendmentNames = await fetchAmendmentNames()
-  if (amendmentNames !== null) {
-    amendmentNames.forEach((deprecated, name) => {
-      amendmentIDs.set(sha512Half(Buffer.from(name, 'ascii')), {
-        name,
-        deprecated,
-      })
+async function fetchNetworkAmendments(
+  network: string,
+  url: string,
+): Promise<void> {
+  try {
+    log.info(`Updating amendment info for ${network}...`)
+    const client = new Client(url)
+    await client.connect()
+    const featureAllResponse: FeatureAllResponse = await client.request({
+      command: 'feature',
     })
+
+    const featuresAll = featureAllResponse.result.features
+
+    for (const id of Object.keys(featuresAll)) {
+      addAmendmentToCache(id, featuresAll[id].name)
+    }
+
+    // Some amendments in voting are not available in feature all request.
+    // This loop tries to fetch them in feature one.
+    for (const amendment_id of votingAmendmentsToTrack) {
+      const featureOneResponse: FeatureOneResponse | ErrorResponse =
+        await client.request({
+          command: 'feature',
+          feature: amendment_id,
+        })
+
+      // eslint-disable-next-line max-depth -- The depth is only 2, try catch should not count.
+      if ('result' in featureOneResponse) {
+        const feature = featureOneResponse.result[amendment_id]
+        addAmendmentToCache(amendment_id, feature.name)
+      }
+    }
+
+    await client.disconnect()
+
+    log.info(`Finished updating amendment info for ${network}...`)
+  } catch (error) {
+    log.error(
+      `Failed to update amendment info for ${network} due to error: ${String(
+        error,
+      )}`,
+    )
+  }
+}
+
+/**
+ * Add an amendment to amendmentIds cache and remove it from the votingAmendmentToTrack cache.
+ *
+ * @param id - The id of the amendment to add.
+ * @param name - The name of the amendment to add.
+ */
+function addAmendmentToCache(id: string, name: string): void {
+  amendmentIDs.set(id, {
+    name,
+    deprecated: RETIRED_AMENDMENTS.includes(name),
+  })
+  votingAmendmentsToTrack.delete(id)
+}
+
+/**
+ * Fetch amendments in voting.
+ *
+ * @returns Void.
+ */
+async function fetchVotingAmendments(): Promise<void> {
+  const votingDb = await query('ballot')
+    .select('amendments')
+    .then(async (res) =>
+      res.map((vote: { amendments: string | null }) => vote.amendments),
+    )
+  for (const amendmentsDb of votingDb) {
+    if (!amendmentsDb) {
+      continue
+    }
+    const amendments = amendmentsDb.split(',')
+    for (const amendment of amendments) {
+      votingAmendmentsToTrack.add(amendment)
+    }
   }
 }
 
@@ -92,7 +153,7 @@ async function nameOfAmendmentID(): Promise<void> {
 async function fetchMinRippledVersions(): Promise<void> {
   try {
     const response = await axios.get(
-      'https://raw.githubusercontent.com/XRPLF/xrpl-dev-portal/master/content/resources/known-amendments.md',
+      'https://raw.githubusercontent.com/XRPLF/xrpl-dev-portal/master/resources/known-amendments.md',
     )
     const text = response.data
 
@@ -145,7 +206,8 @@ export async function deleteAmendmentStatus(
 
 export async function fetchAmendmentInfo(): Promise<void> {
   log.info('Fetch amendments info from data sources...')
-  await nameOfAmendmentID()
+  await fetchVotingAmendments()
+  await fetchAmendmentsList()
   await fetchMinRippledVersions()
   amendmentIDs.forEach(async (value, id) => {
     const amendment: AmendmentInfo = {

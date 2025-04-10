@@ -7,6 +7,11 @@ const info = {
   release_notes: 'Release Notes HERE',
   endpoints: [
     {
+      action: 'Get All Networks',
+      route: '/v1/network/networks',
+      example: 'https://data.xrpl.org/v1/network/networks',
+    },
+    {
       action: 'Get Topology Nodes',
       route: '/v1/network/topology/nodes',
       example: 'https://data.xrpl.org/v1/network/topology/nodes',
