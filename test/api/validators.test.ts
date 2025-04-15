@@ -3,9 +3,9 @@ import { Request, Response } from 'express'
 import { handleValidators } from '../../src/api/routes/v1/validator'
 import { destroy, query, setupTables } from '../../src/shared/database'
 
-import initialValidatorsSet from './fixtures/initial_validators_db.json'
-import initialBallotSet from './fixtures/initial_ballot_table.json'
 import expectedValidatorsResult from './fixtures/expected_validators_result.json'
+import initialBallotSet from './fixtures/initial_ballot_table.json'
+import initialValidatorsSet from './fixtures/initial_validators_db.json'
 
 describe('tests for validators endpoint', () => {
   beforeAll(async () => {
