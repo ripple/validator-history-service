@@ -257,7 +257,10 @@ export async function handleValidator(
   res: Response,
 ): Promise<void> {
   try {
-    if (Date.now() - cache.time > CACHE_INTERVAL_MILLIS) {
+    if (
+      Date.now() - cache.time > CACHE_INTERVAL_MILLIS ||
+      cache.validators.length === 0
+    ) {
       await cacheValidators()
     }
 
