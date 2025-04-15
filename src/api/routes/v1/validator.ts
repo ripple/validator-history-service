@@ -28,6 +28,7 @@ interface ValidatorResponse {
   chain: string
   networks?: string
   current_index: number
+  ledger_hash: string
   server_version?: string
   agreement_1h: {
     missed: number
@@ -80,6 +81,7 @@ interface dbResponse {
     incomplete: boolean
   } | null
   current_index: string
+  ledger_hash: string
   domain: string
   chain: string
   networks?: string
@@ -114,6 +116,7 @@ async function getValidators(): Promise<ValidatorResponse[]> {
       'validators.agreement_30day',
       'validators.current_index',
       'validators.domain',
+      'validators.ledger_hash',
       'validators.chain',
       'validators.networks',
       'validators.server_version',
@@ -185,6 +188,7 @@ async function formatResponse(resp: dbResponse): Promise<ValidatorResponse> {
     server_version: resp.server_version,
     networks: resp.networks,
     current_index: Number(resp.current_index),
+    ledger_hash: resp.ledger_hash,
     agreement_1h: hour1_score,
     agreement_24h: hour24_score,
     agreement_30day: day30_score,
@@ -292,8 +296,23 @@ export async function handleValidators(
   res: Response,
 ): Promise<void> {
   try {
-    if (Date.now() - cache.time > CACHE_INTERVAL_MILLIS) {
-      await cacheValidators()
+    if (
+      Date.now() - cache.time > CACHE_INTERVAL_MILLIS ||
+      cache.validators.length === 0
+    ) {
+      try {
+        await cacheValidators()
+      } catch (error) {
+        log.error(
+          'ERROR Unable to fetch recent entries in validators table: ' + error,
+        )
+        res.send({
+          result: 'error',
+          message:
+            'ERROR Unable to fetch recent entries in validators table: ' +
+            error,
+        })
+      }
     }
 
     const { param } = req.params
@@ -323,7 +342,11 @@ export async function handleValidators(
     }
 
     res.send(response)
-  } catch {
-    res.send({ result: 'error', message: 'internal error' })
+  } catch (error) {
+    log.error('ERROR Unable to fetch validators: ' + error)
+    res.send({
+      result: 'error',
+      message: 'Unable to fetch validators: ' + error,
+    })
   }
 }
