@@ -4,8 +4,6 @@
       "overlay": {
         "active": [
           {
-            "ip": null,
-            "port": null,
             "public_key": "n9Kt2gdtxsYV6h4SAfHkRFUMU8gB6rDQ3MktiB3MMEDS9s9obu9b",
             "complete_ledgers": "9-29"
           },

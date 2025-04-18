@@ -202,7 +202,7 @@ class Crawler {
 
     const { this_node, active_nodes } = nodes
 
-    const promises: Array<Promise<void>> = [saveNode(this_node)]
+    const promises: Array<Promise<void>> = [saveNode(this_node, false)]
 
     for (const node of active_nodes) {
       const normalizedPublicKey = Crawler.normalizePublicKey(node.public_key)
@@ -233,7 +233,7 @@ class Crawler {
       }
 
       this.publicKeysSeen.add(normalizedPublicKey)
-      promises.push(saveNode({ ip: undefined, port: undefined, ...dbNode }))
+      promises.push(saveNode(dbNode, true))
 
       if (node.ip === undefined || node.port === undefined) {
         continue

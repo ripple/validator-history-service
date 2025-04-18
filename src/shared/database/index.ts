@@ -49,18 +49,25 @@ export async function getNetworks(): Promise<Network[]> {
  * Saves a Node to database.
  *
  * @param node - Node to write to database.
+ * @param shouldOverwriteNull - If IP/port are not provided, will force update to null in DB.
  * @returns Void.
  */
-export async function saveNode(node: Node): Promise<void> {
+export async function saveNode(
+  node: Node,
+  shouldOverwriteNull: boolean,
+): Promise<void> {
   if (node.complete_ledgers && node.complete_ledgers.length > 255) {
     const ledgersSplit = node.complete_ledgers.split(',')
     node.complete_ledgers = ledgersSplit[ledgersSplit.length - 1]
   }
 
+  const sanitizedMergeNode = shouldOverwriteNull
+    ? { ip: null, port: null, ...node }
+    : node
   query('crawls')
     .insert(node)
     .onConflict('public_key')
-    .merge(node)
+    .merge(sanitizedMergeNode)
     .catch((err: Error) => log.error(err.message))
 }
 
