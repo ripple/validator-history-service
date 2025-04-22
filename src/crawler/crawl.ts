@@ -202,7 +202,8 @@ class Crawler {
 
     const { this_node, active_nodes } = nodes
 
-    const promises: Array<Promise<void>> = [saveNode(this_node)]
+    // If we are saving the node outside of peer iterations, we do not want to force missing parameters to null
+    const promises: Array<Promise<void>> = [saveNode(this_node, false)]
 
     for (const node of active_nodes) {
       const normalizedPublicKey = Crawler.normalizePublicKey(node.public_key)
@@ -233,7 +234,9 @@ class Crawler {
       }
 
       this.publicKeysSeen.add(normalizedPublicKey)
-      promises.push(saveNode(dbNode))
+
+      // If a peer has the node IP as null, we want to overwrite in the database
+      promises.push(saveNode(dbNode, true))
 
       if (node.ip === undefined || node.port === undefined) {
         continue
