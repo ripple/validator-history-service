@@ -27,10 +27,13 @@ const ports = [443, 80, 6005, 6006, 51233, 51234]
 const protocols = ['wss://', 'ws://']
 const connections: Map<string, WebSocket> = new Map()
 const networkFee: Map<string, FeeVote> = new Map()
+const validationNetworkDb: Map<string, string> = new Map()
 const CM_INTERVAL = 60 * 60 * 1000
 const WS_TIMEOUT = 10000
 const REPORTING_INTERVAL = 15 * 60 * 1000
 const BACKTRACK_INTERVAL = 30 * 60 * 1000
+const BASE_RETRY_DELAY = 1 * 1000
+const MAX_RETRY_DELAY = 30 * 1000
 
 // The frequent closing codes seen so far after connections established include:
 //  1008: Policy error: client is too slow. (Most frequent)
@@ -38,33 +41,41 @@ const BACKTRACK_INTERVAL = 30 * 60 * 1000
 //  1005: No Status Received: An empty or undefined status code is used to indicate no further details about the closure.
 // Reconnection should happen after seeing these codes for established connections.
 const CLOSING_CODES = [1005, 1006, 1008]
-let connectionsInitialized = false
 let cmStarted = false
 
 /**
  * Sets the handlers for each WebSocket object.
  *
- * @param ip - The ip address of the node we are trying to reach.
+ * @param ws_url - The WebSocket address of the node we are trying to reach.
  * @param ws - A WebSocket object.
  * @param networks - The networks of the node we are trying to reach where it retrieves validations.
  * @param isInitialNode - Whether source node is an entry/initial node for the network.
+ * @param retryCount - Retry count for exponential backoff.
  * @returns A Promise that resolves to void once a connection has been created or timeout has occured.
  */
+// eslint-disable-next-line max-params -- Required here
 async function setHandlers(
-  ip: string,
+  ws_url: string,
   ws: WebSocket,
   networks: string | undefined,
   isInitialNode = false,
+  retryCount = 0,
 ): Promise<void> {
   const ledger_hashes: string[] = []
   return new Promise(function setHandlersPromise(resolve, _reject) {
     ws.on('open', () => {
-      if (connections.has(ip)) {
+      log.info(
+        `Websocket connection opened for: ${ws.url} on ${
+          networks ?? 'unknown network'
+        }`,
+      )
+
+      if (connections.has(ws.url)) {
         resolve()
         return
       }
       void saveNodeWsUrl(ws.url, true)
-      connections.set(ip, ws)
+      connections.set(ws.url, ws)
       subscribe(ws)
 
       // Use LedgerEntry to look for amendments that has already been enabled on a network when connections
@@ -103,45 +114,63 @@ async function setHandlers(
           networks,
           networkFee,
           ws,
+          validationNetworkDb,
         )
       }
     })
     ws.on('close', async (code, reason) => {
-      const nodeNetworks = networks ?? 'unknown network'
-      if (connectionsInitialized) {
-        log.error(
-          `Websocket closed for ${
-            ws.url
-          } on ${nodeNetworks} with code ${code} and reason ${reason.toString(
-            'utf-8',
-          )}.`,
+      log.error(
+        `Websocket closed for ${ws.url} on ${
+          networks ?? 'unknown network'
+        } with code ${code} and reason ${reason.toString('utf-8')}.`,
+      )
+
+      const delay = BASE_RETRY_DELAY * 2 ** retryCount
+
+      if (CLOSING_CODES.includes(code) && delay <= MAX_RETRY_DELAY) {
+        log.info(
+          `Reconnecting to ${ws.url} on ${
+            networks ?? 'unknown network'
+          } after ${delay}ms...`,
         )
-        if (CLOSING_CODES.includes(code)) {
-          log.info(
-            `Reconnecting to ${ws.url} on ${networks ?? 'unknown network'}...`,
-          )
+        // Clean up the old Websocket connection
+        connections.delete(ws.url)
+        ws.terminate()
+        resolve()
+
+        setTimeout(async () => {
           // Open a new Websocket connection for the same url
           const newWS = new WebSocket(ws.url, { handshakeTimeout: WS_TIMEOUT })
-          // Clean up the old Websocket connection
-          connections.delete(ip)
-          ws.terminate()
-          resolve()
 
-          await setHandlers(ip, newWS, networks, isInitialNode)
-          // return since the old websocket connection has already been terminated
-          return
-        }
+          await setHandlers(
+            ws_url,
+            newWS,
+            networks,
+            isInitialNode,
+            retryCount + 1,
+          )
+        }, delay)
+
+        // return since the old websocket connection has already been terminated
+        return
       }
-      if (connections.get(ip)?.url === ws.url) {
-        connections.delete(ip)
+
+      if (connections.get(ws.url)?.url === ws.url) {
+        connections.delete(ws.url)
         void saveNodeWsUrl(ws.url, false)
       }
       ws.terminate()
       resolve()
     })
-    ws.on('error', () => {
-      if (connections.get(ip)?.url === ws.url) {
-        connections.delete(ip)
+    ws.on('error', (err) => {
+      log.error(
+        `Websocket connection error for ${ws.url} on ${
+          networks ?? 'unknown network'
+        } - ${err.message}`,
+      )
+
+      if (connections.get(ws.url)?.url === ws.url) {
+        connections.delete(ws.url)
       }
       ws.terminate()
       resolve()
@@ -169,13 +198,13 @@ async function findConnection(node: WsNode): Promise<void> {
     return Promise.resolve()
   }
 
-  if (connections.has(node.ip)) {
+  if (Array.from(connections.keys()).some((key) => key.includes(node.ip))) {
     return Promise.resolve()
   }
 
   if (node.ws_url) {
     const ws = new WebSocket(node.ws_url, { handshakeTimeout: WS_TIMEOUT })
-    return setHandlers(node.ip, ws, node.networks)
+    return setHandlers(node.ws_url, ws, node.networks)
   }
 
   const promises: Array<Promise<void>> = []
@@ -185,7 +214,7 @@ async function findConnection(node: WsNode): Promise<void> {
       const ws = new WebSocket(url, { handshakeTimeout: WS_TIMEOUT })
       promises.push(
         setHandlers(
-          node.ip,
+          url,
           ws,
           node.networks,
           networkInitialIps.includes(node.ip),
@@ -197,6 +226,14 @@ async function findConnection(node: WsNode): Promise<void> {
   return Promise.resolve()
 }
 
+async function getValidationNetworkDb(): Promise<void> {
+  const validatorNetwork: Array<{ signing_key: string; networks: string }> =
+    await query('validators').select('signing_key', 'networks')
+  for (const entry of validatorNetwork) {
+    validationNetworkDb.set(entry.signing_key, entry.networks)
+  }
+}
+
 /**
  * Creates connections to nodes found in the database.
  *
@@ -204,6 +241,8 @@ async function findConnection(node: WsNode): Promise<void> {
  */
 async function createConnections(): Promise<void> {
   log.info('Finding Connections...')
+  validationNetworkDb.clear()
+  await getValidationNetworkDb()
   const tenMinutesAgo = new Date()
   tenMinutesAgo.setMinutes(tenMinutesAgo.getMinutes() - 10)
 
@@ -222,12 +261,12 @@ async function createConnections(): Promise<void> {
   })
 
   const promises: Array<Promise<void>> = []
-  connectionsInitialized = false
+
   nodes.forEach((node: WsNode) => {
     promises.push(findConnection(node))
   })
   await Promise.all(promises)
-  connectionsInitialized = true
+
   log.info(`${connections.size} connections created`)
 }
 
