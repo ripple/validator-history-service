@@ -125,25 +125,30 @@ async function handleRevocations(
   manifest: DatabaseManifest,
 ): Promise<DatabaseManifest> {
   // Mark all older manifests as revoked
-  const revokedSigningKeys = await query('manifests')
+  const revokedSigningKeys = (await query('manifests')
     .where({ master_key: manifest.master_key })
     .andWhere('seq', '<', manifest.seq)
     .update({ revoked: true }, ['manifests.signing_key'])
-    .catch((err: Error) => log.error('Error revoking older manifests', err))
+    .catch((err: Error) =>
+      log.error('Error revoking older manifests', err),
+    )) as DatabaseManifest[]
 
-  const revokedSigningKeysArray = revokedSigningKeys
-    ? await Promise.all(
-        revokedSigningKeys.map(async (obj) => {
-          return obj.signing_key
-        }),
-      )
-    : []
+  const revokedSigningKeysArray =
+    revokedSigningKeys.length > 0
+      ? await Promise.all(
+          revokedSigningKeys.map(async (obj) => {
+            return obj.signing_key
+          }),
+        )
+      : []
 
   // If there exists a newer manifest, mark this manifest as revoked
-  const newer = await query('manifests')
+  const newer = (await query('manifests')
     .where({ master_key: manifest.master_key })
     .andWhere('seq', '>', manifest.seq)
-    .catch((err) => log.error('Error revoking current manifest', err))
+    .catch((err) =>
+      log.error('Error revoking current manifest', err),
+    )) as DatabaseManifest[]
 
   const updated = { revoked: false, ...manifest }
 
@@ -152,9 +157,13 @@ async function handleRevocations(
     revokedSigningKeysArray.push(manifest.signing_key)
   }
 
+  const revokedSigningKeysCleaned = revokedSigningKeysArray.filter(
+    (key): key is string => key !== undefined,
+  )
+
   // updates revocations in validators table
   await query('validators')
-    .whereIn(['signing_key'], revokedSigningKeysArray)
+    .whereIn('signing_key', revokedSigningKeysCleaned)
     .update({ revoked: true })
 
   return updated
@@ -184,13 +193,16 @@ export async function getValidatorKeys(): Promise<string[]> {
   return query('validators')
     .select('master_key', 'signing_key')
     .then(async (keys) => {
-      return keys.map(
-        (key: { master_key: string | null; signing_key: string }) => {
-          return key.master_key ?? key.signing_key
-        },
-      )
+      return (
+        keys as Array<{ master_key: string | null; signing_key: string }>
+      ).map((key) => {
+        return key.master_key ?? key.signing_key
+      })
     })
-    .catch((err) => log.error('Error getting validator signing keys', err))
+    .catch((err) => {
+      log.error('Error getting validator signing keys', err)
+      return []
+    })
 }
 /**
  * Saves a Location to database.
@@ -224,7 +236,11 @@ export async function getNodesToLocate(): Promise<Node[]> {
         .whereNull('location.updated')
         .orWhere('location.updated', '<', sixDaysAgo)
     })
-    .catch((err) => log.error(`Error querying nodes to locate`, err))
+    .then((nodes) => nodes as Node[])
+    .catch((err) => {
+      log.error(`Error querying nodes to locate`, err)
+      return []
+    })
 }
 
 /**

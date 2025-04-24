@@ -9,7 +9,7 @@ interface Network {
 
 // put the UNL you want to prioritize at the front
 const mainMainnetUnls = ['vl.ripple.com', 'vl.xrplf.org']
-let mainnetUnls
+let mainnetUnls: string[]
 if (config.mainnet_unl == null) {
   mainnetUnls = mainMainnetUnls
 } else {

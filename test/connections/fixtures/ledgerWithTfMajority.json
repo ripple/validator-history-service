@@ -9,6 +9,7 @@
       "close_time": 759508321,
       "close_time_human": "2024-Jan-25 14:32:01.000000000 UTC",
       "close_time_resolution": 10,
+      "close_time_iso":"2024-01-25T14:32:01Z",
       "closed": true,
       "ledger_hash": "040103C742D29BE5DF25EFFB2B0BB4AC3F263D989D2F02FDF157A07E01650A9A",
       "ledger_index": 85517825,

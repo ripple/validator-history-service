@@ -15,7 +15,6 @@ describe('networks endpoint', () => {
   })
 
   test('should respond with success and returns all networks', async () => {
-    // eslint-disable-next-line @typescript-eslint/consistent-type-assertions -- Disable for mock request.
     const req = {} as Request
     const res = {
       send: jest.fn(),

@@ -2,11 +2,15 @@ import { LedgerResponseExpanded } from 'xrpl/dist/npm/models/methods/ledger'
 
 import { handleWsMessageLedgerEnableAmendments } from '../../src/connection-manager/wsHandling'
 import { destroy, query, setupTables } from '../../src/shared/database'
+import { AmendmentStatus } from '../../src/shared/types'
 
 import ledgerResponseNoFlag from './fixtures/ledgerWithNoFlag.json'
 import ledgerResponseGotMajority from './fixtures/ledgerWithTfMajority.json'
 
-const flushPromises = async (): Promise<void> => new Promise(setImmediate)
+const flushPromises = async (): Promise<void> =>
+  new Promise((resolve) => {
+    setImmediate(resolve)
+  })
 
 describe('Amendments', () => {
   beforeAll(async () => {
@@ -33,7 +37,9 @@ describe('Amendments', () => {
 
     await flushPromises()
 
-    const amendmentStatus = await query('amendments_status').select('*')
+    const amendmentStatus = (await query('amendments_status').select(
+      '*',
+    )) as AmendmentStatus[]
 
     await flushPromises()
 
@@ -41,7 +47,7 @@ describe('Amendments', () => {
       '56B241D7A43D40354D02A9DC4C8DF5C7A1F930D92A9035C4E12291B3CA3E1C2B',
     )
     expect(amendmentStatus[0].networks).toBe('main')
-    expect(amendmentStatus[0].eta.toISOString()).toBe(
+    expect(amendmentStatus[0].eta!.toISOString()).toBe(
       '2024-02-08T14:32:01.000Z',
     )
   })
@@ -54,7 +60,9 @@ describe('Amendments', () => {
 
     await flushPromises()
 
-    const amendmentStatus = await query('amendments_status').select('*')
+    const amendmentStatus = (await query('amendments_status').select(
+      '*',
+    )) as AmendmentStatus[]
 
     expect(amendmentStatus[0].amendment_id).toBe(
       'AE35ABDEFBDE520372B31C957020B34A7A4A9DC3115A69803A44016477C84D6E',
@@ -64,7 +72,7 @@ describe('Amendments', () => {
     expect(amendmentStatus[0].tx_hash).toBe(
       'CA4562711E4679FE9317DD767871E90A404C7A8B84FAFD35EC2CF0231F1F6DAF',
     )
-    expect(amendmentStatus[0].date.toISOString()).toBe(
+    expect(amendmentStatus[0].date!.toISOString()).toBe(
       '2023-11-27T14:44:30.000Z',
     )
     expect(amendmentStatus[0].eta).toBe(null)

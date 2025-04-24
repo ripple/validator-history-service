@@ -13,9 +13,9 @@ export default async function handleHealth(
   res: Response,
 ): Promise<void> {
   try {
-    const count = await query('crawls')
+    const count = (await query('crawls')
       .countDistinct('ip')
-      .where('connected', '=', true)
+      .where('connected', '=', true)) as Array<{ [key: string]: number }>
     res.status(200).send(count[0])
   } catch {
     res.send({ result: 'error', message: 'internal error' })
