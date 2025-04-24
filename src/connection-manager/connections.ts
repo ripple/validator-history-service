@@ -1,13 +1,14 @@
 /* eslint-disable max-lines-per-function  -- Disable for this file with complex websocket rules. */
 import WebSocket from 'ws'
-import { LedgerEntryResponse } from 'xrpl'
-import { LedgerResponseExpanded } from 'xrpl/dist/npm/models/methods/ledger'
+import { Client, LedgerEntryResponse, RIPPLED_API_V1 } from 'xrpl'
+import { Amendments, AMENDMENTS_ID } from 'xrpl/dist/npm/models/ledger'
 
 import {
   query,
   saveNodeWsUrl,
   clearConnectionsDb,
   getNetworks,
+  saveAmendmentsStatus,
 } from '../shared/database'
 import { fetchAmendmentInfo } from '../shared/database/amendments'
 import { FeeVote } from '../shared/types'
@@ -15,9 +16,6 @@ import logger from '../shared/utils/logger'
 
 import {
   backtrackAmendmentStatus,
-  getAmendmentLedgerEntry,
-  handleWsMessageLedgerEnableAmendments,
-  handleWsMessageLedgerEntryAmendments,
   handleWsMessageSubscribeTypes,
   subscribe,
 } from './wsHandling'
@@ -28,9 +26,10 @@ const protocols = ['wss://', 'ws://']
 const connections: Map<string, WebSocket> = new Map()
 const networkFee: Map<string, FeeVote> = new Map()
 const validationNetworkDb: Map<string, string> = new Map()
+const enableAmendmentLedgerIndexMap: Map<string, number> = new Map()
 const CM_INTERVAL = 60 * 60 * 1000
 const WS_TIMEOUT = 10000
-const REPORTING_INTERVAL = 15 * 60 * 1000
+const REPORTING_INTERVAL = 1 * 60 * 1000
 const BACKTRACK_INTERVAL = 30 * 60 * 1000
 const BASE_RETRY_DELAY = 1 * 1000
 const MAX_RETRY_DELAY = 30 * 1000
@@ -46,19 +45,14 @@ let cmStarted = false
 /**
  * Sets the handlers for each WebSocket object.
  *
- * @param ws_url - The WebSocket address of the node we are trying to reach.
  * @param ws - A WebSocket object.
  * @param networks - The networks of the node we are trying to reach where it retrieves validations.
- * @param isInitialNode - Whether source node is an entry/initial node for the network.
  * @param retryCount - Retry count for exponential backoff.
  * @returns A Promise that resolves to void once a connection has been created or timeout has occured.
  */
-// eslint-disable-next-line max-params -- Required here
 async function setHandlers(
-  ws_url: string,
   ws: WebSocket,
   networks: string | undefined,
-  isInitialNode = false,
   retryCount = 0,
 ): Promise<void> {
   const ledger_hashes: string[] = []
@@ -78,14 +72,6 @@ async function setHandlers(
       connections.set(ws.url, ws)
       subscribe(ws)
 
-      // Use LedgerEntry to look for amendments that has already been enabled on a network when connections
-      // first start, or when a new network is added. This only need to be ran only once on the initial node
-      // on the network table per network, as new enabled amendments afterwards will be added when there's a
-      // EnableAmendment tx happens, which would provide more information compared to ledger_entry (please
-      // look at handleWsMessageLedgerEnableAmendments function for more details).
-      if (isInitialNode) {
-        getAmendmentLedgerEntry(ws)
-      }
       resolve()
     })
     ws.on('message', function handleMessage(message: string) {
@@ -97,26 +83,15 @@ async function setHandlers(
         return
       }
 
-      if (data.result?.node) {
-        void handleWsMessageLedgerEntryAmendments(
-          data as LedgerEntryResponse,
-          networks,
-        )
-      } else if (data.result?.ledger && isInitialNode) {
-        void handleWsMessageLedgerEnableAmendments(
-          data as LedgerResponseExpanded,
-          networks,
-        )
-      } else {
-        void handleWsMessageSubscribeTypes(
-          data,
-          ledger_hashes,
-          networks,
-          networkFee,
-          ws,
-          validationNetworkDb,
-        )
-      }
+      void handleWsMessageSubscribeTypes(
+        data,
+        ledger_hashes,
+        networks,
+        networkFee,
+        ws,
+        validationNetworkDb,
+        enableAmendmentLedgerIndexMap,
+      )
     })
     ws.on('close', async (code, reason) => {
       log.error(
@@ -124,6 +99,12 @@ async function setHandlers(
           networks ?? 'unknown network'
         } with code ${code} and reason ${reason.toString('utf-8')}.`,
       )
+
+      if (connections.get(ws.url)?.url === ws.url) {
+        connections.delete(ws.url)
+        void saveNodeWsUrl(ws.url, false)
+      }
+      ws.terminate()
 
       const delay = BASE_RETRY_DELAY * 2 ** retryCount
 
@@ -133,33 +114,15 @@ async function setHandlers(
             networks ?? 'unknown network'
           } after ${delay}ms...`,
         )
-        // Clean up the old Websocket connection
-        connections.delete(ws.url)
-        ws.terminate()
-        resolve()
 
         setTimeout(async () => {
           // Open a new Websocket connection for the same url
           const newWS = new WebSocket(ws.url, { handshakeTimeout: WS_TIMEOUT })
 
-          await setHandlers(
-            ws_url,
-            newWS,
-            networks,
-            isInitialNode,
-            retryCount + 1,
-          )
+          await setHandlers(newWS, networks, retryCount + 1)
         }, delay)
-
-        // return since the old websocket connection has already been terminated
-        return
       }
 
-      if (connections.get(ws.url)?.url === ws.url) {
-        connections.delete(ws.url)
-        void saveNodeWsUrl(ws.url, false)
-      }
-      ws.terminate()
       resolve()
     })
     ws.on('error', (err) => {
@@ -171,6 +134,7 @@ async function setHandlers(
 
       if (connections.get(ws.url)?.url === ws.url) {
         connections.delete(ws.url)
+        void saveNodeWsUrl(ws.url, false)
       }
       ws.terminate()
       resolve()
@@ -191,9 +155,6 @@ interface WsNode {
  * @returns A promise that resolves to void once a valid endpoint to the node has been found or timeout occurs.
  */
 async function findConnection(node: WsNode): Promise<void> {
-  const networkInitialIps = (await getNetworks()).map(
-    (network) => network.entry,
-  )
   if (!node.ip || node.ip.search(':') !== -1) {
     return Promise.resolve()
   }
@@ -204,7 +165,7 @@ async function findConnection(node: WsNode): Promise<void> {
 
   if (node.ws_url) {
     const ws = new WebSocket(node.ws_url, { handshakeTimeout: WS_TIMEOUT })
-    return setHandlers(node.ws_url, ws, node.networks)
+    return setHandlers(ws, node.networks)
   }
 
   const promises: Array<Promise<void>> = []
@@ -212,14 +173,7 @@ async function findConnection(node: WsNode): Promise<void> {
     for (const protocol of protocols) {
       const url = `${protocol}${node.ip}:${port}`
       const ws = new WebSocket(url, { handshakeTimeout: WS_TIMEOUT })
-      promises.push(
-        setHandlers(
-          url,
-          ws,
-          node.networks,
-          networkInitialIps.includes(node.ip),
-        ),
-      )
+      promises.push(setHandlers(ws, node.networks))
     }
   }
   await Promise.all(promises)
@@ -251,15 +205,6 @@ async function createConnections(): Promise<void> {
     .whereNotNull('ip')
     .andWhere('start', '>', tenMinutesAgo)
 
-  const networksDb = await getNetworks()
-  networksDb.forEach((network) => {
-    nodes.push({
-      ip: network.entry,
-      ws_url: '',
-      networks: network.id,
-    })
-  })
-
   const promises: Array<Promise<void>> = []
 
   nodes.forEach((node: WsNode) => {
@@ -277,6 +222,73 @@ setInterval(() => {
 /**
  * Starts the connection manager and refreshes connections every CM_INTERVAL.
  *
+ * @param network - Network name.
+ * @param hostName - Hostname to connect.
+ * @returns Void.
+ */
+async function getAmendmentsFromLedgerEntry(
+  network: string,
+  hostName: string,
+): Promise<void> {
+  const allUrls: string[] = []
+  for (const port of ports) {
+    for (const protocol of protocols) {
+      allUrls.push(`${protocol}${hostName}:${port}`)
+    }
+  }
+
+  for (const url of allUrls) {
+    try {
+      const client = new Client(url)
+      client.apiVersion = RIPPLED_API_V1
+      await client.connect()
+
+      const amendmentLedgerEntry: LedgerEntryResponse<Amendments> =
+        await client.request({
+          command: 'ledger_entry',
+          index: AMENDMENTS_ID,
+          ledger_index: 'validated',
+          api_version: RIPPLED_API_V1,
+        })
+
+      await saveAmendmentsStatus(
+        amendmentLedgerEntry.result.node?.Amendments ?? [],
+        network,
+      )
+
+      await client.disconnect()
+
+      return
+    } catch (err) {
+      log.info(
+        `Failed to connect ${url} - ${
+          err instanceof Error ? err.message : String(err)
+        }`,
+      )
+    }
+  }
+
+  log.error(`Not able to fetch Amendments ledger entry for ${network}`)
+}
+
+/**
+ * Fetch amendments from ledger entry and .
+ *
+ * @returns Void.
+ */
+async function fetchAmendmentsFromLedgerEntry(): Promise<void> {
+  const promises: Array<Promise<void>> = []
+
+  for (const network of await getNetworks()) {
+    promises.push(getAmendmentsFromLedgerEntry(network.id, network.entry))
+  }
+
+  await Promise.all(promises)
+}
+
+/**
+ * Starts the connection manager and refreshes connections every CM_INTERVAL.
+ *
  * @returns Void.
  */
 export default async function startConnections(): Promise<void> {
@@ -284,10 +296,13 @@ export default async function startConnections(): Promise<void> {
     cmStarted = true
     await fetchAmendmentInfo()
     await clearConnectionsDb()
+    await fetchAmendmentsFromLedgerEntry()
     await createConnections()
     await backtrackAmendmentStatus()
+
     setInterval(() => {
       void fetchAmendmentInfo()
+      void fetchAmendmentsFromLedgerEntry()
       void createConnections()
     }, CM_INTERVAL)
 
