@@ -100,7 +100,7 @@ async function cacheScores(): Promise<void> {
     cache.time = Date.now()
     // eslint-disable-next-line @typescript-eslint/no-explicit-any -- TODO: clean up
   } catch (err: any) {
-    log.error(err.toString())
+    log.error(err)
   }
 }
 

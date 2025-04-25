@@ -61,7 +61,7 @@ function removeNull(node: NodeResponse): NodeResponse {
 async function findInDatabase(
   public_key: string,
 ): Promise<NodeResponse | undefined> {
-  const result = await query('crawls')
+  const result = (await query('crawls')
     .select([
       'crawls.public_key as node_public_key',
       'crawls.networks',
@@ -86,7 +86,7 @@ async function findInDatabase(
     ])
     .fullOuterJoin('location', 'crawls.public_key', 'location.public_key')
     .where({ public_key })
-    .limit(1)
+    .limit(1)) as NodeResponse[]
 
   const node = result.shift()
   if (node === undefined) {
@@ -150,7 +150,7 @@ async function cacheNodes(): Promise<void> {
     cache.time = Date.now()
     // eslint-disable-next-line @typescript-eslint/no-explicit-any -- TODO: clean up
   } catch (err: any) {
-    log.error(err.toString())
+    log.error(err)
   }
 }
 
@@ -187,7 +187,7 @@ export async function handleNode(req: Request, res: Response): Promise<void> {
     })
     // eslint-disable-next-line @typescript-eslint/no-explicit-any -- TODO: clean up
   } catch (err: any) {
-    log.error(err.toString())
+    log.error(err)
     res.send({ result: 'error', message: 'internal error' })
   }
 }

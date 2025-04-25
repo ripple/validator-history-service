@@ -18,8 +18,8 @@ const HTTPS_PORT = 51234
  */
 export async function fetchValidatorList(url: string): Promise<UNLBlob> {
   try {
-    const resp = await axios.get(`http://${url}`)
-    const unl: UNL | UNLV2 = resp.data
+    const resp = await axios.get<UNL | UNLV2>(`http://${url}`)
+    const unl = resp.data
     if ('blob' in unl) {
       return parseBlob(unl.blob)
     }
@@ -71,7 +71,7 @@ export function getActiveBlobV2(unl: UNLV2): UNLBlob {
  */
 export function parseBlob(blob: string): UNLBlob {
   const buf = Buffer.from(blob, 'base64')
-  const blobParsed: UNLBlob = JSON.parse(buf.toString('ascii'))
+  const blobParsed = JSON.parse(buf.toString('ascii')) as UNLBlob
   return blobParsed
 }
 
@@ -82,14 +82,16 @@ export function parseBlob(blob: string): UNLBlob {
  * @returns A promise that resolves to the network entry url string.
  */
 async function getNetworksEntryUrl(key: string): Promise<string | null> {
-  const networkDb = await query('validators')
+  const networkDb = (await query('validators')
     .select('networks')
     .where('master_key', key)
-    .orWhere('signing_key', key)
+    .orWhere('signing_key', key)) as Array<{ networks: string }>
   const network = networkDb[0]?.networks
-  if (network !== null) {
-    const entry = await query('networks').select('entry').where('id', network)
-    return `https://${entry[0]?.entry as string}:${HTTPS_PORT}`
+  if (network) {
+    const entry = (await query('networks')
+      .select('entry')
+      .where('id', network)) as Array<{ entry: string }>
+    return `https://${entry[0]?.entry}:${HTTPS_PORT}`
   }
   return null
 }
@@ -123,7 +125,9 @@ export async function fetchRpcManifest(
 
   try {
     const response = await axios(params)
-    const manifestB64 = response.data.result?.manifest
+    // TODO: Add type for manifest response.
+    // eslint-disable-next-line @typescript-eslint/no-unsafe-assignment, @typescript-eslint/no-unsafe-member-access -- see TODO.
+    const manifestB64: string = response.data.result?.manifest
     if (manifestB64) {
       const manifestHex = Buffer.from(manifestB64, 'base64')
         .toString('hex')
@@ -179,7 +183,7 @@ export async function getLists(): Promise<Record<string, Set<string>>> {
   })
   await Promise.all(
     // The error has already been logged in fetchValidatorList
-    promises.map(async (promise) => promise.catch(async (err) => err)),
+    promises.map(async (promise) => promise.catch(async (err: unknown) => err)),
   )
   return lists
 }

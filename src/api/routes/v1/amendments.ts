@@ -114,7 +114,9 @@ function sortByVersion(
  */
 async function cacheAmendmentsInfo(): Promise<void> {
   try {
-    cacheInfo.amendments = await query('amendments_info').select('*')
+    cacheInfo.amendments = (await query('amendments_info').select(
+      '*',
+    )) as AmendmentInfo[]
     cacheInfo.amendments.sort(sortByVersion)
     cacheInfo.time = Date.now()
   } catch (err: unknown) {
@@ -133,7 +135,7 @@ void cacheAmendmentsInfo()
 async function getEnabledAmendments(
   id: string,
 ): Promise<EnabledAmendmentInfo[]> {
-  const enabled = await query('amendments_status')
+  const enabled = (await query('amendments_status')
     .leftJoin(
       'amendments_info',
       'amendments_status.amendment_id',
@@ -149,7 +151,7 @@ async function getEnabledAmendments(
       'amendments_info.deprecated',
     )
     .where('amendments_status.networks', id)
-    .whereNull('amendments_status.eta')
+    .whereNull('amendments_status.eta')) as EnabledAmendmentInfo[]
 
   enabled.sort(sortByVersion)
 
@@ -207,10 +209,10 @@ async function calculateConsensus(
   const votedUNL = votingMap[amendment_id].validators.filter(
     (validator) => validator.unl,
   ).length
-  const dbUNL = await query('validators')
+  const dbUNL = (await query('validators')
     .count('signing_key AS count')
     .whereNotNull('unl')
-    .andWhere('chain', network_id)
+    .andWhere('chain', network_id)) as Array<{ count: number }>
 
   const totalUnl: number = dbUNL[0].count
 
@@ -233,7 +235,7 @@ async function calculateConsensus(
  */
 // eslint-disable-next-line max-lines-per-function, max-statements -- Disabled for this function.
 async function getVotingAmendments(id: string): Promise<AmendmentInVoting[]> {
-  const inNetworks: BallotAmendmentDb[] = await query('ballot')
+  const inNetworks = (await query('ballot')
     .leftJoin('validators', 'ballot.signing_key', 'validators.signing_key')
     .select(
       'ballot.signing_key',
@@ -241,13 +243,13 @@ async function getVotingAmendments(id: string): Promise<AmendmentInVoting[]> {
       'ballot.amendments',
       'validators.unl',
     )
-    .where('validators.networks', id)
+    .where('validators.networks', id)) as BallotAmendmentDb[]
 
-  const incomingAmendments: AmendmentStatus[] = await query('amendments_status')
+  const incomingAmendments = (await query('amendments_status')
     .select('*')
     .where('networks', id)
     .whereNotNull('eta')
-    .whereNull('date')
+    .whereNull('date')) as AmendmentStatus[]
 
   const votingAmendments: AmendmentInVotingMap = {}
 
@@ -314,7 +316,7 @@ async function cacheAmendmentsVote(): Promise<void> {
     cacheVote.time = Date.now()
     // eslint-disable-next-line @typescript-eslint/no-explicit-any -- TODO: clean up
   } catch (err: any) {
-    log.error(err.toString())
+    log.error(err)
   }
 }
 
@@ -345,7 +347,7 @@ export async function handleAmendmentsInfo(
     // eslint-disable-next-line @typescript-eslint/no-explicit-any -- TODO: clean up
   } catch (err: any) {
     res.send({ result: 'error', message: 'internal error' })
-    log.error(err.toString())
+    log.error(err)
   }
 }
 
@@ -388,7 +390,7 @@ export async function handleAmendmentInfo(
     // eslint-disable-next-line @typescript-eslint/no-explicit-any -- TODO: clean up
   } catch (err: any) {
     res.send({ result: 'error', message: 'internal error' })
-    log.error(err.toString())
+    log.error(err)
   }
 }
 

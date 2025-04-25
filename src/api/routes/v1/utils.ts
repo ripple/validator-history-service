@@ -40,10 +40,10 @@ export async function formatAmendments(
   const amendmentsList = amendmentsDb.split(',')
   await Promise.all(
     amendmentsList.map(async (amendment) => {
-      const info = await query('amendments_info')
+      const info = (await query('amendments_info')
         .select('id', 'name')
         .where('id', amendment)
-        .first()
+        .first()) as { id: string; name: string }
       res.push(info)
     }),
   )
@@ -85,9 +85,9 @@ export async function getParamType(
  * @returns The chains associated with that UNL.
  */
 export async function getChains(unl: string): Promise<string[] | undefined> {
-  const results = await query('validators')
+  const results = (await query('validators')
     .select('chain')
     .distinct()
-    .where('unl', unl)
-  return results.map((result) => result.chain as string)
+    .where('unl', unl)) as Array<{ chain: string }>
+  return results.map((result) => result.chain)
 }

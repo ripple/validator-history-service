@@ -73,8 +73,13 @@ export async function signingToMaster(
     .select('master_key')
     .where({ signing_key })
     .where('revoked', '=', 'false')
-    .then(async (resp) => resp[0]?.master_key)
-    .catch((err) => log.error('Error finding master key from signing key', err))
+    .then(
+      async (resp) => (resp as Array<{ master_key: string }>)[0]?.master_key,
+    )
+    .catch((err) => {
+      log.error('Error finding master key from signing key', err)
+      return undefined
+    })
 }
 
 /**
@@ -95,8 +100,10 @@ async function getHourlyAgreementScores(
     .where({ main_key: validator.master_key ?? validator.signing_key })
     .where('start', '>', start)
     .where('start', '<', end)
-    .then(async (scores) =>
-      scores.map((score: { agreement: AgreementScore }) => score.agreement),
+    .then((scores) =>
+      (scores as Array<{ agreement: AgreementScore }>).map(
+        (score) => score.agreement,
+      ),
     )
 }
 

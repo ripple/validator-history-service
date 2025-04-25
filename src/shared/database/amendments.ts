@@ -132,7 +132,9 @@ async function fetchVotingAmendments(): Promise<void> {
   const votingDb = await query('ballot')
     .select('amendments')
     .then(async (res) =>
-      res.map((vote: { amendments: string | null }) => vote.amendments),
+      (res as Array<{ amendments: string | null }>).map(
+        (vote: { amendments: string | null }) => vote.amendments,
+      ),
     )
   for (const amendmentsDb of votingDb) {
     if (!amendmentsDb) {
@@ -155,7 +157,7 @@ async function fetchMinRippledVersions(): Promise<void> {
     const response = await axios.get(
       'https://raw.githubusercontent.com/XRPLF/xrpl-dev-portal/master/resources/known-amendments.md',
     )
-    const text = response.data
+    const text = response.data as string
 
     text.split('\n').forEach((line: string) => {
       const found = AMENDMENT_VERSION_REGEX.exec(line)
