@@ -1,4 +1,3 @@
-/* eslint-disable import/max-dependencies -- Disbale for this file which uses a lot of types. */
 import WebSocket from 'ws'
 import {
   Client,

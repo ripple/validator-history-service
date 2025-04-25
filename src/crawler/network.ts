@@ -1,3 +1,7 @@
+/* eslint-disable @typescript-eslint/no-unsafe-assignment -- TODO: add type for Peer Crawler to remove eslint-disable */
+/* eslint-disable @typescript-eslint/no-unsafe-member-access -- TODO: add type for Peer Crawler to remove eslint-disable */
+/* eslint-disable @typescript-eslint/no-unsafe-call -- TODO: add type for Peer Crawler to remove eslint-disable */
+/* eslint-disable no-unsafe-optional-chaining -- TODO: add type for Peer Crawler to remove eslint-disable */
 import https from 'https'
 
 import axios, { AxiosInstance } from 'axios'

@@ -19,7 +19,9 @@ interface CrawlAndPort {
 }
 
 async function updateMaxNetwork(): Promise<void> {
-  const currentNetworks = await query('networks').select('id')
+  const currentNetworks = (await query('networks').select('id')) as Array<{
+    id: string
+  }>
   const currentNetworkNumbers = currentNetworks.reduce(
     (filtered: number[], network: { id: string }) => {
       const { id } = network
@@ -156,9 +158,9 @@ async function fetchCrawls(host: string): Promise<CrawlAndPort> {
  * @returns Whether the UNL of the node has been seen before.
  */
 async function getNetworkFromUNL(unl: string): Promise<string | undefined> {
-  const result = await query('networks')
+  const result = (await query('networks')
     .select('id')
-    .where('unls', 'like', `%${unl}%`)
+    .where('unls', 'like', `%${unl}%`)) as Array<{ id: string }>
   return result.length > 0 ? result[0].id : undefined
 }
 
@@ -173,9 +175,12 @@ async function getNetworkFromUNL(unl: string): Promise<string | undefined> {
 async function getNetworkFromPublicKey(
   publicKey: string,
 ): Promise<string | undefined> {
-  const result = await query('crawls')
+  const result = (await query('crawls')
     .select('public_key', 'networks')
-    .where('public_key', '=', publicKey)
+    .where('public_key', '=', publicKey)) as Array<{
+    public_key: string
+    networks: string | undefined
+  }>
   return result.length > 0 ? result[0].networks : undefined
 }
 
@@ -260,7 +265,10 @@ export default async function getNetworkOrAdd(
     })
     // eslint-disable-next-line @typescript-eslint/no-explicit-any -- TODO: clean up
   } catch (err: any) {
+    // eslint-disable-next-line @typescript-eslint/no-unsafe-member-access -- TODO: clean up
     log.error(err.stack)
+    /* eslint-disable-next-line @typescript-eslint/no-unsafe-member-access, @typescript-eslint/no-unsafe-assignment
+    -- TODO: clean up */
     return res.send({ result: 'error', message: err.message })
   }
 }

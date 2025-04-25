@@ -13,6 +13,7 @@ import {
   tearDown,
 } from '../../src/shared/database'
 import networks from '../../src/shared/database/networks'
+import { DatabaseManifest } from '../../src/shared/types'
 
 import unl1 from './fixtures/unl-response1.json'
 import unl2 from './fixtures/unl-response2.json'
@@ -54,10 +55,10 @@ describe('manifest ingest', () => {
 
     await handleManifest(manifest)
 
-    const saved_manifest = await query('manifests').select('*').where({
+    const saved_manifest = (await query('manifests').select('*').where({
       master_signature:
         '7CA31C480E2ED7DBD1C2A0CA950545C73C7EB9838D5A5C5D16D61DFDB47EBC23DAF2BD25B9AA4FE5B8E39D30C575501BC7EE4042E068D935D6D97391B3B46706',
-    })
+    })) as DatabaseManifest[]
     expect(saved_manifest[0]).toEqual({
       master_key: 'nHDaeKJcfRzzmx3gGKnrFTQazYi95tdGrdoiCYLinoU9EkJsp4Ho',
       master_signature:
@@ -77,7 +78,9 @@ describe('manifest ingest', () => {
       nock(`http://${network.unls[0]}`).get('/').reply(200, unl1)
     })
     await updateUNLManifests()
-    const saved_manifest = await query('manifests').select('*')
+    const saved_manifest = (await query('manifests').select(
+      '*',
+    )) as DatabaseManifest[]
 
     expect(saved_manifest[0]).toEqual({
       master_key: 'nHBtDzdRDykxiuv7uSMPTcGexNm879RUUz5GW4h1qgjbtyvWZ1LE',
@@ -95,11 +98,11 @@ describe('manifest ingest', () => {
 
   test('updateManifestsFromRippled', async () => {
     jest.setTimeout(15000)
-    const mainnet_entry_db = await query('networks')
+    const mainnet_entry_db = (await query('networks')
       .select('entry')
-      .where('id', 'main')
+      .where('id', 'main')) as Array<{ entry: string }>
     const mainnet_entry = mainnet_entry_db[0].entry
-    nock(`https://${mainnet_entry as string}:51234`)
+    nock(`https://${mainnet_entry}:51234`)
       .post('/')
       .reply(200, {
         result: {
@@ -133,7 +136,9 @@ describe('manifest ingest', () => {
     }
     await handleManifest(manifest)
     await updateManifestsFromRippled()
-    const manifests = await query('manifests').select('*')
+    const manifests = (await query('manifests').select(
+      '*',
+    )) as DatabaseManifest[]
     expect(manifests[1]).toEqual({
       master_key: 'nHUpcmNsxAw47yt2ADDoNoQrzLyTJPgnyq16u6Qx2kRPA17oUNHz',
       signing_key: 'n9Ls4GcrofTvLvymKh1wCqxw1aLzXUumyBBD9fAtbkk9WtdQ4TUH',
@@ -160,13 +165,13 @@ describe('manifest ingest', () => {
       signing_key: 'n9LCf7NtwcyXVc5fYB6UVByRoQZqJDhrMUoKnr3GQB6mFqpcmMzg',
     })
     await updateUnls()
-    let validator = await query('validators')
+    let validator = (await query('validators')
       .select('master_key', 'signing_key', 'unl')
       .where(
         'master_key',
         '=',
         'nHBtDzdRDykxiuv7uSMPTcGexNm879RUUz5GW4h1qgjbtyvWZ1LE',
-      )
+      )) as Array<{ master_key: string; signing_key: string; unl: string }>
     expect(validator[0]).toEqual({
       master_key: 'nHBtDzdRDykxiuv7uSMPTcGexNm879RUUz5GW4h1qgjbtyvWZ1LE',
       signing_key: 'n9LCf7NtwcyXVc5fYB6UVByRoQZqJDhrMUoKnr3GQB6mFqpcmMzg',
@@ -176,13 +181,13 @@ describe('manifest ingest', () => {
     // New unl replaces old validator with a new one
     nock(`http://${VALIDATOR_URL}`).get('/').reply(200, unl2)
     await updateUnls()
-    validator = await query('validators')
+    validator = (await query('validators')
       .select('master_key', 'signing_key', 'unl')
       .where(
         'master_key',
         '=',
         'nHBtDzdRDykxiuv7uSMPTcGexNm879RUUz5GW4h1qgjbtyvWZ1LE',
-      )
+      )) as Array<{ master_key: string; signing_key: string; unl: string }>
     expect(validator[0]).toEqual({
       master_key: 'nHBtDzdRDykxiuv7uSMPTcGexNm879RUUz5GW4h1qgjbtyvWZ1LE',
       signing_key: 'n9LCf7NtwcyXVc5fYB6UVByRoQZqJDhrMUoKnr3GQB6mFqpcmMzg',
