@@ -227,6 +227,14 @@ interface AmendmentInfo {
   deprecated: boolean
 }
 
+interface ConnectionHealth {
+  ws_url: string
+  public_key?: string
+  network: string
+  connected: boolean
+  status_update_time: Date
+}
+
 export {
   Node,
   Crawl,
@@ -253,4 +261,5 @@ export {
   ValidatorKeys,
   AmendmentStatus,
   AmendmentInfo,
+  ConnectionHealth,
 }

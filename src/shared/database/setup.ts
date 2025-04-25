@@ -24,6 +24,7 @@ export default async function setupTables(): Promise<void> {
   await setupAmendmentsInfoTable()
   await setupBallotTable()
   await addAmendmentsDataFromJSON()
+  await setupConnectionHealthTable()
 }
 
 async function setupCrawlsTable(): Promise<void> {
@@ -248,6 +249,19 @@ async function setupBallotTable(): Promise<void> {
       table.integer('base_fee')
       table.integer('reserve_base')
       table.integer('reserve_inc')
+    })
+  }
+}
+
+async function setupConnectionHealthTable(): Promise<void> {
+  const hasConnectionHealth = await db().schema.hasTable('connection_health')
+  if (!hasConnectionHealth) {
+    await db().schema.createTable('connection_health', (table) => {
+      table.string('ws_url').primary()
+      table.string('public_key').references('crawls.public_key')
+      table.string('network')
+      table.boolean('connected')
+      table.datetime('status_update_time')
     })
   }
 }

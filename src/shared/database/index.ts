@@ -7,6 +7,7 @@ import {
   DatabaseNetwork,
   AmendmentStatus,
   Ballot,
+  ConnectionHealth,
 } from '../types'
 import logger from '../utils/logger'
 
@@ -25,7 +26,6 @@ import setupTables from './setup'
 import { db, tearDown, query, destroy } from './utils'
 
 const log = logger({ name: 'database' })
-const IP_REGEX = /\b\d{1,3}\.\d{1,3}\.\d{1,3}\.\d{1,3}\b/u
 
 /**
  * Get the list of networks.
@@ -72,42 +72,32 @@ export async function saveNode(
 }
 
 /**
- * Saves the Websocket URL of a rippled node.
+ * Saves the Websocket connection info of a rippled node.
  *
- * @param url - Websocket URL of a rippled node.
- * @param connected - Boolean value representing whether we are currently connected to this node.
+ * @param connectionHealth -- Connection Health object to save or update.
  * @returns Void.
  */
-export async function saveNodeWsUrl(
-  url: string,
-  connected: boolean,
+export async function saveConnectionHealth(
+  connectionHealth: ConnectionHealth,
 ): Promise<void> {
-  const ip_match = IP_REGEX.exec(url)
-  if (ip_match) {
-    query('crawls')
-      .where({
-        ip: ip_match[0],
-      })
-      .update({
-        ws_url: url,
-        connected,
-      })
-      .catch((err: Error) => log.error(err.message))
-  } else {
-    log.warn(`Invalid websocket url: ${url}`)
-  }
+  query('connection_health')
+    .insert(connectionHealth)
+    .onConflict('ws_url')
+    .merge()
+    .catch((err: Error) => log.error(err.message))
 }
 
 /**
- * Sets connected column to false.
+ * Sets connected column to false and status_update_time as current time.
  *
  * @returns Promise that resolves to void.
  *
  */
-export async function clearConnectionsDb(): Promise<void> {
+export async function clearConnectionHealthDb(): Promise<void> {
   try {
-    await query('crawls').update({
+    await query('connection_health').update({
       connected: false,
+      status_update_time: new Date(),
     })
   } catch (err) {
     log.error('Error clearing connections', err)

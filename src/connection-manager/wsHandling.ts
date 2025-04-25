@@ -1,3 +1,4 @@
+/* eslint-disable max-lines -- Complex functions */
 import WebSocket from 'ws'
 import {
   Client,
@@ -6,9 +7,14 @@ import {
   RIPPLED_API_V1,
   rippleTimeToUnixTime,
 } from 'xrpl'
+import { Amendments, AMENDMENTS_ID } from 'xrpl/dist/npm/models/ledger'
 import { LedgerResponseExpanded } from 'xrpl/dist/npm/models/methods/ledger'
 
-import { saveAmendmentStatus } from '../shared/database'
+import {
+  getNetworks,
+  saveAmendmentsStatus,
+  saveAmendmentStatus,
+} from '../shared/database'
 import {
   NETWORKS_HOSTS,
   deleteAmendmentStatus,
@@ -29,6 +35,8 @@ const LEDGER_HASHES_SIZE = 10
 const GOT_MAJORITY_FLAG = 65536
 const LOST_MAJORITY_FLAG = 131072
 const FOURTEEN_DAYS_IN_MILLISECONDS = 14 * 24 * 60 * 60 * 1000
+const ports = [443, 80, 6005, 6006, 51233, 51234]
+const protocols = ['wss://', 'ws://']
 
 const log = logger({ name: 'connections' })
 
@@ -311,4 +319,71 @@ export async function backtrackAmendmentStatus(): Promise<void> {
   for (const [networks, url] of NETWORKS_HOSTS) {
     await backtrackNetworkAmendmentStatus(networks, url)
   }
+}
+
+/**
+ * Retrieves and store existing Amendments into amendments_status table.
+ *
+ * @param network - Network name.
+ * @param hostName - Hostname to connect.
+ * @returns Void.
+ */
+async function getAmendmentsFromLedgerEntry(
+  network: string,
+  hostName: string,
+): Promise<void> {
+  const allUrls: string[] = []
+  for (const port of ports) {
+    for (const protocol of protocols) {
+      allUrls.push(`${protocol}${hostName}:${port}`)
+    }
+  }
+
+  for (const url of allUrls) {
+    try {
+      const client = new Client(url)
+      client.apiVersion = RIPPLED_API_V1
+      await client.connect()
+
+      const amendmentLedgerEntry: LedgerEntryResponse<Amendments> =
+        await client.request({
+          command: 'ledger_entry',
+          index: AMENDMENTS_ID,
+          ledger_index: 'validated',
+          api_version: RIPPLED_API_V1,
+        })
+
+      await saveAmendmentsStatus(
+        amendmentLedgerEntry.result.node?.Amendments ?? [],
+        network,
+      )
+
+      await client.disconnect()
+
+      return
+    } catch (err) {
+      log.info(
+        `Failed to connect ${url} - ${
+          err instanceof Error ? err.message : String(err)
+        }`,
+      )
+    }
+  }
+
+  log.error(`Not able to fetch Amendments ledger entry for ${network}`)
+}
+
+/**
+ * Fetch existing Amendments from ledger_entry.
+ *
+ * @returns Void.
+ */
+export async function fetchAmendmentsFromLedgerEntry(): Promise<void> {
+  const promises: Array<Promise<void>> = []
+
+  for (const network of await getNetworks()) {
+    promises.push(getAmendmentsFromLedgerEntry(network.id, network.entry))
+  }
+
+  await Promise.all(promises)
 }
