@@ -38,12 +38,22 @@ module.exports = {
 
   plugins: ['jest', 'disable'],
   processor: 'disable/disable',
-  extends: ['@xpring-eng/eslint-config-base/loose', 'plugin:jest/recommended'],
+  extends: ['@xrplf/eslint-config', 'plugin:jest/recommended'],
   rules: {
     '@typescript-eslint/no-magic-numbers': 'off',
     '@typescript-eslint/naming-convention': 'off',
     'no-await-in-loop': 'off',
     '@microsoft-tsdoc/tsdoc-param-tag-with-invalid-name': 'off',
+    'jsdoc/check-examples': 'off',
+    // Allows the use of 'as' for type assertion for websocket messages retrieval.
+    '@typescript-eslint/consistent-type-assertions': [
+      'warn',
+      {
+        assertionStyle: 'as',
+      },
+    ],
+    'max-params': ['warn', 4],
+
     // Removes comments and blank lines from the max-line rules
     'max-lines-per-function': [
       'warn',
