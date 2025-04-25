@@ -5,6 +5,7 @@ import {
   query,
   setupTables,
 } from '../../src/shared/database'
+import { DailyAgreement, HourlyAgreement } from '../../src/shared/types'
 
 import validations from './fixtures/all-validations.json'
 
@@ -40,12 +41,12 @@ describe('Agreement', () => {
     Date.now = (): number => time
     await agreement.calculateAgreement()
 
-    const hourly_agreement: Array<{ main_key: string }> = await query(
-      'hourly_agreement',
-    ).select('*')
-    const daily_agreement: Array<{ main_key: string }> = await query(
-      'daily_agreement',
-    ).select('*')
+    const hourly_agreement = (await query('hourly_agreement').select(
+      '*',
+    )) as HourlyAgreement[]
+    const daily_agreement = (await query('daily_agreement').select(
+      '*',
+    )) as DailyAgreement[]
 
     const hourly_master_keys = hourly_agreement.map((member) => member.main_key)
     expect(hourly_master_keys).toContain('VALIDATOR1MASTER')

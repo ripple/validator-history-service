@@ -1,4 +1,3 @@
-/* eslint-disable import/max-dependencies -- Disabled since this module requires multiple dependencies. */
 import { Router as createRouter } from 'express'
 
 import {

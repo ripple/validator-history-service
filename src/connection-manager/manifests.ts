@@ -188,7 +188,9 @@ export async function updateUnls(): Promise<void> {
         .whereIn('master_key', subquery)
         .orderBy(['master_key', { column: 'seq', order: 'desc' }])
         .then(async (res) => {
-          return res.map((idx: { signing_key: string }) => idx.signing_key)
+          return (res as Array<{ signing_key: string }>).map(
+            (idx: { signing_key: string }) => idx.signing_key,
+          )
         })
 
       const networkUNL = await getFirstUNL(name)

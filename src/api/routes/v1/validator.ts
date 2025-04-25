@@ -142,7 +142,7 @@ async function cacheValidators(): Promise<void> {
     cache.time = Date.now()
     // eslint-disable-next-line @typescript-eslint/no-explicit-any -- TODO: clean up
   } catch (err: any) {
-    log.error(err.toString())
+    log.error(err)
   }
 }
 
@@ -207,7 +207,7 @@ async function formatResponse(resp: dbResponse): Promise<ValidatorResponse> {
 async function findInDatabase(
   public_key: string,
 ): Promise<ValidatorResponse | undefined> {
-  const result: dbResponse[] = await query('validators')
+  const result = (await query('validators')
     .join('ballot', 'validators.signing_key', 'ballot.signing_key')
     .select([
       'validators.partial',
@@ -231,7 +231,7 @@ async function findInDatabase(
     ])
     .where({ master_key: public_key })
     .orWhere({ signing_key: public_key })
-    .limit(1)
+    .limit(1)) as dbResponse[]
 
   if (result.length === 0) {
     return undefined

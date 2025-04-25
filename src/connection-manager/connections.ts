@@ -1,4 +1,7 @@
 /* eslint-disable max-lines-per-function  -- Disable for this file with complex websocket rules. */
+/* eslint-disable @typescript-eslint/no-unsafe-assignment -- Disable since websocket messages are indeterministic */
+/* eslint-disable @typescript-eslint/no-unsafe-member-access -- Disable since websocket messages are indeterministic */
+/* eslint-disable @typescript-eslint/no-unsafe-call -- -- Disable since websocket messages are indeterministic */
 import WebSocket from 'ws'
 import { Client, LedgerEntryResponse, RIPPLED_API_V1 } from 'xrpl'
 import { Amendments, AMENDMENTS_ID } from 'xrpl/dist/npm/models/ledger'

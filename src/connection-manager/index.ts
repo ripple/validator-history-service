@@ -1,3 +1,4 @@
+/* eslint-disable import/no-unused-modules -- Disable for index file. */
 import 'dotenv/config'
 
 import Crawler from '../crawler/crawl'
