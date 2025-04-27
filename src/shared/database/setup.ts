@@ -1,3 +1,4 @@
+/* eslint-disable max-lines -- Required here since we setup all the tables along with their columns. */
 import logger from '../utils/logger'
 
 import networks from './networks'
@@ -54,6 +55,18 @@ async function setupCrawlsTable(): Promise<void> {
   if (!(await db().schema.hasColumn('crawls', 'incomplete_shards'))) {
     await db().schema.alterTable('crawls', (table) => {
       table.string('incomplete_shards').after('complete_shards')
+    })
+  }
+
+  if (await db().schema.hasColumn('crawls', 'ws_url')) {
+    await db().schema.alterTable('crawls', (table) => {
+      table.dropColumn('ws_url')
+    })
+  }
+
+  if (await db().schema.hasColumn('crawls', 'connected')) {
+    await db().schema.alterTable('crawls', (table) => {
+      table.dropColumn('connected')
     })
   }
 }

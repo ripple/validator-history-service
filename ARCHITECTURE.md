@@ -42,8 +42,6 @@ This table keeps track of the nodes in the network, which it finds via crawling 
 | `complete_shards`     |The [history shards](https://xrpl.org/history-sharding.html) the node keeps track of.|
 | `ip`                 |The IP address of the node.                                                          |
 | `port`               |The peer port of the node.                                                           |
-| `ws_url`             |The WS URL of the node. Optional.                                                    |
-| `connected`          |This appears to be false for every node.                                             |
 | `networks`           |The network(s) that the node belongs to.                                             |
 | `type`               |Whether the TCP connection to the peer is incoming or outgoing.                      |
 | `uptime`             |The uptime of the node.                                                              |
@@ -185,6 +183,19 @@ This table keeps track of the validators on the networks.
 | `agreement_1hour`    |Data about the reliability of the validator over the last hour.    |
 | `agreement_24hour`   |Data about the reliability of the validator over the last 24 hours.|
 | `agreement_30day`    |Data about the reliability of the validator over the 30 days.      |
+
+
+### `connection_health`
+
+This table keeps track of the WebSocket connection status for all networks.
+
+| Key                  | Definition                                                        |
+|----------------------|-------------------------------------------------------------------|
+| `ws_url`             |The connection websocket url.                                      |
+| `public_key `        |The public key of the node.                                        |
+| `network`            |The network that the node belongs to.                              |
+| `connected`          |Boolean denoting websocket connection status.                      |
+| `status_update_time` |Time when the connected column was updated.                        |
 
 *Partial validations are not meant to vote for any particular ledger. A partial validation indicates that the validator is still online but not keeping up with consensus.
 **A chain is a group of validators validating the same set of ledgers. `main`, `test`, and `dev` represent the validated versions of mainnet, testnet, and devnet respectively. Validators on a fork/validating an alternate version of the ledger will have a different value, usually of the form `chain.[num]`.

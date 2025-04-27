@@ -235,6 +235,13 @@ interface ConnectionHealth {
   status_update_time: Date
 }
 
+interface WsNode {
+  ip: string
+  ws_url?: string
+  networks: string
+  public_key?: string
+}
+
 export {
   Node,
   Crawl,
@@ -262,4 +269,5 @@ export {
   AmendmentStatus,
   AmendmentInfo,
   ConnectionHealth,
+  WsNode,
 }

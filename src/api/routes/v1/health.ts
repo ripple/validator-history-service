@@ -13,8 +13,8 @@ export default async function handleHealth(
   res: Response,
 ): Promise<void> {
   try {
-    const count = (await query('crawls')
-      .countDistinct('ip')
+    const count = (await query('connection_health')
+      .count('ws_url')
       .where('connected', '=', true)) as Array<{ [key: string]: number }>
     res.status(200).send(count[0])
   } catch {

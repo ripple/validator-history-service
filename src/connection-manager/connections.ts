@@ -1,7 +1,6 @@
 /* eslint-disable max-lines-per-function  -- Disable for this file with complex websocket rules. */
 /* eslint-disable @typescript-eslint/no-unsafe-assignment -- Disable since websocket messages are indeterministic */
-/* eslint-disable @typescript-eslint/no-unsafe-member-access -- Disable since websocket messages are indeterministic */
-/* eslint-disable @typescript-eslint/no-unsafe-call -- -- Disable since websocket messages are indeterministic */
+
 import WebSocket from 'ws'
 
 import {
@@ -9,9 +8,10 @@ import {
   getNetworks,
   saveConnectionHealth,
   clearConnectionHealthDb,
+  getNodes,
 } from '../shared/database'
 import { fetchAmendmentInfo } from '../shared/database/amendments'
-import { FeeVote } from '../shared/types'
+import { FeeVote, WsNode } from '../shared/types'
 import { getIPv4Address } from '../shared/utils'
 import logger from '../shared/utils/logger'
 
@@ -156,13 +156,6 @@ async function setHandlers(
   })
 }
 
-interface WsNode {
-  ip: string
-  ws_url?: string
-  networks: string
-  public_key?: string
-}
-
 /**
  * Tries to find a valid WebSockets endpoint for a node.
  *
@@ -217,11 +210,7 @@ async function createConnections(): Promise<void> {
   const tenMinutesAgo = new Date()
   tenMinutesAgo.setMinutes(tenMinutesAgo.getMinutes() - 10)
 
-  const nodes = await query('crawls as c')
-    .leftJoin('connection_health as ch', 'c.public_key', 'ch.public_key')
-    .select('c.ip', 'ch.ws_url', 'c.networks', 'c.public_key')
-    .whereNotNull('c.ip')
-    .andWhere('c.start', '>', tenMinutesAgo)
+  const nodes = await getNodes(tenMinutesAgo)
 
   const networksDb = await getNetworks()
   networksDb.forEach((network) => {

@@ -15,6 +15,7 @@ describe('Creates chains', () => {
   })
 
   beforeEach(async () => {
+    await query('connection_health').delete('*')
     await query('crawls').delete('*')
   })
 

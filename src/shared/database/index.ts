@@ -8,6 +8,7 @@ import {
   AmendmentStatus,
   Ballot,
   ConnectionHealth,
+  WsNode,
 } from '../types'
 import logger from '../utils/logger'
 
@@ -88,7 +89,7 @@ export async function saveConnectionHealth(
 }
 
 /**
- * Sets connected column to false and status_update_time as current time.
+ * Sets connected column to false and status_update_time to current time.
  *
  * @returns Promise that resolves to void.
  *
@@ -102,6 +103,20 @@ export async function clearConnectionHealthDb(): Promise<void> {
   } catch (err) {
     log.error('Error clearing connections', err)
   }
+}
+
+/**
+ * Get the list of nodes to establish WebSocket connection.
+ *
+ * @param sinceStartDate -- Date instance from which to retrieve data.
+ * @returns The list of nodes.
+ */
+export async function getNodes(sinceStartDate: Date): Promise<WsNode[]> {
+  return query('crawls as c')
+    .leftJoin('connection_health as ch', 'c.public_key', 'ch.public_key')
+    .select('c.ip', 'ch.ws_url', 'c.networks', 'c.public_key')
+    .whereNotNull('c.ip')
+    .andWhere('c.start', '>', sinceStartDate)
 }
 
 /**
