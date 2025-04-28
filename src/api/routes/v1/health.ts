@@ -21,3 +21,29 @@ export default async function handleHealth(
     res.send({ result: 'error', message: 'internal error' })
   }
 }
+
+/**
+ * Handles monitoring metrics requests.
+ *
+ * @param req - HTTP request object.
+ * @param res - Response containing number of connected nodes in Prometheus exposition format.
+ */
+export async function handleWebSocketHealthMetrics(
+  req: Request,
+  res: Response,
+): Promise<void> {
+  try {
+    const { network } = req.params
+    const result = (await query('connection_health')
+      .count('ws_url')
+      .where('network', '=', network)
+      .andWhere('connected', '=', true)) as Array<{ [key: string]: number }>
+
+    const metrics = `connected_nodes{network="${network}"} ${result[0].count}`
+    res.set('Content-Type', 'text/plain')
+    res.status(200)
+    res.send(metrics)
+  } catch {
+    res.send({ result: 'error', message: 'internal error' })
+  }
+}

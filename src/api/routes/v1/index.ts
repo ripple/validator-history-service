@@ -8,7 +8,7 @@ import {
 } from './amendments'
 import handleDailyScores from './daily-report'
 import getNetworkOrAdd from './get-network'
-import handleHealth from './health'
+import handleHealth, { handleWebSocketHealthMetrics } from './health'
 import handleValidatorManifest from './manifests'
 import handleNetworks from './networks'
 import { handleNode, handleNodes, handleTopology } from './nodes'
@@ -18,6 +18,7 @@ import handleValidatorReport from './validator-report'
 const api = createRouter()
 
 api.use('/health', handleHealth)
+api.use('/metrics/:network', handleWebSocketHealthMetrics)
 api.use('/network/validator_reports', handleDailyScores)
 api.use('/network/amendment/info/:param', handleAmendmentInfo)
 api.use('/network/amendments/info', handleAmendmentsInfo)
