@@ -12,7 +12,7 @@ import data from './fixtures/connection_health.json'
 
 const flushPromises = async (): Promise<void> =>
   new Promise((resolve) => {
-    setImmediate(resolve)
+    setTimeout(resolve, 50)
   })
 
 describe('connection_health tests', () => {

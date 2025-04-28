@@ -18,8 +18,8 @@ const flushPromises = async (): Promise<void> =>
 
 describe('connections health', () => {
   beforeAll(async () => {
-    await query('connection_health').delete('*')
     await setupTables()
+    await query('connection_health').delete('*')
   })
 
   afterAll(async () => {
