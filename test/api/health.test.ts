@@ -47,6 +47,8 @@ describe('connections health', () => {
 
     await handleWebSocketHealthMetrics(req, resp)
 
+    await flushPromises()
+
     const expectedResult = `connected_nodes{network="main"} 2`
     expect(resp.send).toHaveBeenCalledWith(expectedResult)
   })

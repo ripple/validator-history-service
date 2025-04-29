@@ -15,7 +15,7 @@ import ledgerResponseGotMajority from './fixtures/ledgerWithTfMajority.json'
 
 const flushPromises = async (): Promise<void> =>
   new Promise((resolve) => {
-    setImmediate(resolve)
+    setTimeout(resolve, 50)
   })
 
 describe('Amendments', () => {
