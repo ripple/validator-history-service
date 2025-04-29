@@ -1,12 +1,8 @@
 import { Request, Response } from 'express'
 
 import { handleWebSocketHealthMetrics } from '../../src/api/routes/v1/health'
-import {
-  destroy,
-  query,
-  saveConnectionHealth,
-  setupTables,
-} from '../../src/shared/database'
+import { destroy, query, setupTables } from '../../src/shared/database'
+import { saveConnectionHealth } from '../../src/shared/database/connectionHealth'
 import { ConnectionHealth } from '../../src/shared/types'
 
 import connectionHealthData from './fixtures/connection_health.json'

@@ -1,11 +1,18 @@
 import {
   query,
-  destroy,
   setupTables,
   tearDown,
   getNodes,
+  destroy,
 } from '../../src/shared/database'
-import { saveConnectionHealth } from '../../src/shared/database/connectionHealth'
+import {
+  getTotalConnectedNodes,
+  isNodeConnectedByIp,
+  isNodeConnectedByPublicKey,
+  isNodeConnectedByWsUrl,
+  saveConnectionHealth,
+  updateConnectionHealthStatus,
+} from '../../src/shared/database/connectionHealth'
 import { ConnectionHealth, Node } from '../../src/shared/types'
 
 import data from './fixtures/connection_health.json'
@@ -19,6 +26,7 @@ describe('connection_health tests', () => {
   beforeAll(async () => {
     await tearDown()
     await setupTables()
+    await flushPromises()
   })
 
   afterAll(async () => {
@@ -117,5 +125,113 @@ describe('connection_health tests', () => {
     const node2 = nodes.find((node) => node.public_key === 'key-2')
     expect(node1?.ws_url).toBe(connectionHealthData.ws_url)
     expect(node2?.ws_url).toBe(null)
+  })
+
+  test('findByPublicKey test', async () => {
+    const crawlsData: Node[] = data.crawls_only as Node[]
+
+    crawlsData.forEach(async (row) => {
+      await query('crawls').insert({
+        ...row,
+        networks: 'main',
+        start: new Date(Date.now() - 5 * 60 * 1000),
+      })
+    })
+
+    const connectionHealthData = data.connection_health_find_by_public_key as {
+      connection_health_rows: ConnectionHealth[]
+    }
+
+    connectionHealthData.connection_health_rows.forEach(async (row) => {
+      await saveConnectionHealth({ ...row, status_update_time: new Date() })
+    })
+
+    await flushPromises()
+
+    const result = await isNodeConnectedByPublicKey('key-2')
+    await flushPromises()
+    expect(result).toBe(true)
+  })
+
+  test('findByIp and findByWsUrl test', async () => {
+    const crawlsData: Node[] = data.crawls_only as Node[]
+
+    crawlsData.forEach(async (row) => {
+      await query('crawls').insert({
+        ...row,
+        networks: 'main',
+        start: new Date(Date.now() - 5 * 60 * 1000),
+      })
+    })
+
+    const connectionHealthData = data.connection_health_find_by_ip as {
+      connection_health_rows: ConnectionHealth[]
+    }
+
+    connectionHealthData.connection_health_rows.forEach(async (row) => {
+      await saveConnectionHealth({ ...row, status_update_time: new Date() })
+    })
+
+    await flushPromises()
+
+    const result = await isNodeConnectedByIp('p2p.livenet.ripple.com')
+    await flushPromises()
+    expect(result).toBe(true)
+
+    const falseResult = await isNodeConnectedByIp('test.com')
+    await flushPromises()
+    expect(falseResult).toBe(false)
+
+    const findByWsURL = await isNodeConnectedByWsUrl(
+      'wss://p2p.livenet.ripple.com:51233/',
+    )
+    await flushPromises()
+    expect(findByWsURL).toBe(true)
+  })
+
+  test('updateConnectionHealthStatus test', async () => {
+    const crawlsData: Node[] = data.crawls_only as Node[]
+
+    crawlsData.forEach(async (row) => {
+      await query('crawls').insert({
+        ...row,
+        networks: 'main',
+        start: new Date(Date.now() - 5 * 60 * 1000),
+      })
+    })
+
+    const connectionHealthData = data.connection_health_find_by_ip as {
+      connection_health_rows: ConnectionHealth[]
+    }
+
+    connectionHealthData.connection_health_rows.forEach(async (row) => {
+      await saveConnectionHealth({ ...row, status_update_time: new Date() })
+    })
+
+    await flushPromises()
+
+    const beforeResult = await getTotalConnectedNodes()
+    await flushPromises()
+    expect(beforeResult).toBe(2)
+
+    await updateConnectionHealthStatus(
+      'wss://p2p.livenet.ripple.com:51233/',
+      false,
+    )
+    await flushPromises()
+
+    const result = await getTotalConnectedNodes()
+    await flushPromises()
+    expect(result).toBe(1)
+
+    await updateConnectionHealthStatus(
+      'ws://p2p.livenet.ripple.com:51234/',
+      false,
+    )
+    await flushPromises()
+
+    const zeroResult = await getTotalConnectedNodes()
+    await flushPromises()
+    expect(zeroResult).toBe(0)
   })
 })

@@ -46,5 +46,35 @@
       "connected": true,
       "status_update_time": "2025-04-27T00:00:00.000Z"
     }
+  },
+  "connection_health_find_by_public_key": {
+    "connection_health_rows": [
+      {
+        "ws_url": "wss://1.2.3.4:51233/",
+        "network": "main",
+        "public_key": "key-1",
+        "connected": false
+      },
+      {
+        "ws_url": "wss://1.2.3.4:51235/",
+        "network": "main",
+        "public_key": "key-2",
+        "connected": true
+      }
+    ]
+  },
+  "connection_health_find_by_ip": {
+    "connection_health_rows": [
+      {
+        "ws_url": "wss://p2p.livenet.ripple.com:51233/",
+        "network": "main",
+        "connected": true
+      },
+      {
+        "ws_url": "ws://p2p.livenet.ripple.com:51234/",
+        "network": "main",
+        "connected": true
+      }
+    ]
   }
 }

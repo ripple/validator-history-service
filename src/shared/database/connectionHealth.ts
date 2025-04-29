@@ -41,7 +41,7 @@ export async function isNodeConnectedByPublicKey(
     const result = (await query('connection_health')
       .select('ws_url')
       .where({ public_key, connected: true })
-      .first()) as string | undefined
+      .first()) as { ws_url: string } | undefined
 
     return result !== undefined
   } catch (err) {
@@ -66,7 +66,7 @@ export async function isNodeConnectedByIp(ip: string): Promise<boolean> {
       .select('ws_url')
       .whereLike('ws_url', `%${ip}%`)
       .andWhere('connected', '=', true)
-      .first()) as string | undefined
+      .first()) as { ws_url: string } | undefined
 
     return result !== undefined
   } catch (err) {
@@ -89,7 +89,7 @@ export async function isNodeConnectedByWsUrl(ws_url: string): Promise<boolean> {
       .select('ws_url')
       .where('ws_url', '=', ws_url)
       .andWhere('connected', '=', true)
-      .first()) as string | undefined
+      .first()) as { ws_url: string } | undefined
 
     return result !== undefined
   } catch (err) {
@@ -135,7 +135,7 @@ export async function getTotalConnectedNodes(): Promise<number> {
   try {
     const result = await query('connection_health')
       .where('connected', true)
-      .count<{ count: string }>('id as count')
+      .count<{ count: string }>('ws_url as count')
       .first()
 
     return result ? parseInt(result.count, 10) : 0
