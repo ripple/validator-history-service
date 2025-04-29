@@ -24,7 +24,6 @@ describe('tests for validators endpoint', () => {
     await query('validators').insert(initialValidatorsSet)
     await query('ballot').insert(initialBallotSet)
 
-    // eslint-disable-next-line @typescript-eslint/consistent-type-assertions -- Disable for mock request.
     const req = {
       params: {},
     } as Request
