@@ -1,0 +1,18 @@
+[
+	{
+		"signing_key": "n9Lv5SRNiE2YbqCtPdEVXtwTiWpEW6SXsjbo9vpHsixe3tuTs2ye",
+		"ledger_index": 95393895,
+		"amendments": "",
+		"base_fee": 10,
+		"reserve_base": 20,
+		"reserve_inc": 30
+	},
+	{
+		"signing_key": "n9LJrX4Ly2mbG7TGehavjyPvJhMUiDR8u77cWwwGWCuyc8JSJqEW",
+		"ledger_index": 95393897,
+		"amendments": "",
+		"base_fee": 10,
+		"reserve_base": 20,
+		"reserve_inc": 30
+	}
+]
