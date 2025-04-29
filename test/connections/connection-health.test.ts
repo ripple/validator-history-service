@@ -3,9 +3,9 @@ import {
   destroy,
   setupTables,
   tearDown,
-  saveConnectionHealth,
   getNodes,
 } from '../../src/shared/database'
+import { saveConnectionHealth } from '../../src/shared/database/connectionHealth'
 import { ConnectionHealth, Node } from '../../src/shared/types'
 
 import data from './fixtures/connection_health.json'

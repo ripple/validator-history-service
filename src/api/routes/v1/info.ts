@@ -82,6 +82,17 @@ const info = {
       example:
         'https://data.xrpl.org/v1/network/amendments/vote/{network}/{identifier}',
     },
+    {
+      action: 'Get total number of connected rippled nodes.',
+      route: '/v1/health',
+      example: 'https://data.xrpl.org/v1/health',
+    },
+    {
+      action:
+        'Get total number of connected rippled nodes for a particular network in prometheus exposition format.',
+      route: '/v1/metrics/{network}',
+      example: 'https://data.xrpl.org/v1/metrics/{network}',
+    },
   ],
 }
 

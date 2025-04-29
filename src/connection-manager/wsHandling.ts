@@ -332,6 +332,9 @@ async function getAmendmentsFromLedgerEntry(
   network: string,
   hostName: string,
 ): Promise<void> {
+  log.info(
+    `Started fetching Amendments ledger entry for ${network} @ ${hostName}`,
+  )
   const allUrls: string[] = []
   for (const port of ports) {
     for (const protocol of protocols) {
@@ -339,6 +342,7 @@ async function getAmendmentsFromLedgerEntry(
     }
   }
 
+  let statusesUpdated = false
   for (const url of allUrls) {
     try {
       const client = new Client(url)
@@ -360,7 +364,8 @@ async function getAmendmentsFromLedgerEntry(
 
       await client.disconnect()
 
-      return
+      statusesUpdated = true
+      break
     } catch (err) {
       log.info(
         `Failed to connect ${url} - ${
@@ -370,7 +375,15 @@ async function getAmendmentsFromLedgerEntry(
     }
   }
 
-  log.error(`Not able to fetch Amendments ledger entry for ${network}`)
+  if (!statusesUpdated) {
+    log.error(
+      `Not able to fetch Amendments ledger entry for ${network} @ ${hostName}`,
+    )
+  }
+
+  log.info(
+    `Finished fetching Amendments ledger entry for ${network} @ ${hostName}`,
+  )
 }
 
 /**

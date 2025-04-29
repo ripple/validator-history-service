@@ -3,14 +3,17 @@
 
 import WebSocket from 'ws'
 
-import {
-  query,
-  getNetworks,
-  saveConnectionHealth,
-  clearConnectionHealthDb,
-  getNodes,
-} from '../shared/database'
+import { query, getNetworks, getNodes } from '../shared/database'
 import { fetchAmendmentInfo } from '../shared/database/amendments'
+import {
+  clearConnectionHealthDb,
+  getTotalConnectedNodes,
+  isNodeConnectedByIp,
+  isNodeConnectedByPublicKey,
+  isNodeConnectedByWsUrl,
+  saveConnectionHealth,
+  updateConnectionHealthStatus,
+} from '../shared/database/connectionHealth'
 import { FeeVote, WsNode } from '../shared/types'
 import { getIPv4Address } from '../shared/utils'
 import logger from '../shared/utils/logger'
@@ -25,7 +28,6 @@ import {
 const log = logger({ name: 'connections' })
 const ports = [443, 80, 6005, 6006, 51233, 51234]
 const protocols = ['wss://', 'ws://']
-const connections: Map<string, WebSocket> = new Map()
 const networkFee: Map<string, FeeVote> = new Map()
 const validationNetworkDb: Map<string, string> = new Map()
 const enableAmendmentLedgerIndexMap: Map<string, number> = new Map()
@@ -48,7 +50,7 @@ let cmStarted = false
  * Sets the handlers for each WebSocket object.
  *
  * @param ws - A WebSocket object.
- * @param publicKey - The public key of the node that we are trying to connect.
+ * @param publicKey - The public key of the node that we are trying to connect. See {@link https://xrpl.org/docs/references/http-websocket-apis/public-api-methods/server-info-methods/server_info#response-format | pubkey_node}.
  * @param network - The network of the node we are trying to reach where it retrieves validations.
  * @param retryCount - Retry count for exponential backoff.
  * @returns A Promise that resolves to void once a connection has been created or timeout has occured.
@@ -61,10 +63,10 @@ async function setHandlers(
 ): Promise<void> {
   const ledger_hashes: string[] = []
   return new Promise(function setHandlersPromise(resolve, _reject) {
-    ws.on('open', () => {
+    ws.on('open', async () => {
       log.info(`Websocket connection opened for: ${ws.url} on ${network}`)
 
-      if (connections.has(ws.url)) {
+      if (await isNodeConnectedByWsUrl(ws.url)) {
         resolve()
         return
       }
@@ -75,7 +77,6 @@ async function setHandlers(
         connected: true,
         status_update_time: new Date(),
       })
-      connections.set(ws.url, ws)
       subscribe(ws)
 
       resolve()
@@ -108,16 +109,7 @@ async function setHandlers(
         )}.`,
       )
 
-      if (connections.get(ws.url)?.url === ws.url) {
-        connections.delete(ws.url)
-        void saveConnectionHealth({
-          ws_url: ws.url,
-          public_key: publicKey,
-          network,
-          connected: false,
-          status_update_time: new Date(),
-        })
-      }
+      void updateConnectionHealthStatus(ws.url, false)
       ws.terminate()
 
       const delay = BASE_RETRY_DELAY * 2 ** retryCount
@@ -140,16 +132,7 @@ async function setHandlers(
         `Websocket connection error for ${ws.url} on ${network} - ${err.message}`,
       )
 
-      if (connections.get(ws.url)?.url === ws.url) {
-        connections.delete(ws.url)
-        void saveConnectionHealth({
-          ws_url: ws.url,
-          public_key: publicKey,
-          network,
-          connected: false,
-          status_update_time: new Date(),
-        })
-      }
+      void updateConnectionHealthStatus(ws.url, false)
       ws.terminate()
       resolve()
     })
@@ -169,7 +152,11 @@ async function findConnection(node: WsNode): Promise<void> {
   }
   node.ip = ipv4
 
-  if (Array.from(connections.keys()).some((key) => key.includes(node.ip))) {
+  if (node.public_key && (await isNodeConnectedByPublicKey(node.public_key))) {
+    return Promise.resolve()
+  }
+
+  if (!node.public_key && (await isNodeConnectedByIp(node.ip))) {
     return Promise.resolve()
   }
 
@@ -228,11 +215,11 @@ async function createConnections(): Promise<void> {
   })
   await Promise.all(promises)
 
-  log.info(`${connections.size} connections created`)
+  log.info(`${await getTotalConnectedNodes()} connections created`)
 }
 
-setInterval(() => {
-  log.info(`${connections.size} connections established`)
+setInterval(async () => {
+  log.info(`${await getTotalConnectedNodes()} connections established`)
 }, REPORTING_INTERVAL)
 
 /**

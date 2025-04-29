@@ -7,7 +7,6 @@ import {
   DatabaseNetwork,
   AmendmentStatus,
   Ballot,
-  ConnectionHealth,
   WsNode,
 } from '../types'
 import logger from '../utils/logger'
@@ -70,39 +69,6 @@ export async function saveNode(
     .onConflict('public_key')
     .merge(sanitizedMergeNode)
     .catch((err: Error) => log.error(err.message))
-}
-
-/**
- * Saves the Websocket connection info of a rippled node.
- *
- * @param connectionHealth -- Connection Health object to save or update.
- * @returns Void.
- */
-export async function saveConnectionHealth(
-  connectionHealth: ConnectionHealth,
-): Promise<void> {
-  query('connection_health')
-    .insert(connectionHealth)
-    .onConflict('ws_url')
-    .merge()
-    .catch((err: Error) => log.error(err.message))
-}
-
-/**
- * Sets connected column to false and status_update_time to current time.
- *
- * @returns Promise that resolves to void.
- *
- */
-export async function clearConnectionHealthDb(): Promise<void> {
-  try {
-    await query('connection_health').update({
-      connected: false,
-      status_update_time: new Date(),
-    })
-  } catch (err) {
-    log.error('Error clearing connections', err)
-  }
 }
 
 /**
