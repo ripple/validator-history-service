@@ -1,0 +1,40 @@
+[
+	{
+		"master_key": "nHU8RF1E6BY37D1yNpjrbm3DXMggYFbkeMYaJ7C78nvhoeTrnM6c",
+		"signing_key": "n9Lv5SRNiE2YbqCtPdEVXtwTiWpEW6SXsjbo9vpHsixe3tuTs2ye",
+		"revoked": false,
+		"ledger_hash": "93887FE2F1CA8B676490A7B8F89EA9A670A7FB30DB4345A3784806059A110A59",
+		"current_index": 95393895,
+		"load_fee": null,
+		"partial": false,
+		"chain": "main",
+		"unl": null,
+		"domain": null,
+		"domain_verified": null,
+		"last_ledger_time": "2025-04-11T22:42:11.970Z",
+		"agreement_1hour": "{\"validated\":926,\"missed\":0,\"incomplete\":false}",
+		"agreement_24hour": "{\"validated\":21904,\"missed\":259,\"incomplete\":false}",
+		"agreement_30day": "{\"validated\":601836,\"missed\":7772,\"incomplete\":true}",
+		"server_version": "2.4.0",
+		"networks": "main"
+	},
+	{
+		"master_key": "nHU7NnJW23DDDFzNyRUvXrG33vUHFdPGgXRgH5iotZm146dEPy7r",
+		"signing_key": "n9LJrX4Ly2mbG7TGehavjyPvJhMUiDR8u77cWwwGWCuyc8JSJqEW",
+		"revoked": false,
+		"ledger_hash": "6AD34DF70670854BDB3814657C977A2DE4B2BF3EE256550BCC06E9ECFCE6F997",
+		"current_index": 95393897,
+		"load_fee": null,
+		"partial": false,
+		"chain": "main",
+		"unl": null,
+		"domain": "validator.ukcbt.org",
+		"domain_verified": false,
+		"last_ledger_time": "2025-04-11T22:42:11.568Z",
+		"agreement_1hour": "{\"validated\":926,\"missed\":0,\"incomplete\":false}",
+		"agreement_24hour": "{\"validated\":22163,\"missed\":0,\"incomplete\":false}",
+		"agreement_30day": "{\"validated\":607798,\"missed\":1810,\"incomplete\":true}",
+		"server_version": "2.4.0",
+		"networks": "main"
+	}
+]
