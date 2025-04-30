@@ -17,6 +17,7 @@ const db = {
     database: getRequiredEnvironmentVariable(EnvironmentVariable.database),
     password: getEnvironmentVariable(EnvironmentVariable.password),
   },
+  acquireConnectionTimeout: 120000,
 }
 
 const maxmind = {
