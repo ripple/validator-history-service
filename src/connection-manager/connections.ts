@@ -100,15 +100,7 @@ async function setHandlers(
         enableAmendmentLedgerIndexMap,
       )
     })
-    ws.on('close', async (code, reason) => {
-      log.error(
-        `Websocket closed for ${
-          ws.url
-        } on ${network} with code ${code} and reason ${reason.toString(
-          'utf-8',
-        )}.`,
-      )
-
+    ws.on('close', async (code) => {
       void updateConnectionHealthStatus(ws.url, false)
       ws.terminate()
 
@@ -127,11 +119,7 @@ async function setHandlers(
 
       resolve()
     })
-    ws.on('error', (err) => {
-      log.error(
-        `Websocket connection error for ${ws.url} on ${network} - ${err.message}`,
-      )
-
+    ws.on('error', () => {
       void updateConnectionHealthStatus(ws.url, false)
       ws.terminate()
       resolve()
