@@ -1,14 +1,20 @@
+/* eslint-disable max-lines -- Complex functions */
 import WebSocket from 'ws'
 import {
   Client,
   LedgerEntryResponse,
   LedgerResponse,
+  RIPPLED_API_V1,
   rippleTimeToUnixTime,
 } from 'xrpl'
-import { AMENDMENTS_ID } from 'xrpl/dist/npm/models/ledger'
+import { Amendments, AMENDMENTS_ID } from 'xrpl/dist/npm/models/ledger'
 import { LedgerResponseExpanded } from 'xrpl/dist/npm/models/methods/ledger'
 
-import { saveAmendmentStatus, saveAmendmentsStatus } from '../shared/database'
+import {
+  getNetworks,
+  saveAmendmentsStatus,
+  saveAmendmentStatus,
+} from '../shared/database'
 import {
   NETWORKS_HOSTS,
   deleteAmendmentStatus,
@@ -29,6 +35,8 @@ const LEDGER_HASHES_SIZE = 10
 const GOT_MAJORITY_FLAG = 65536
 const LOST_MAJORITY_FLAG = 131072
 const FOURTEEN_DAYS_IN_MILLISECONDS = 14 * 24 * 60 * 60 * 1000
+const ports = [443, 80, 6005, 6006, 51233, 51234]
+const protocols = ['wss://', 'ws://']
 
 const log = logger({ name: 'connections' })
 
@@ -43,38 +51,6 @@ export function subscribe(ws: WebSocket): void {
       id: 2,
       command: 'subscribe',
       streams: ['manifests', 'validations', 'ledger'],
-    }),
-  )
-}
-
-/**
- * Sends a ledger_entry WebSocket request to retrieve amendments status on a network.
- *
- * @param ws - A WebSocket object.
- */
-export function getAmendmentLedgerEntry(ws: WebSocket): void {
-  ws.send(
-    JSON.stringify({
-      command: 'ledger_entry',
-      index: AMENDMENTS_ID,
-      ledger_index: 'validated',
-    }),
-  )
-}
-
-/**
- * Sends a ledger WebSocket request to retrieve transactions on a flag+1 ledger.
- *
- * @param ws - A WebSocket object.
- * @param ledger_index -- The index of the ledger.
- */
-function getEnableAmendmentLedger(ws: WebSocket, ledger_index: number): void {
-  ws.send(
-    JSON.stringify({
-      command: 'ledger',
-      ledger_index,
-      transactions: true,
-      expand: true,
     }),
   )
 }
@@ -101,6 +77,7 @@ function isFlagLedgerPlusOne(ledger_index: number): boolean {
  * @param network_fee - The map of default fee for the network to be used in case the validator does not vote for a new fee.
  * @param ws - The WebSocket message received from.
  * @param validationNetworkDb -- A map of validator signing_keys to their corresponding networks.
+ * @param enableAmendmentLedgerIndexMap -- A map of network to ledger index of last seen EnableAmendment transaction.
  * @returns Void.
  */
 // eslint-disable-next-line max-params -- Disabled for this function.
@@ -111,6 +88,7 @@ export async function handleWsMessageSubscribeTypes(
   network_fee: Map<string, FeeVote>,
   ws: WebSocket,
   validationNetworkDb: Map<string, string>,
+  enableAmendmentLedgerIndexMap: Map<string, number>,
 ): Promise<void> {
   if (data.type === 'validationReceived') {
     const validationData = data as ValidationRaw
@@ -143,27 +121,80 @@ export async function handleWsMessageSubscribeTypes(
     if (ledger_hashes.length > LEDGER_HASHES_SIZE) {
       ledger_hashes.shift()
     }
-    if (isFlagLedgerPlusOne(current_ledger.ledger_index)) {
-      getEnableAmendmentLedger(ws, current_ledger.ledger_index)
-    }
+    checkAndHandleEnableAmendmentLedger(
+      current_ledger.ledger_index,
+      networks,
+      enableAmendmentLedgerIndexMap,
+      ws.url,
+    )
   }
 }
 
 /**
- * Handle ws ledger_entry amendments messages.
+ * Checks and handles the EnableAmendment ledger for a given network.
  *
- * @param data - The WebSocket message received from connection.
- * @param networks - The networks of subscribed node.
+ * @param ledgerIndex - The index of the ledger to check.
+ * @param network - The network associated with the ledger.
+ * @param enableAmendmentLedgerIndexMap - A map of network to ledger index of last seen EnableAmendment transaction.
+ * @param url -- Websocket url.
  */
-export async function handleWsMessageLedgerEntryAmendments(
-  data: LedgerEntryResponse,
-  networks: string | undefined,
+function checkAndHandleEnableAmendmentLedger(
+  ledgerIndex: number,
+  network: string | undefined,
+  enableAmendmentLedgerIndexMap: Map<string, number>,
+  url: string,
+): void {
+  if (!network) {
+    return
+  }
+
+  if (!isFlagLedgerPlusOne(ledgerIndex)) {
+    return
+  }
+
+  // Already seen by some other node for this network. No need to save again.
+  const lastSeenLedgerIndex = enableAmendmentLedgerIndexMap.get(network)
+  if (lastSeenLedgerIndex && lastSeenLedgerIndex >= ledgerIndex) {
+    return
+  }
+
+  enableAmendmentLedgerIndexMap.set(network, ledgerIndex)
+  void processEnableAmendmentTransaction(url, network, ledgerIndex)
+}
+
+/**
+ * Retrieves and processes the EnableAmendment transaction for a specific network.
+ *
+ * @param url - The WebSocket URL of the network.
+ * @param network - The name of the network.
+ * @param ledgerIndex - The index of the ledger to retrieve.
+ */
+async function processEnableAmendmentTransaction(
+  url: string,
+  network: string,
+  ledgerIndex: number,
 ): Promise<void> {
-  if (
-    data.result.node?.LedgerEntryType === 'Amendments' &&
-    data.result.node.Amendments
-  ) {
-    await saveAmendmentsStatus(data.result.node.Amendments, networks)
+  try {
+    const client = new Client(url)
+    client.apiVersion = RIPPLED_API_V1
+    await client.connect()
+
+    const ledgerResponse: LedgerResponseExpanded = await client.request({
+      command: 'ledger',
+      ledger_index: ledgerIndex,
+      transactions: true,
+      expand: true,
+      api_version: RIPPLED_API_V1,
+    })
+
+    void handleWsMessageLedgerEnableAmendments(ledgerResponse, network)
+    await client.disconnect()
+  } catch (err) {
+    log.error(
+      `Failed to process EnableAmendment Transaction for ${network} at ${url} - ${
+        err instanceof Error ? err.message : String(err)
+      }`,
+    )
   }
 }
 
@@ -288,4 +319,84 @@ export async function backtrackAmendmentStatus(): Promise<void> {
   for (const [networks, url] of NETWORKS_HOSTS) {
     await backtrackNetworkAmendmentStatus(networks, url)
   }
+}
+
+/**
+ * Retrieves and store existing Amendments into amendments_status table.
+ *
+ * @param network - Network name.
+ * @param hostName - Hostname to connect.
+ * @returns Void.
+ */
+async function getAmendmentsFromLedgerEntry(
+  network: string,
+  hostName: string,
+): Promise<void> {
+  log.info(
+    `Started fetching Amendments ledger entry for ${network} @ ${hostName}`,
+  )
+  const allUrls: string[] = []
+  for (const port of ports) {
+    for (const protocol of protocols) {
+      allUrls.push(`${protocol}${hostName}:${port}`)
+    }
+  }
+
+  let statusesUpdated = false
+  for (const url of allUrls) {
+    try {
+      const client = new Client(url)
+      client.apiVersion = RIPPLED_API_V1
+      await client.connect()
+
+      const amendmentLedgerEntry: LedgerEntryResponse<Amendments> =
+        await client.request({
+          command: 'ledger_entry',
+          index: AMENDMENTS_ID,
+          ledger_index: 'validated',
+          api_version: RIPPLED_API_V1,
+        })
+
+      await saveAmendmentsStatus(
+        amendmentLedgerEntry.result.node?.Amendments ?? [],
+        network,
+      )
+
+      await client.disconnect()
+
+      statusesUpdated = true
+      break
+    } catch (err) {
+      log.info(
+        `Failed to connect ${url} - ${
+          err instanceof Error ? err.message : String(err)
+        }`,
+      )
+    }
+  }
+
+  if (!statusesUpdated) {
+    log.error(
+      `Not able to fetch Amendments ledger entry for ${network} @ ${hostName}`,
+    )
+  }
+
+  log.info(
+    `Finished fetching Amendments ledger entry for ${network} @ ${hostName}`,
+  )
+}
+
+/**
+ * Fetch existing Amendments from ledger_entry.
+ *
+ * @returns Void.
+ */
+export async function fetchAmendmentsFromLedgerEntry(): Promise<void> {
+  const promises: Array<Promise<void>> = []
+
+  for (const network of await getNetworks()) {
+    promises.push(getAmendmentsFromLedgerEntry(network.id, network.entry))
+  }
+
+  await Promise.all(promises)
 }

@@ -10,6 +10,7 @@ export enum EnvironmentVariable {
   user = 'DB_USER',
   database = 'DB_DATABASE',
   password = 'DB_PASSWORD',
+  acquireConnectionTimeout = 'ACQUIRE_CONNECTION_TIMEOUT',
   rippled_rpc_admin_server = 'RIPPLED_RPC_ADMIN',
   port = 'PORT',
   addr = 'ADDR',

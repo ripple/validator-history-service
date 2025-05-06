@@ -1,15 +1,21 @@
 import { LedgerResponseExpanded } from 'xrpl/dist/npm/models/methods/ledger'
 
 import { handleWsMessageLedgerEnableAmendments } from '../../src/connection-manager/wsHandling'
-import { destroy, query, setupTables } from '../../src/shared/database'
+import {
+  destroy,
+  query,
+  setupTables,
+  saveAmendmentsStatus,
+} from '../../src/shared/database'
 import { AmendmentStatus } from '../../src/shared/types'
 
+import amendmentsLedgerEntry from './fixtures/amendments_ledger_entry.json'
 import ledgerResponseNoFlag from './fixtures/ledgerWithNoFlag.json'
 import ledgerResponseGotMajority from './fixtures/ledgerWithTfMajority.json'
 
 const flushPromises = async (): Promise<void> =>
   new Promise((resolve) => {
-    setImmediate(resolve)
+    setTimeout(resolve, 50)
   })
 
 describe('Amendments', () => {
@@ -76,5 +82,27 @@ describe('Amendments', () => {
       '2023-11-27T14:44:30.000Z',
     )
     expect(amendmentStatus[0].eta).toBe(null)
+  })
+
+  test('save Amendments ledger_entry', async () => {
+    await saveAmendmentsStatus(
+      amendmentsLedgerEntry.result.node.Amendments,
+      'main',
+    )
+
+    await flushPromises()
+
+    const amendments = (await query('amendments_status').select(
+      '*',
+    )) as AmendmentStatus[]
+
+    await flushPromises()
+
+    expect(amendments[0].networks).toBe('main')
+    expect(amendments.map((amendment) => amendment.amendment_id)).toContain(
+      '42426C4D4F1009EE67080A9B7965B44656D7714D104A72F9B4369F97ABF044EE',
+    )
+    expect(amendments[0].date).toBe(null)
+    expect(amendments.length).toBe(73)
   })
 })

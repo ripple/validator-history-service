@@ -7,6 +7,7 @@ import {
   DatabaseNetwork,
   AmendmentStatus,
   Ballot,
+  WsNode,
 } from '../types'
 import logger from '../utils/logger'
 
@@ -25,7 +26,6 @@ import setupTables from './setup'
 import { db, tearDown, query, destroy } from './utils'
 
 const log = logger({ name: 'database' })
-const IP_REGEX = /\b\d{1,3}\.\d{1,3}\.\d{1,3}\.\d{1,3}\b/u
 
 /**
  * Get the list of networks.
@@ -72,46 +72,17 @@ export async function saveNode(
 }
 
 /**
- * Saves the Websocket URL of a rippled node.
+ * Get the list of nodes to establish WebSocket connection.
  *
- * @param url - Websocket URL of a rippled node.
- * @param connected - Boolean value representing whether we are currently connected to this node.
- * @returns Void.
+ * @param sinceStartDate -- Date instance from which to retrieve data.
+ * @returns The list of nodes.
  */
-export async function saveNodeWsUrl(
-  url: string,
-  connected: boolean,
-): Promise<void> {
-  const ip_match = IP_REGEX.exec(url)
-  if (ip_match) {
-    query('crawls')
-      .where({
-        ip: ip_match[0],
-      })
-      .update({
-        ws_url: url,
-        connected,
-      })
-      .catch((err: Error) => log.error(err.message))
-  } else {
-    log.warn(`Invalid websocket url: ${url}`)
-  }
-}
-
-/**
- * Sets connected column to false.
- *
- * @returns Promise that resolves to void.
- *
- */
-export async function clearConnectionsDb(): Promise<void> {
-  try {
-    await query('crawls').update({
-      connected: false,
-    })
-  } catch (err) {
-    log.error('Error clearing connections', err)
-  }
+export async function getNodes(sinceStartDate: Date): Promise<WsNode[]> {
+  return query('crawls as c')
+    .leftJoin('connection_health as ch', 'c.public_key', 'ch.public_key')
+    .select('c.ip', 'ch.ws_url', 'c.networks', 'c.public_key')
+    .whereNotNull('c.ip')
+    .andWhere('c.start', '>', sinceStartDate)
 }
 
 /**

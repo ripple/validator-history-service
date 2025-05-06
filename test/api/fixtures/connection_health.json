@@ -1,0 +1,28 @@
+{
+  "data": [
+    {
+      "ws_url": "wss://xrplcluster.com/",
+      "network": "xahau-main",
+      "connected": true,
+      "status_update_time": "2025-04-27T00:00:00.000Z"
+    },
+    {
+      "ws_url": "wss://p2p.livenet.ripple.com:51233/",
+      "network": "main",
+      "connected": true,
+      "status_update_time": "2025-04-27T00:00:00.000Z"
+    },
+    {
+      "ws_url": "wss://10.20.30.40:51233/",
+      "network": "main",
+      "connected": false,
+      "status_update_time": "2025-04-27T00:00:00.000Z"
+    },
+    {
+      "ws_url": "wss://101.201.301.401:51233/",
+      "network": "main",
+      "connected": true,
+      "status_update_time": "2025-04-27T00:00:00.000Z"
+    }
+  ]
+}

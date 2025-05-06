@@ -17,6 +17,12 @@ const db = {
     database: getRequiredEnvironmentVariable(EnvironmentVariable.database),
     password: getEnvironmentVariable(EnvironmentVariable.password),
   },
+  // Increase waiting connection's timeout to 2 minutes since we are doing many parallel database connections - https://knexjs.org/guide/#acquireconnectiontimeout
+  acquireConnectionTimeout: parseInt(
+    getEnvironmentVariable(EnvironmentVariable.acquireConnectionTimeout) ??
+      '120000',
+    10,
+  ),
 }
 
 const maxmind = {
