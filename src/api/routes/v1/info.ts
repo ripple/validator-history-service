@@ -89,9 +89,9 @@ const info = {
     },
     {
       action:
-        'Get total number of connected rippled nodes for a particular network in prometheus exposition format.',
-      route: '/v1/metrics/{network}',
-      example: 'https://data.xrpl.org/v1/metrics/{network}',
+        'Get total number of connected rippled nodes for each network in prometheus exposition format.',
+      route: '/v1/metrics',
+      example: 'https://data.xrpl.org/v1/metrics',
     },
   ],
 }

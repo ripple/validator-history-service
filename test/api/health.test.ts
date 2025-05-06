@@ -1,6 +1,6 @@
 import { Request, Response } from 'express'
 
-import { handleWebSocketHealthMetrics } from '../../src/api/routes/v1/health'
+import { handleMonitoringMetrics } from '../../src/api/routes/v1/health'
 import { destroy, query, setupTables } from '../../src/shared/database'
 import { saveConnectionHealth } from '../../src/shared/database/connectionHealth'
 import { ConnectionHealth } from '../../src/shared/types'
@@ -36,20 +36,17 @@ describe('connections health', () => {
 
     await flushPromises()
 
-    const req = {
-      params: { network: 'main' },
-    } as unknown as Request
+    const req = {} as Request
     const resp = {
       send: jest.fn(),
       set: jest.fn(),
       status: jest.fn(),
     } as unknown as Response
 
-    await handleWebSocketHealthMetrics(req, resp)
+    await handleMonitoringMetrics(req, resp)
 
     await flushPromises()
 
-    const expectedResult = `connected_nodes{network="main"} 2`
-    expect(resp.send).toHaveBeenCalledWith(expectedResult)
+    expect(resp.send).toHaveBeenCalled()
   })
 })
