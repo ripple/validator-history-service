@@ -107,7 +107,7 @@ async function setHandlers(
       const delay = BASE_RETRY_DELAY * 2 ** retryCount
 
       if (CLOSING_CODES.includes(code) && delay <= MAX_RETRY_DELAY) {
-        log.info(`Reconnecting to ${ws.url} on ${network} after ${delay}ms...`)
+        // log.info(`Reconnecting to ${ws.url} on ${network} after ${delay}ms...`)
 
         setTimeout(async () => {
           // Open a new Websocket connection for the same url
