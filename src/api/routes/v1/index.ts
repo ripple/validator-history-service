@@ -10,6 +10,7 @@ import handleDailyScores from './daily-report'
 import getNetworkOrAdd from './get-network'
 import handleHealth from './health'
 import handleValidatorManifest from './manifests'
+import handleMissedValidations from './missed_validations'
 import handleNetworks from './networks'
 import { handleNode, handleNodes, handleTopology } from './nodes'
 import { handleValidator, handleValidators } from './validator'
@@ -38,5 +39,6 @@ api.use('/network/validators/:param', handleValidators)
 api.use('/network/validators', handleValidators)
 
 api.use('/network/networks', handleNetworks)
+api.use('/missed_validations', handleMissedValidations)
 
 export default api
