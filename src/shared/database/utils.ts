@@ -27,6 +27,7 @@ export function db(): Knex {
 export async function tearDown(): Promise<void> {
   await db()
     .schema.dropTableIfExists('location')
+    .dropTableIfExists('connection_health')
     .dropTableIfExists('crawls')
     .dropTableIfExists('manifests')
 }

@@ -8,7 +8,7 @@ import {
 } from './amendments'
 import handleDailyScores from './daily-report'
 import getNetworkOrAdd from './get-network'
-import handleHealth from './health'
+import handleHealth, { handleMonitoringMetrics } from './health'
 import handleValidatorManifest from './manifests'
 import handleMissedValidations from './missed_validations'
 import handleNetworks from './networks'
@@ -19,6 +19,7 @@ import handleValidatorReport from './validator-report'
 const api = createRouter()
 
 api.use('/health', handleHealth)
+api.use('/metrics', handleMonitoringMetrics)
 api.use('/network/validator_reports', handleDailyScores)
 api.use('/network/amendment/info/:param', handleAmendmentInfo)
 api.use('/network/amendments/info', handleAmendmentsInfo)

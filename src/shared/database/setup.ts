@@ -1,3 +1,4 @@
+/* eslint-disable max-lines -- Required here since we setup all the tables along with their columns. */
 import logger from '../utils/logger'
 
 import networks from './networks'
@@ -25,6 +26,7 @@ export default async function setupTables(): Promise<void> {
   await setupBallotTable()
   await setupMissedValidationsTable()
   await addAmendmentsDataFromJSON()
+  await setupConnectionHealthTable()
 }
 
 async function setupCrawlsTable(): Promise<void> {
@@ -54,6 +56,18 @@ async function setupCrawlsTable(): Promise<void> {
   if (!(await db().schema.hasColumn('crawls', 'incomplete_shards'))) {
     await db().schema.alterTable('crawls', (table) => {
       table.string('incomplete_shards').after('complete_shards')
+    })
+  }
+
+  if (await db().schema.hasColumn('crawls', 'ws_url')) {
+    await db().schema.alterTable('crawls', (table) => {
+      table.dropColumn('ws_url')
+    })
+  }
+
+  if (await db().schema.hasColumn('crawls', 'connected')) {
+    await db().schema.alterTable('crawls', (table) => {
+      table.dropColumn('connected')
     })
   }
 }
@@ -262,6 +276,19 @@ async function setupMissedValidationsTable(): Promise<void> {
       table.string('ledger_index')
       table.boolean('ledger_hash')
       table.primary(['signing_key', 'ledger_hash'])
+    })
+  }
+}
+
+async function setupConnectionHealthTable(): Promise<void> {
+  const hasConnectionHealth = await db().schema.hasTable('connection_health')
+  if (!hasConnectionHealth) {
+    await db().schema.createTable('connection_health', (table) => {
+      table.string('ws_url').primary()
+      table.string('public_key').references('crawls.public_key')
+      table.string('network')
+      table.boolean('connected')
+      table.datetime('status_update_time')
     })
   }
 }

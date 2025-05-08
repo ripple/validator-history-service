@@ -15,6 +15,7 @@ describe('Single Validations', () => {
   })
 
   beforeEach(async () => {
+    await query('connection_health').delete('*')
     await query('crawls').delete('*')
   })
 
