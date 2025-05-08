@@ -23,6 +23,7 @@ export default async function setupTables(): Promise<void> {
   await setupAmendmentsStatusTable()
   await setupAmendmentsInfoTable()
   await setupBallotTable()
+  await setupMissedValidationsTable()
   await addAmendmentsDataFromJSON()
 }
 
@@ -248,6 +249,19 @@ async function setupBallotTable(): Promise<void> {
       table.integer('base_fee')
       table.integer('reserve_base')
       table.integer('reserve_inc')
+    })
+  }
+}
+
+async function setupMissedValidationsTable(): Promise<void> {
+  const hasMissedValidations = await db().schema.hasTable('missed_validations')
+  if (!hasMissedValidations) {
+    await db().schema.createTable('missed_validations', (table) => {
+      table.string('signing_key')
+      table.string('master_key')
+      table.string('ledger_index')
+      table.boolean('ledger_hash')
+      table.primary(['signing_key', 'ledger_hash'])
     })
   }
 }

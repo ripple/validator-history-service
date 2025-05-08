@@ -214,6 +214,13 @@ interface HourlyAgreement {
   agreement: AgreementScore
 }
 
+interface MissedValidation {
+  signing_key: string
+  master_key?: string
+  ledger_index: string
+  ledger_hash: string
+}
+
 interface DailyAgreement {
   main_key: string
   day: Date
@@ -253,4 +260,5 @@ export {
   ValidatorKeys,
   AmendmentStatus,
   AmendmentInfo,
+  MissedValidation,
 }
