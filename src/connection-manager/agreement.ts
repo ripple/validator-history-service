@@ -350,7 +350,7 @@ class Agreement {
       UNL_MAINNET_SIGNING_KEYS.includes(validator_keys.signing_key)
     ) {
       log.info(
-        `Missed validations found for UNL Mainnet. Saving into database...`,
+        `Missed validations found for UNL Mainnet ${validator_keys.signing_key}. Saving into database...`,
       )
       for (const hash of missed) {
         for (const [, innerMap] of this.validationsByPublicKey) {
@@ -358,7 +358,7 @@ class Agreement {
             const missed_validation = {
               signing_key: validator_keys.signing_key,
               master_key: validator_keys.master_key,
-              ledger_index: innerMap.get(hash)?.index ?? '/8',
+              ledger_index: innerMap.get(hash)?.index ?? '',
               ledger_hash: hash,
             }
             await saveMissedValidation(missed_validation)

@@ -1,3 +1,5 @@
+/* eslint-disable @typescript-eslint/no-unsafe-member-access -- Disabled for testing. */
+/* eslint-disable @typescript-eslint/no-unsafe-assignment -- Disabled for testing. */
 /* eslint-disable max-lines -- Required here since we setup all the tables along with their columns. */
 import logger from '../utils/logger'
 
@@ -269,12 +271,34 @@ async function setupBallotTable(): Promise<void> {
 
 async function setupMissedValidationsTable(): Promise<void> {
   const hasMissedValidations = await db().schema.hasTable('missed_validations')
+  if (hasMissedValidations) {
+    const columnInfo = await db()
+      .select('data_type')
+      .from('information_schema.columns')
+      .where({
+        table_name: 'missed_validations',
+        column_name: 'ledger_hash',
+      })
+      .first()
+
+    if (columnInfo?.data_type === 'boolean') {
+      log.warn('Altering column "ledger_hash" from boolean to string (varchar)')
+      await db().schema.dropTable('missed_validations')
+      await db().schema.createTable('missed_validations', (table) => {
+        table.string('signing_key')
+        table.string('master_key')
+        table.string('ledger_index')
+        table.string('ledger_hash')
+        table.primary(['signing_key', 'ledger_hash'])
+      })
+    }
+  }
   if (!hasMissedValidations) {
     await db().schema.createTable('missed_validations', (table) => {
       table.string('signing_key')
       table.string('master_key')
       table.string('ledger_index')
-      table.boolean('ledger_hash')
+      table.string('ledger_hash')
       table.primary(['signing_key', 'ledger_hash'])
     })
   }

@@ -52,11 +52,11 @@ export async function saveDailyAgreement(
 export async function saveMissedValidation(
   missed_validation: MissedValidation,
 ): Promise<void> {
-  query('daily_agreement')
+  query('missed_validations')
     .insert(missed_validation)
     .onConflict(['signing_key', 'ledger_hash'])
     .merge()
-    .catch((err) => log.error('Error saving Daily Agreement', err))
+    .catch((err) => log.error('Error saving Missed Validations', err))
 }
 
 /**
