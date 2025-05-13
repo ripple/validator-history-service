@@ -4,6 +4,7 @@ import { encodeNodePublic } from 'ripple-address-codec'
 import { query, saveNode } from '../shared/database'
 import { Network } from '../shared/database/networks'
 import { Crawl } from '../shared/types'
+import { getIPv4Address } from '../shared/utils'
 import logger from '../shared/utils/logger'
 
 import crawlNode from './network'
@@ -11,7 +12,6 @@ import crawlNode from './network'
 const log = logger({ name: 'crawler' })
 const TIME_FORMAT = 'YYYY-MM-DD HH:mm:ss[Z]'
 const DEFAULT_PORT = 51235
-const IP_ADDRESS = /^::ffff:/u
 const BASE58_MAX_LENGTH = 50
 
 const LEDGER_RANGE = 100000
@@ -242,9 +242,7 @@ class Crawler {
         continue
       }
 
-      const ip = IP_ADDRESS.exec(node.ip)
-        ? node.ip.substr('::ffff:'.length)
-        : node.ip
+      const ip = getIPv4Address(node.ip)
       promises.push(this.crawlEndpoint(ip, node.port, unls))
     }
 
