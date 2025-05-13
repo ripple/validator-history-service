@@ -47,7 +47,7 @@ describe('connection_health tests', () => {
 
     const updatedData: ConnectionHealth = {
       ...data.updated,
-      status_update_time: new Date(data.initial.status_update_time),
+      status_update_time: new Date(data.updated.status_update_time),
     }
 
     await saveConnectionHealth(initialData)
