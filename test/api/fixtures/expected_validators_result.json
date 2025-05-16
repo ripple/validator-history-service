@@ -1,0 +1,76 @@
+{
+  "result": "success",
+  "count": 2,
+  "validators": [
+    {
+      "validation_public_key": "nHU7NnJW23DDDFzNyRUvXrG33vUHFdPGgXRgH5iotZm146dEPy7r",
+      "signing_key": "n9LJrX4Ly2mbG7TGehavjyPvJhMUiDR8u77cWwwGWCuyc8JSJqEW",
+      "master_key": "nHU7NnJW23DDDFzNyRUvXrG33vUHFdPGgXRgH5iotZm146dEPy7r",
+      "domain": "validator.ukcbt.org",
+      "chain": "main",
+      "server_version": "2.4.0",
+      "networks": "main",
+      "current_index": 95393897,
+      "ledger_hash": "6AD34DF70670854BDB3814657C977A2DE4B2BF3EE256550BCC06E9ECFCE6F997",
+      "agreement_1h": {
+        "missed": 0,
+        "total": 926,
+        "score": "1.00000",
+        "incomplete": false
+      },
+      "agreement_24h": {
+        "missed": 0,
+        "total": 22163,
+        "score": "1.00000",
+        "incomplete": false
+      },
+      "agreement_30day": {
+        "missed": 1810,
+        "total": 609608,
+        "score": "0.99703",
+        "incomplete": true
+      },
+      "partial": false,
+      "unl": false,
+      "revoked": false,
+      "base_fee": 10,
+      "reserve_base": 20,
+      "reserve_inc": 30
+    },
+    {
+      "validation_public_key": "nHU8RF1E6BY37D1yNpjrbm3DXMggYFbkeMYaJ7C78nvhoeTrnM6c",
+      "signing_key": "n9Lv5SRNiE2YbqCtPdEVXtwTiWpEW6SXsjbo9vpHsixe3tuTs2ye",
+      "master_key": "nHU8RF1E6BY37D1yNpjrbm3DXMggYFbkeMYaJ7C78nvhoeTrnM6c",
+      "domain": null,
+      "chain": "main",
+      "server_version": "2.4.0",
+      "networks": "main",
+      "current_index": 95393895,
+      "ledger_hash": "93887FE2F1CA8B676490A7B8F89EA9A670A7FB30DB4345A3784806059A110A59",
+      "agreement_1h": {
+        "missed": 0,
+        "total": 926,
+        "score": "1.00000",
+        "incomplete": false
+      },
+      "agreement_24h": {
+        "missed": 259,
+        "total": 22163,
+        "score": "0.98831",
+        "incomplete": false
+      },
+      "agreement_30day": {
+        "missed": 7772,
+        "total": 609608,
+        "score": "0.98725",
+        "incomplete": true
+      },
+      "partial": false,
+      "unl": false,
+      "revoked": false,
+      "base_fee": 10,
+      "reserve_base": 20,
+      "reserve_inc": 30
+    }
+  ]
+}

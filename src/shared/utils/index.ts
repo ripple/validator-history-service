@@ -9,6 +9,17 @@ import logger from './logger'
 
 const log = logger({ name: 'utils' })
 const HTTPS_PORT = 51234
+const IPV6_PREFIX = /^::ffff:/u
+
+/**
+ * Converts an IPv6-mapped IPv4 address to a standard IPv4 address.
+ *
+ * @param ip - The input IP address string.
+ * @returns The IPv4 address string.
+ */
+export function getIPv4Address(ip: string): string {
+  return ip.replace(IPV6_PREFIX, '')
+}
 
 /**
  * Fetches the UNL.
