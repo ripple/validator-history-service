@@ -3,7 +3,7 @@ import {
   DailyAgreement,
   AgreementScore,
   ValidatorKeys,
-  MissedValidation,
+  // MissedValidation,
 } from '../types'
 import logger from '../utils/logger'
 
@@ -43,21 +43,21 @@ export async function saveDailyAgreement(
     .catch((err) => log.error('Error saving Daily Agreement', err))
 }
 
-/**
- * Saves a missed validation.
- *
- * @param missed_validation - Missed validation.
- * @returns Void.
- */
-export async function saveMissedValidation(
-  missed_validation: MissedValidation,
-): Promise<void> {
-  query('missed_validations')
-    .insert(missed_validation)
-    .onConflict(['signing_key', 'ledger_hash'])
-    .merge()
-    .catch((err) => log.error('Error saving Missed Validations', err))
-}
+// /**
+//  * Saves a missed validation.
+//  *
+//  * @param missed_validation - Missed validation.
+//  * @returns Void.
+//  */
+// export async function saveMissedValidation(
+//   missed_validation: MissedValidation,
+// ): Promise<void> {
+//   query('missed_validations')
+//     .insert(missed_validation)
+//     .onConflict(['signing_key', 'ledger_hash'])
+//     .merge()
+//     .catch((err) => log.error('Error saving Missed Validations', err))
+// }
 
 /**
  * Calculate agreement scores for a validator.

@@ -1,5 +1,3 @@
-/* eslint-disable max-lines -- Disabled for testing. */
-/* eslint-disable max-depth -- Disabled for testing. */
 import {
   getAgreementScores,
   saveHourlyAgreement,
@@ -13,7 +11,7 @@ import {
   decodeServerVersion,
   saveBallot,
 } from '../shared/database'
-import { saveMissedValidation } from '../shared/database/agreement'
+// import { saveMissedValidation } from '../shared/database/agreement'
 import {
   AgreementScore,
   Validator,
@@ -32,43 +30,43 @@ const log = logger({ name: 'agreement' })
 const AGREEMENT_INTERVAL = 60 * 60 * 1000
 const PURGE_INTERVAL = 10 * 60 * 1000
 
-const UNL_MAINNET_SIGNING_KEYS = [
-  'n9LvxiHe5wve7yLe1R1MagKboVs5WrWSJMEsXtJrfqtAwCswjKsd',
-  'n9LY8MFrFKudddAjrs3BZ33SwqCypV4aYqP7sH3VKgaJSz3aJUwL',
-  'n9MSTcx1fmfyKpaDTtpXucugcqM7yxpaggmwRxcyA3Nr4pE1pN3x',
-  'n9Lqr4YZxk7WYRDTBZjjmoAraikLCjAgAswaPaZ6LaGW6Q4Y2eoo',
-  'n94a894ARPe5RdcaRgdMBB9gG9ukS5mqsd7q2oNmC1NKqtZqEJnb',
-  'n9M2UqXLK25h9YEQTskmCXbWPGhQmB1pFVqeXia38UwLaL838VbG',
-  'n9MngHUqEeJXd8cgeEGsjvm9FqQRm4DwhCrTYCtrfnm5FWGFaR6m',
-  'n9KqcU9Qc5k1w8y9mPrTZYy14te3qjo1b1ZiieqC2NggbNrAuLpu',
-  'n9KQ2DVL7QhgovChk81W8idxm7wDsYzXutDMQzwUBKuxb9WTWBVG',
-  'n9MhLZsK7Av6ny2gV5SAGLDsnFXE9p85aYR8diD8xvuvuucqad85',
-  'n9KaxgJv69FucW5kkiaMhCqS6sAR1wUVxpZaZmLGVXxAcAse9YhR',
-  'n9Jk38y9XCznqiLq53UjREJQbZWnz4Pvmph55GP5ofUPg3RG8eVr',
-  'n94rGrfuwvYTS1HEeWboW2nGvAQgVDpiD8id2pLWSHFVggBRpQRE',
-  'n9KkK4BiTTXjeF31KX4fTJkyVtH89ik4apq4wF7sQzqmbqBYcU3H',
-  'n943ozDG74swHRmAjzY6A4KVFBhEirF4Sh1ACqvDePE3CZTgkMqn',
-  'n9MZ7EVGKypqdyNguP31xSqhFqDBF4V5FESLMmLiGrBJ3khP2AzQ',
-  'n9M5q9FaYgrBYSU5TuV3tATpy1DuAFKdtdjufDAzWUGXLKr3Trfq',
-  'n94RkpbJYRYQrWUmL8PAVQ1XTVKtfyKkLm8C6SWzWPcKEbuNb6EV',
-  'n9LFSE8fQ6Ljnc97ToHVtv1sYZ3GpzrXKpT94eFDk8jtdbfoBe7N',
-  'n9MxDjQMr1DkzW3Z5X1guKJq4QNDEeYFPgqGgHfpzerGbHWGZvj4',
-  'n9JvsY3yhCdsHe3JsVTwvCtvKnchg2eridHLWdBdWf8VkpZSqqS9',
-  'n9JgxBLdCHii4xnRNMk7WJhD2qmfJGRvCxmmNNivBZXPRVpeZkH3',
-  'n9LL7K3Ubnob3ExqmgpigL3AgzKKhTaVvnZiXqsvz85VjbY3KqFp',
-  'n9KRttNtSJ2NHX7P2RkoYpqf2cxhDfkcGCFswarLqHdjjfjPJFJB',
-  'n9Km4Xz53K9kcTaVn3mYAHsXqNuAo7A2HazSr34SFufvNwBxYGLn',
-  'n9McDrz9tPujrQK3vMXJXzuEJv1B8UG3opfZEsFA8t6QxdZh1H6m',
-  'n9Lo7qSD4qwjoMLFE5jDJihJG7r1VXqDpEgRjWfxgukqdbojBnkv',
-  'n9LPSEVyNTApMuchFeTE1GD9qhsH9Umagnpu3NLC9zb358KNfiZV',
-  'n9JeA5Q54JhUQYHieb2j7ZTCg9RTBagDkam3UP2kWQxTXfxFkA8R',
-  'n9KAE7DUEB62ZQ3yWzygKWWqsj7ZqchW5rXg63puZA46k7WzGfQu',
-  'n9KeTQ3UyMtaJJD78vT7QiGRMv1GcWHEnhNbwKfdbW2HfRqtvUUt',
-  'n9KcrNBzrJUhdujcP8PK57WAmaZKcyXTNRaUFnqBmxwQj18eu3LU',
-  'n9LbM9S5jeGopF5J1vBDoGxzV6rNS8K1T5DzhNynkFLqR9N2fywX',
-  'n9LabXG8Vo7SfrUcZudeDCuFvWXW5TXbhUSYwgqmgYMFpUYuMN87',
-  'n9LkAv98aaGupypuLMH5ogjJ3rTEX178s9EnmRvmySL9k3cVuxTu',
-]
+// const UNL_MAINNET_SIGNING_KEYS = [
+//   'n9LvxiHe5wve7yLe1R1MagKboVs5WrWSJMEsXtJrfqtAwCswjKsd',
+//   'n9LY8MFrFKudddAjrs3BZ33SwqCypV4aYqP7sH3VKgaJSz3aJUwL',
+//   'n9MSTcx1fmfyKpaDTtpXucugcqM7yxpaggmwRxcyA3Nr4pE1pN3x',
+//   'n9Lqr4YZxk7WYRDTBZjjmoAraikLCjAgAswaPaZ6LaGW6Q4Y2eoo',
+//   'n94a894ARPe5RdcaRgdMBB9gG9ukS5mqsd7q2oNmC1NKqtZqEJnb',
+//   'n9M2UqXLK25h9YEQTskmCXbWPGhQmB1pFVqeXia38UwLaL838VbG',
+//   'n9MngHUqEeJXd8cgeEGsjvm9FqQRm4DwhCrTYCtrfnm5FWGFaR6m',
+//   'n9KqcU9Qc5k1w8y9mPrTZYy14te3qjo1b1ZiieqC2NggbNrAuLpu',
+//   'n9KQ2DVL7QhgovChk81W8idxm7wDsYzXutDMQzwUBKuxb9WTWBVG',
+//   'n9MhLZsK7Av6ny2gV5SAGLDsnFXE9p85aYR8diD8xvuvuucqad85',
+//   'n9KaxgJv69FucW5kkiaMhCqS6sAR1wUVxpZaZmLGVXxAcAse9YhR',
+//   'n9Jk38y9XCznqiLq53UjREJQbZWnz4Pvmph55GP5ofUPg3RG8eVr',
+//   'n94rGrfuwvYTS1HEeWboW2nGvAQgVDpiD8id2pLWSHFVggBRpQRE',
+//   'n9KkK4BiTTXjeF31KX4fTJkyVtH89ik4apq4wF7sQzqmbqBYcU3H',
+//   'n943ozDG74swHRmAjzY6A4KVFBhEirF4Sh1ACqvDePE3CZTgkMqn',
+//   'n9MZ7EVGKypqdyNguP31xSqhFqDBF4V5FESLMmLiGrBJ3khP2AzQ',
+//   'n9M5q9FaYgrBYSU5TuV3tATpy1DuAFKdtdjufDAzWUGXLKr3Trfq',
+//   'n94RkpbJYRYQrWUmL8PAVQ1XTVKtfyKkLm8C6SWzWPcKEbuNb6EV',
+//   'n9LFSE8fQ6Ljnc97ToHVtv1sYZ3GpzrXKpT94eFDk8jtdbfoBe7N',
+//   'n9MxDjQMr1DkzW3Z5X1guKJq4QNDEeYFPgqGgHfpzerGbHWGZvj4',
+//   'n9JvsY3yhCdsHe3JsVTwvCtvKnchg2eridHLWdBdWf8VkpZSqqS9',
+//   'n9JgxBLdCHii4xnRNMk7WJhD2qmfJGRvCxmmNNivBZXPRVpeZkH3',
+//   'n9LL7K3Ubnob3ExqmgpigL3AgzKKhTaVvnZiXqsvz85VjbY3KqFp',
+//   'n9KRttNtSJ2NHX7P2RkoYpqf2cxhDfkcGCFswarLqHdjjfjPJFJB',
+//   'n9Km4Xz53K9kcTaVn3mYAHsXqNuAo7A2HazSr34SFufvNwBxYGLn',
+//   'n9McDrz9tPujrQK3vMXJXzuEJv1B8UG3opfZEsFA8t6QxdZh1H6m',
+//   'n9Lo7qSD4qwjoMLFE5jDJihJG7r1VXqDpEgRjWfxgukqdbojBnkv',
+//   'n9LPSEVyNTApMuchFeTE1GD9qhsH9Umagnpu3NLC9zb358KNfiZV',
+//   'n9JeA5Q54JhUQYHieb2j7ZTCg9RTBagDkam3UP2kWQxTXfxFkA8R',
+//   'n9KAE7DUEB62ZQ3yWzygKWWqsj7ZqchW5rXg63puZA46k7WzGfQu',
+//   'n9KeTQ3UyMtaJJD78vT7QiGRMv1GcWHEnhNbwKfdbW2HfRqtvUUt',
+//   'n9KcrNBzrJUhdujcP8PK57WAmaZKcyXTNRaUFnqBmxwQj18eu3LU',
+//   'n9LbM9S5jeGopF5J1vBDoGxzV6rNS8K1T5DzhNynkFLqR9N2fywX',
+//   'n9LabXG8Vo7SfrUcZudeDCuFvWXW5TXbhUSYwgqmgYMFpUYuMN87',
+//   'n9LkAv98aaGupypuLMH5ogjJ3rTEX178s9EnmRvmySL9k3cVuxTu',
+// ]
 
 /**
  * Calculates the intersection of two sets.
@@ -345,28 +343,28 @@ class Agreement {
     incomplete: boolean,
   ): Promise<void> {
     const missed = setDifference(ledgers, validations)
-    if (
-      missed.size > 0 &&
-      UNL_MAINNET_SIGNING_KEYS.includes(validator_keys.signing_key)
-    ) {
-      log.info(
-        `Missed validations found for UNL Mainnet ${validator_keys.signing_key}. Saving into database...`,
-      )
-      for (const hash of missed) {
-        for (const [, innerMap] of this.validationsByPublicKey) {
-          if (innerMap.has(hash)) {
-            const missed_validation = {
-              signing_key: validator_keys.signing_key,
-              master_key: validator_keys.master_key,
-              ledger_index: innerMap.get(hash)?.index ?? '',
-              ledger_hash: hash,
-            }
-            await saveMissedValidation(missed_validation)
-            break
-          }
-        }
-      }
-    }
+    // if (
+    //   missed.size > 0 &&
+    //   UNL_MAINNET_SIGNING_KEYS.includes(validator_keys.signing_key)
+    // ) {
+    //   log.info(
+    //     `Missed validations found for UNL Mainnet ${validator_keys.signing_key}. Saving into database...`,
+    //   )
+    //   for (const hash of missed) {
+    //     for (const [, innerMap] of this.validationsByPublicKey) {
+    //       if (innerMap.has(hash)) {
+    //         const missed_validation = {
+    //           signing_key: validator_keys.signing_key,
+    //           master_key: validator_keys.master_key,
+    //           ledger_index: innerMap.get(hash)?.index ?? '',
+    //           ledger_hash: hash,
+    //         }
+    //         await saveMissedValidation(missed_validation)
+    //         break
+    //       }
+    //     }
+    //   }
+    // }
 
     const validated = setIntersection(ledgers, validations)
 
