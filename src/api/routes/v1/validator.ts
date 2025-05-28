@@ -274,6 +274,9 @@ export async function handleValidator(
     }
 
     if (validator === undefined) {
+      log.error(
+        `Error handleValidator: validator not found. public_key = ${public_key}`,
+      )
       res.status(404).send({ result: 'error', message: 'validator not found' })
       return
     }
@@ -284,6 +287,7 @@ export async function handleValidator(
 
     res.status(200).send({ ...validator, result: 'success' })
   } catch (err: unknown) {
+    log.error('Error handleValidator: ', err)
     res.status(500).send({
       result: 'error',
       message: `internal error: ${(err as Error).message}`,
@@ -337,6 +341,7 @@ export async function handleValidators(
 
     res.status(200).send(response)
   } catch (err: unknown) {
+    log.error('Error handleValidators: ', err)
     res.status(500).send({
       result: 'error',
       message: `internal error: ${(err as Error).message}`,

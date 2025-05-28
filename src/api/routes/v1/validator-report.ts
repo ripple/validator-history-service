@@ -2,6 +2,9 @@ import { Request, Response } from 'express'
 
 import { query } from '../../../shared/database'
 import { AgreementScore } from '../../../shared/types'
+import logger from '../../../shared/utils/logger'
+
+const log = logger({ name: 'api-validator-report' })
 
 interface ScoreResponse {
   validation_public_key: string
@@ -95,6 +98,7 @@ export default async function handleValidatorReport(
 
     res.status(200).send(response)
   } catch (err: unknown) {
+    log.error('Error handleValidatorReport: ', err)
     res.status(500).send({
       result: 'error',
       message: `internal error: ${(err as Error).message}`,

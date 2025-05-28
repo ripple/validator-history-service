@@ -2,6 +2,9 @@ import { Request, Response } from 'express'
 
 import { getNetworks } from '../../../shared/database'
 import { Network } from '../../../shared/database/networks'
+import logger from '../../../shared/utils/logger'
+
+const log = logger({ name: 'api-networks' })
 
 /**
  * Handle networks request.
@@ -23,6 +26,7 @@ export default async function handleNetworks(
     }
     res.status(200).send(response)
   } catch (err: unknown) {
+    log.error('Error handleNetworks: ', err)
     res.status(500).send({
       result: 'error',
       message: `internal error: ${(err as Error).message}`,

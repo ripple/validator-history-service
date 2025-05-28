@@ -127,6 +127,7 @@ export default async function handleDailyScores(
       reports: cache.scores,
     })
   } catch (err: unknown) {
+    log.error('Error handleDailyScores: ', err)
     res.status(500).send({
       result: 'error',
       message: `internal error: ${(err as Error).message}`,

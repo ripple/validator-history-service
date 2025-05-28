@@ -178,6 +178,7 @@ export async function handleNode(req: Request, res: Response): Promise<void> {
     }
 
     if (node === undefined) {
+      log.error(`Error handleNode: node not found. public_key = ${public_key}`)
       res.status(404).send({ result: 'error', message: 'node not found' })
     }
 
@@ -186,6 +187,7 @@ export async function handleNode(req: Request, res: Response): Promise<void> {
       result: 'success',
     })
   } catch (err: unknown) {
+    log.error('Error handleNode: ', err)
     res.status(500).send({
       result: 'error',
       message: `internal error: ${(err as Error).message}`,
@@ -218,6 +220,7 @@ export async function handleNodes(req: Request, res: Response): Promise<void> {
       nodes,
     })
   } catch (err: unknown) {
+    log.error('Error handleNodes: ', err)
     res.status(500).send({
       result: 'error',
       message: `internal error: ${(err as Error).message}`,
@@ -248,6 +251,7 @@ export async function handleTopology(
       links: [],
     })
   } catch (err: unknown) {
+    log.error('Error handleTopology: ', err)
     res.status(500).send({
       result: 'error',
       message: `internal error: ${(err as Error).message}`,

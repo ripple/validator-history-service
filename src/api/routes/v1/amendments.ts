@@ -345,6 +345,7 @@ export async function handleAmendmentsInfo(
     }
     res.status(200).send(response)
   } catch (err: unknown) {
+    log.error('Error handleAmendmentsInfo: ', err)
     res.status(500).send({
       result: 'error',
       message: `internal error: ${(err as Error).message}`,
@@ -371,6 +372,9 @@ export async function handleAmendmentInfo(
       (amend) => amend.name === param || amend.id === param,
     )
     if (amendments.length === 0) {
+      log.error(
+        `Error handleAmendmentInfo: amendment not found. amendment id/name = ${param}`,
+      )
       res.status(404).send({
         result: 'error',
         message: "incorrect amendment's id/name",
@@ -378,6 +382,9 @@ export async function handleAmendmentInfo(
       return
     }
     if (amendments.length > 1) {
+      log.error(
+        `Error handleAmendmentInfo: there's a duplicate amendment's id/name on the server. amendment id/name = ${param}, amendments length = ${amendments.length}`,
+      )
       res.status(404).send({
         result: 'error',
         message:
@@ -392,6 +399,7 @@ export async function handleAmendmentInfo(
     }
     res.status(200).send(response)
   } catch (err: unknown) {
+    log.error('Error handleAmendmentInfo: ', err)
     res.status(500).send({
       result: 'error',
       message: `internal error: ${(err as Error).message}`,
@@ -425,9 +433,13 @@ export async function handleAmendmentsVote(
       }
       res.status(200).send(response)
     } else {
+      log.error(
+        `Error handleAmendmentsVote: network not found. network = ${network}`,
+      )
       res.status(404).send({ result: 'error', message: 'network not found' })
     }
   } catch (err: unknown) {
+    log.error('Error handleAmendmentsVote: ', err)
     res.status(500).send({
       result: 'error',
       message: `internal error: ${(err as Error).message}`,
@@ -454,6 +466,10 @@ export async function handleAmendmentVote(
       | Array<EnabledAmendmentInfo | AmendmentInVoting>
       | undefined = cacheVote.networks.get(network)
     if (networkVotes === undefined) {
+      log.error(
+        'Error handleAmendmentVote: network not found. network = ',
+        network,
+      )
       res.status(404).send({ result: 'error', message: 'network not found' })
     }
 
@@ -467,12 +483,16 @@ export async function handleAmendmentVote(
         amendment: amendment[0],
       })
     } else {
+      log.error(
+        `Error handleAmendmentVote: amendment not found. network = ${network}, identifier = ${identifier}`,
+      )
       res.status(404).send({
         result: 'error',
         message: 'amendment with id/name not found',
       })
     }
   } catch (err: unknown) {
+    log.error('Error handleAmendmentVote: ', err)
     res.status(500).send({
       result: 'error',
       message: `internal error: ${(err as Error).message}`,

@@ -1,6 +1,9 @@
 import { Request, Response } from 'express'
 
 import { query } from '../../../shared/database'
+import logger from '../../../shared/utils/logger'
+
+const log = logger({ name: 'api-validator-manifest' })
 
 interface ManifestResponse {
   master_key: string
@@ -46,6 +49,7 @@ export default async function handleValidatorManifest(
 
     res.status(200).send(response)
   } catch (err: unknown) {
+    log.error('Error handleValidatorManifest: ', err)
     res.status(500).send({
       result: 'error',
       message: `internal error: ${(err as Error).message}`,
