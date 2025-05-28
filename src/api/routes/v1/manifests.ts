@@ -45,7 +45,10 @@ export default async function handleValidatorManifest(
     }
 
     res.send(response)
-  } catch {
-    res.send({ result: 'error', message: 'internal error' })
+  } catch (err: unknown) {
+    res.send({
+      result: 'error',
+      message: `internal error: ${(err as Error).message}`,
+    })
   }
 }

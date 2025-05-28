@@ -17,8 +17,11 @@ export default async function handleHealth(
       .count('ws_url')
       .where('connected', '=', true)) as Array<{ [key: string]: number }>
     res.status(200).send(count[0])
-  } catch {
-    res.send({ result: 'error', message: 'internal error' })
+  } catch (err: unknown) {
+    res.send({
+      result: 'error',
+      message: `internal error: ${(err as Error).message}`,
+    })
   }
 }
 
@@ -46,7 +49,10 @@ export async function handleMonitoringMetrics(
     res.set('Content-Type', 'text/plain')
     res.status(200)
     res.send(metrics)
-  } catch {
-    res.send({ result: 'error', message: 'internal error' })
+  } catch (err: unknown) {
+    res.send({
+      result: 'error',
+      message: `internal error: ${(err as Error).message}`,
+    })
   }
 }

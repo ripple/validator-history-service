@@ -22,7 +22,10 @@ export default async function handleNetworks(
       networks,
     }
     res.send(response)
-  } catch (err) {
-    res.status(500).send({ result: 'error', message: err })
+  } catch (err: unknown) {
+    res.status(500).send({
+      result: 'error',
+      message: `internal error: ${(err as Error).message}`,
+    })
   }
 }

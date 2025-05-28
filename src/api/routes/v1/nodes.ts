@@ -185,10 +185,11 @@ export async function handleNode(req: Request, res: Response): Promise<void> {
       ...node,
       result: 'success',
     })
-    // eslint-disable-next-line @typescript-eslint/no-explicit-any -- TODO: clean up
-  } catch (err: any) {
-    log.error(err)
-    res.send({ result: 'error', message: 'internal error' })
+  } catch (err: unknown) {
+    res.send({
+      result: 'error',
+      message: `internal error: ${(err as Error).message}`,
+    })
   }
 }
 
@@ -216,8 +217,11 @@ export async function handleNodes(req: Request, res: Response): Promise<void> {
       count: nodes.length,
       nodes,
     })
-  } catch {
-    res.send({ result: 'error', message: 'internal error' })
+  } catch (err: unknown) {
+    res.send({
+      result: 'error',
+      message: `internal error: ${(err as Error).message}`,
+    })
   }
 }
 
@@ -243,7 +247,10 @@ export async function handleTopology(
       nodes: cache.nodes,
       links: [],
     })
-  } catch {
-    res.send({ result: 'error', message: 'internal error' })
+  } catch (err: unknown) {
+    res.send({
+      result: 'error',
+      message: `internal error: ${(err as Error).message}`,
+    })
   }
 }

@@ -387,10 +387,11 @@ export async function handleAmendmentInfo(
       amendment: amendments[0],
     }
     res.send(response)
-    // eslint-disable-next-line @typescript-eslint/no-explicit-any -- TODO: clean up
-  } catch (err: any) {
-    res.send({ result: 'error', message: 'internal error' })
-    log.error(err)
+  } catch (err: unknown) {
+    res.send({
+      result: 'error',
+      message: `internal error: ${(err as Error).message}`,
+    })
   }
 }
 
@@ -422,8 +423,11 @@ export async function handleAmendmentsVote(
     } else {
       res.send({ result: 'error', message: 'network not found' })
     }
-  } catch {
-    res.send({ result: 'error', message: 'internal error' })
+  } catch (err: unknown) {
+    res.send({
+      result: 'error',
+      message: `internal error: ${(err as Error).message}`,
+    })
   }
 }
 
@@ -464,7 +468,10 @@ export async function handleAmendmentVote(
         message: 'amendment with id/name not found',
       })
     }
-  } catch {
-    res.send({ result: 'error', message: 'internal error' })
+  } catch (err: unknown) {
+    res.send({
+      result: 'error',
+      message: `internal error: ${(err as Error).message}`,
+    })
   }
 }
