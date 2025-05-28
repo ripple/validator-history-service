@@ -240,7 +240,7 @@ export default async function getNetworkOrAdd(
       const unlNetwork = await getNetworkFromUNL(node_unl)
       // eslint-disable-next-line max-depth -- Necessary here
       if (unlNetwork != null) {
-        return res.send({
+        return res.status(200).send({
           result: 'success',
           network: unlNetwork,
         })
@@ -251,7 +251,7 @@ export default async function getNetworkOrAdd(
     const { public_key } = crawl.this_node
     const publicKeyNetwork = await getNetworkFromPublicKey(public_key)
     if (publicKeyNetwork != null) {
-      return res.send({
+      return res.status(200).send({
         result: 'success',
         network: publicKeyNetwork,
       })
@@ -259,16 +259,15 @@ export default async function getNetworkOrAdd(
     // add node to networks list
     const newNetwork = await addNode(entryUrl, node_unl, port)
 
-    return res.send({
+    return res.status(200).send({
       result: 'success',
       network: newNetwork,
     })
-    // eslint-disable-next-line @typescript-eslint/no-explicit-any -- TODO: clean up
-  } catch (err: any) {
-    // eslint-disable-next-line @typescript-eslint/no-unsafe-member-access -- TODO: clean up
-    log.error(err.stack)
-    /* eslint-disable-next-line @typescript-eslint/no-unsafe-member-access, @typescript-eslint/no-unsafe-assignment
-    -- TODO: clean up */
-    return res.send({ result: 'error', message: err.message })
+  } catch (err: unknown) {
+    log.error((err as Error).message)
+    return res.status(500).send({
+      result: 'error',
+      message: (err as Error).message,
+    })
   }
 }

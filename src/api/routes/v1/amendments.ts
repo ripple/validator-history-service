@@ -343,11 +343,12 @@ export async function handleAmendmentsInfo(
       count: amendments.length,
       amendments,
     }
-    res.send(response)
-    // eslint-disable-next-line @typescript-eslint/no-explicit-any -- TODO: clean up
-  } catch (err: any) {
-    res.send({ result: 'error', message: 'internal error' })
-    log.error(err)
+    res.status(200).send(response)
+  } catch (err: unknown) {
+    res.status(500).send({
+      result: 'error',
+      message: `internal error: ${(err as Error).message}`,
+    })
   }
 }
 
@@ -370,11 +371,14 @@ export async function handleAmendmentInfo(
       (amend) => amend.name === param || amend.id === param,
     )
     if (amendments.length === 0) {
-      res.send({ result: 'error', message: "incorrect amendment's id/name" })
+      res.status(404).send({
+        result: 'error',
+        message: "incorrect amendment's id/name",
+      })
       return
     }
     if (amendments.length > 1) {
-      res.send({
+      res.status(404).send({
         result: 'error',
         message:
           "there's a duplicate amendment's id/name on the server, please try again later",
@@ -386,9 +390,9 @@ export async function handleAmendmentInfo(
       result: 'success',
       amendment: amendments[0],
     }
-    res.send(response)
+    res.status(200).send(response)
   } catch (err: unknown) {
-    res.send({
+    res.status(500).send({
       result: 'error',
       message: `internal error: ${(err as Error).message}`,
     })
@@ -419,12 +423,12 @@ export async function handleAmendmentsVote(
         count: networkVotes.length,
         amendments: networkVotes,
       }
-      res.send(response)
+      res.status(200).send(response)
     } else {
-      res.send({ result: 'error', message: 'network not found' })
+      res.status(404).send({ result: 'error', message: 'network not found' })
     }
   } catch (err: unknown) {
-    res.send({
+    res.status(500).send({
       result: 'error',
       message: `internal error: ${(err as Error).message}`,
     })
@@ -450,7 +454,7 @@ export async function handleAmendmentVote(
       | Array<EnabledAmendmentInfo | AmendmentInVoting>
       | undefined = cacheVote.networks.get(network)
     if (networkVotes === undefined) {
-      res.send({ result: 'error', message: 'network not found' })
+      res.status(404).send({ result: 'error', message: 'network not found' })
     }
 
     const amendment = (
@@ -458,7 +462,7 @@ export async function handleAmendmentVote(
     ).filter((amend) => amend.id === identifier || amend.name === identifier)
 
     if (amendment.length > 0) {
-      res.send({
+      res.status(200).send({
         result: 'success',
         amendment: amendment[0],
       })
@@ -469,7 +473,7 @@ export async function handleAmendmentVote(
       })
     }
   } catch (err: unknown) {
-    res.send({
+    res.status(500).send({
       result: 'error',
       message: `internal error: ${(err as Error).message}`,
     })

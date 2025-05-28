@@ -21,7 +21,7 @@ export default async function handleNetworks(
       count: networks.length,
       networks,
     }
-    res.send(response)
+    res.status(200).send(response)
   } catch (err: unknown) {
     res.status(500).send({
       result: 'error',

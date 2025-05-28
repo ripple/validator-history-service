@@ -18,6 +18,7 @@ describe('networks endpoint', () => {
     const req = {} as Request
     const res = {
       send: jest.fn(),
+      status: jest.fn().mockReturnThis(),
     } as unknown as Response
 
     await handleNetworks(req, res)

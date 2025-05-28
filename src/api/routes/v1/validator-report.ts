@@ -93,9 +93,9 @@ export default async function handleValidatorReport(
       reports: scores,
     }
 
-    res.send(response)
+    res.status(200).send(response)
   } catch (err: unknown) {
-    res.send({
+    res.status(500).send({
       result: 'error',
       message: `internal error: ${(err as Error).message}`,
     })

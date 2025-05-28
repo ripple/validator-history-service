@@ -274,7 +274,7 @@ export async function handleValidator(
     }
 
     if (validator === undefined) {
-      res.send({ result: 'error', message: 'validator not found' })
+      res.status(404).send({ result: 'error', message: 'validator not found' })
       return
     }
 
@@ -282,9 +282,9 @@ export async function handleValidator(
       validator.amendments = await formatAmendments(validator.amendments)
     }
 
-    res.send({ ...validator, result: 'success' })
+    res.status(200).send({ ...validator, result: 'success' })
   } catch (err: unknown) {
-    res.send({
+    res.status(500).send({
       result: 'error',
       message: `internal error: ${(err as Error).message}`,
     })
@@ -335,9 +335,9 @@ export async function handleValidators(
       validators,
     }
 
-    res.send(response)
+    res.status(200).send(response)
   } catch (err: unknown) {
-    res.send({
+    res.status(500).send({
       result: 'error',
       message: `internal error: ${(err as Error).message}`,
     })

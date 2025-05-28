@@ -121,13 +121,13 @@ export default async function handleDailyScores(
       await cacheScores()
     }
 
-    res.send({
+    res.status(200).send({
       result: 'success',
       count: cache.scores.length,
       reports: cache.scores,
     })
   } catch (err: unknown) {
-    res.send({
+    res.status(500).send({
       result: 'error',
       message: `internal error: ${(err as Error).message}`,
     })

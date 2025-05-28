@@ -178,15 +178,15 @@ export async function handleNode(req: Request, res: Response): Promise<void> {
     }
 
     if (node === undefined) {
-      res.send({ result: 'error', message: 'node not found' })
+      res.status(404).send({ result: 'error', message: 'node not found' })
     }
 
-    res.send({
+    res.status(200).send({
       ...node,
       result: 'success',
     })
   } catch (err: unknown) {
-    res.send({
+    res.status(500).send({
       result: 'error',
       message: `internal error: ${(err as Error).message}`,
     })
@@ -212,13 +212,13 @@ export async function handleNodes(req: Request, res: Response): Promise<void> {
         ? cache.nodes
         : cache.nodes.filter((node) => node.networks === network)
 
-    res.send({
+    res.status(200).send({
       result: 'success',
       count: nodes.length,
       nodes,
     })
   } catch (err: unknown) {
-    res.send({
+    res.status(500).send({
       result: 'error',
       message: `internal error: ${(err as Error).message}`,
     })
@@ -240,7 +240,7 @@ export async function handleTopology(
       await cacheNodes()
     }
 
-    res.send({
+    res.status(200).send({
       result: 'success',
       node_count: cache.nodes.length,
       link_count: 0,
@@ -248,7 +248,7 @@ export async function handleTopology(
       links: [],
     })
   } catch (err: unknown) {
-    res.send({
+    res.status(500).send({
       result: 'error',
       message: `internal error: ${(err as Error).message}`,
     })
