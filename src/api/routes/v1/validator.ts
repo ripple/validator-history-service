@@ -274,7 +274,10 @@ export async function handleValidator(
     }
 
     if (validator === undefined) {
-      res.send({ result: 'error', message: 'validator not found' })
+      log.error(
+        `Error handleValidator: validator not found. public_key = ${public_key}`,
+      )
+      res.status(404).send({ result: 'error', message: 'validator not found' })
       return
     }
 
@@ -282,9 +285,13 @@ export async function handleValidator(
       validator.amendments = await formatAmendments(validator.amendments)
     }
 
-    res.send({ ...validator, result: 'success' })
-  } catch {
-    res.send({ result: 'error', message: 'internal error' })
+    res.status(200).send({ ...validator, result: 'success' })
+  } catch (err: unknown) {
+    log.error('Error handleValidator: ', err)
+    res.status(500).send({
+      result: 'error',
+      message: `internal error: ${(err as Error).message}`,
+    })
   }
 }
 
@@ -298,38 +305,46 @@ export async function handleValidators(
   req: Request,
   res: Response,
 ): Promise<void> {
-  if (
-    Date.now() - cache.time > CACHE_INTERVAL_MILLIS ||
-    cache.validators.length === 0
-  ) {
-    await cacheValidators()
+  try {
+    if (
+      Date.now() - cache.time > CACHE_INTERVAL_MILLIS ||
+      cache.validators.length === 0
+    ) {
+      await cacheValidators()
+    }
+
+    const { param } = req.params
+    const paramType = await getParamType(param)
+
+    let validators
+    if (paramType === 'networks') {
+      validators = cache.validators.filter(
+        (validator) => validator.networks === param,
+      )
+    } else if (paramType === 'unl') {
+      const chains = await getChains(param)
+      validators =
+        chains == null
+          ? cache.validators
+          : cache.validators.filter((validator) =>
+              chains.includes(validator.chain),
+            )
+    } else {
+      validators = cache.validators
+    }
+
+    const response: ValidatorsResponse = {
+      result: 'success',
+      count: validators.length,
+      validators,
+    }
+
+    res.status(200).send(response)
+  } catch (err: unknown) {
+    log.error('Error handleValidators: ', err)
+    res.status(500).send({
+      result: 'error',
+      message: `internal error: ${(err as Error).message}`,
+    })
   }
-
-  const { param } = req.params
-  const paramType = await getParamType(param)
-
-  let validators
-  if (paramType === 'networks') {
-    validators = cache.validators.filter(
-      (validator) => validator.networks === param,
-    )
-  } else if (paramType === 'unl') {
-    const chains = await getChains(param)
-    validators =
-      chains == null
-        ? cache.validators
-        : cache.validators.filter((validator) =>
-            chains.includes(validator.chain),
-          )
-  } else {
-    validators = cache.validators
-  }
-
-  const response: ValidatorsResponse = {
-    result: 'success',
-    count: validators.length,
-    validators,
-  }
-
-  res.send(response)
 }

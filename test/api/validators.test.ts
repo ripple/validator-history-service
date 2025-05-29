@@ -29,6 +29,7 @@ describe('tests for validators endpoint', () => {
     } as Request
     const res = {
       send: jest.fn(),
+      status: jest.fn().mockReturnThis(),
     } as unknown as Response
 
     await handleValidators(req, res)

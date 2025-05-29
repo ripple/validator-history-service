@@ -178,17 +178,20 @@ export async function handleNode(req: Request, res: Response): Promise<void> {
     }
 
     if (node === undefined) {
-      res.send({ result: 'error', message: 'node not found' })
+      log.error(`Error handleNode: node not found. public_key = ${public_key}`)
+      res.status(404).send({ result: 'error', message: 'node not found' })
     }
 
-    res.send({
+    res.status(200).send({
       ...node,
       result: 'success',
     })
-    // eslint-disable-next-line @typescript-eslint/no-explicit-any -- TODO: clean up
-  } catch (err: any) {
-    log.error(err)
-    res.send({ result: 'error', message: 'internal error' })
+  } catch (err: unknown) {
+    log.error('Error handleNode: ', err)
+    res.status(500).send({
+      result: 'error',
+      message: `internal error: ${(err as Error).message}`,
+    })
   }
 }
 
@@ -211,13 +214,17 @@ export async function handleNodes(req: Request, res: Response): Promise<void> {
         ? cache.nodes
         : cache.nodes.filter((node) => node.networks === network)
 
-    res.send({
+    res.status(200).send({
       result: 'success',
       count: nodes.length,
       nodes,
     })
-  } catch {
-    res.send({ result: 'error', message: 'internal error' })
+  } catch (err: unknown) {
+    log.error('Error handleNodes: ', err)
+    res.status(500).send({
+      result: 'error',
+      message: `internal error: ${(err as Error).message}`,
+    })
   }
 }
 
@@ -236,14 +243,18 @@ export async function handleTopology(
       await cacheNodes()
     }
 
-    res.send({
+    res.status(200).send({
       result: 'success',
       node_count: cache.nodes.length,
       link_count: 0,
       nodes: cache.nodes,
       links: [],
     })
-  } catch {
-    res.send({ result: 'error', message: 'internal error' })
+  } catch (err: unknown) {
+    log.error('Error handleTopology: ', err)
+    res.status(500).send({
+      result: 'error',
+      message: `internal error: ${(err as Error).message}`,
+    })
   }
 }

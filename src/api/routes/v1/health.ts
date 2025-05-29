@@ -1,6 +1,9 @@
 import { Request, Response } from 'express'
 
 import { query } from '../../../shared/database'
+import logger from '../../../shared/utils/logger'
+
+const log = logger({ name: 'api-health' })
 
 /**
  * Handles health check requests.
@@ -17,8 +20,12 @@ export default async function handleHealth(
       .count('ws_url')
       .where('connected', '=', true)) as Array<{ [key: string]: number }>
     res.status(200).send(count[0])
-  } catch {
-    res.send({ result: 'error', message: 'internal error' })
+  } catch (err: unknown) {
+    log.error('Error handleHealth: ', err)
+    res.status(500).send({
+      result: 'error',
+      message: `internal error: ${(err as Error).message}`,
+    })
   }
 }
 
@@ -46,7 +53,11 @@ export async function handleMonitoringMetrics(
     res.set('Content-Type', 'text/plain')
     res.status(200)
     res.send(metrics)
-  } catch {
-    res.send({ result: 'error', message: 'internal error' })
+  } catch (err: unknown) {
+    log.error('Error handleMonitoringMetrics: ', err)
+    res.status(500).send({
+      result: 'error',
+      message: `internal error: ${(err as Error).message}`,
+    })
   }
 }
