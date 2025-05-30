@@ -50,7 +50,9 @@ export async function handleMonitoringMetrics(
       result.map((row) => [row.network, Number(row.count)]),
     )
 
-    const allNetworks = (await query('networks').select('id')) as Array<{
+    const allNetworks = (await query('networks')
+      .select('id')
+      .orderBy('id')) as Array<{
       id: string
     }>
 
