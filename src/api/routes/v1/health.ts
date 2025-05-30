@@ -46,8 +46,21 @@ export async function handleMonitoringMetrics(
       .where('connected', '=', true)
       .groupBy('network')) as Array<{ network: string; count: number }>
 
-    const metrics = result
-      .map((row) => `connected_nodes{network="${row.network}"} ${row.count}`)
+    const networkCountMap = new Map<string, number>(
+      result.map((row) => [row.network, Number(row.count)]),
+    )
+
+    const allNetworks = (await query('networks').select('id')) as Array<{
+      id: string
+    }>
+
+    const metrics = allNetworks
+      .map(
+        (row) =>
+          `connected_nodes{network="${row.id}"} ${
+            networkCountMap.get(row.id) ?? 0
+          }`,
+      )
       .join('\n')
 
     res.set('Content-Type', 'text/plain')
