@@ -47,6 +47,15 @@ describe('connections health', () => {
 
     await flushPromises()
 
-    expect(resp.send).toHaveBeenCalled()
+    const expectedLines = [
+      'connected_nodes{network="amm-dev"} 0',
+      'connected_nodes{network="dev"} 0',
+      'connected_nodes{network="main"} 2',
+      'connected_nodes{network="test"} 0',
+      'connected_nodes{network="xahau-main"} 1',
+      'connected_nodes{network="xahau-test"} 0',
+    ]
+
+    expect(resp.send).toHaveBeenCalledWith(expectedLines.join('\n'))
   })
 })
