@@ -37,7 +37,7 @@
     "@types/node": "^20.17.30",
     "@types/ws": "^8.5.5",
     "@typescript-eslint/eslint-plugin": "^5.62.0",
-    "@typescript-eslint/parser": "^5.62.0",
+    "@typescript-eslint/parser": "^8.34.0",
     "@xrplf/eslint-config": "^1.10.1",
     "eslint": "^8.57.1",
     "eslint-plugin-array-func": "^3.1.7",
