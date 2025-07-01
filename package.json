@@ -61,7 +61,7 @@
     "@types/bunyan": "^1.8.7",
     "axios": "^0.21.1",
     "bunyan": "^1.8.15",
-    "dotenv": "^16.3.1",
+    "dotenv": "^17.0.1",
     "express": "4.21.2",
     "knex": "2.5.1",
     "moment": "2.30.1",
