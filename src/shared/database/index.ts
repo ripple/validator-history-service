@@ -90,7 +90,6 @@ export async function getNodes(sinceStartDate: Date): Promise<WsNode[]> {
  *
  * @param manifest -- Incoming manifest.
  * @returns The original manifest with the revoked column updated.
- *
  */
 async function handleRevocations(
   manifest: DatabaseManifest,

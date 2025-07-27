@@ -38,7 +38,7 @@ module.exports = {
 
   plugins: ['jest', 'disable'],
   processor: 'disable/disable',
-  extends: ['@xrplf/eslint-config', 'plugin:jest/recommended'],
+  extends: ['@patelraj96/eslint-config', 'plugin:jest/recommended'],
   rules: {
     '@typescript-eslint/no-magic-numbers': 'off',
     '@typescript-eslint/naming-convention': 'off',
