@@ -29,7 +29,7 @@
   },
   "homepage": "https://github.com/ripple/validator-history-service#readme",
   "devDependencies": {
-    "@patelraj96/eslint-config": "^1.10.5",
+    "@patelraj96/eslint-config": "^1.10.6",
     "@types/axios": "^0.14.0",
     "@types/express": "4.17.21",
     "@types/jest": "^26.0.19",
@@ -44,7 +44,7 @@
     "eslint-plugin-eslint-comments": "^3.2.0",
     "eslint-plugin-import": "^2.22.1",
     "eslint-plugin-jest": "^27.2.3",
-    "eslint-plugin-jsdoc": "^47.0.0",
+    "eslint-plugin-jsdoc": "^52.0.0",
     "eslint-plugin-node": "^11.1.0",
     "eslint-plugin-prettier": "^4.2.1",
     "eslint-plugin-tsdoc": "^0.2.10",
