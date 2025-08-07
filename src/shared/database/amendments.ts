@@ -6,7 +6,6 @@ import {
 } from 'xrpl/dist/npm/models/methods/feature'
 
 import { AmendmentInfo } from '../types'
-import config from '../utils/config'
 import logger from '../utils/logger'
 
 import { query } from './utils'
@@ -152,7 +151,9 @@ async function fetchVotingAmendments(): Promise<void> {
  */
 async function fetchMinRippledVersions(): Promise<void> {
   try {
-    const response = await axios.get(`${config.xrpscan_api}/amendments`)
+    const response = await axios.get(
+      `https://api.xrpscan.com/api/v1/amendments`,
+    )
     const amendments = response.data as Array<{
       name: string
       introduced?: string

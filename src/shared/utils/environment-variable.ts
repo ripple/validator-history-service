@@ -16,7 +16,6 @@ export enum EnvironmentVariable {
   addr = 'ADDR',
   mainnet_p2p_server = 'MAINNET_P2P_ENTRY',
   mainnet_unl = 'MAINNET_UNL',
-  xrpscan_api = 'XRPSCAN_API',
 }
 
 /**
@@ -47,7 +46,6 @@ const requiredEnvironmentVariables = new Set([
   EnvironmentVariable.port,
   EnvironmentVariable.addr,
   EnvironmentVariable.mainnet_p2p_server,
-  EnvironmentVariable.xrpscan_api,
 ])
 
 /**
