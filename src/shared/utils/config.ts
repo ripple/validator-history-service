@@ -44,6 +44,10 @@ const port = getEnvironmentVariable(EnvironmentVariable.port)
 
 const addr = getEnvironmentVariable(EnvironmentVariable.addr)
 
+const xrpscan_api = getRequiredEnvironmentVariable(
+  EnvironmentVariable.xrpscan_api,
+)
+
 const config = {
   nodeEnv,
   db,
@@ -53,6 +57,7 @@ const config = {
   addr,
   mainnet_p2p_server,
   mainnet_unl,
+  xrpscan_api,
 }
 
 export default config
