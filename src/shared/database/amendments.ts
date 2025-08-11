@@ -35,9 +35,6 @@ const RETIRED_AMENDMENTS = [
   'fix1528',
 ]
 
-const AMENDMENT_VERSION_REGEX =
-  /\| \[(?<amendmentName>[a-zA-Z0-9_]+)\][^\n]+\| (?<version>v[0-9]*\.[0-9]*\.[0-9]*|TBD) *\|/u
-
 export const NETWORKS_HOSTS = new Map([
   ['main', 'ws://s2.ripple.com:51233'],
   ['test', 'wss://s.altnet.rippletest.net:51233'],
@@ -148,24 +145,23 @@ async function fetchVotingAmendments(): Promise<void> {
 }
 
 /**
- * Fetches the versions when amendments are first enabled.
+ * Fetches the versions when amendments were first introduced using XRPScan API.
  *
  * @returns Void.
  */
 async function fetchMinRippledVersions(): Promise<void> {
   try {
     const response = await axios.get(
-      'https://raw.githubusercontent.com/XRPLF/xrpl-dev-portal/master/resources/known-amendments.md',
+      `https://api.xrpscan.com/api/v1/amendments`,
     )
-    const text = response.data as string
+    const amendments = response.data as Array<{
+      name: string
+      introduced?: string
+    }>
 
-    text.split('\n').forEach((line: string) => {
-      const found = AMENDMENT_VERSION_REGEX.exec(line)
-      if (found) {
-        rippledVersions.set(
-          found[1],
-          found[2].startsWith('v') ? found[2].slice(1) : found[2],
-        )
+    amendments.forEach((amendment) => {
+      if (amendment.name && amendment.introduced) {
+        rippledVersions.set(amendment.name, amendment.introduced)
       }
     })
   } catch (err) {
