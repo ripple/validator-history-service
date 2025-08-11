@@ -173,9 +173,7 @@ export async function handleNode(req: Request, res: Response): Promise<void> {
       (resp: NodeResponse) => resp.node_public_key === public_key,
     )
 
-    if (node === undefined) {
-      node = await findInDatabase(public_key)
-    }
+    node ??= await findInDatabase(public_key)
 
     if (node === undefined) {
       log.error(`Error handleNode: node not found. public_key = ${public_key}`)

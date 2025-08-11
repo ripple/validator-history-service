@@ -39,6 +39,7 @@ function getClient(): WebServiceClient | undefined {
  *
  * @param nodes - Nodes to locate.
  */
+// eslint-disable-next-line complexity -- Disabled for Eslint v9 migration, address this later.
 async function updateLocation(nodes: Node[]): Promise<void> {
   const geoClient = getClient()
 
