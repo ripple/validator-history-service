@@ -187,7 +187,7 @@ async function processEnableAmendmentTransaction(
       api_version: RIPPLED_API_V1,
     })
 
-    void handleWsMessageLedgerEnableAmendments(ledgerResponse, network)
+    await handleWsMessageLedgerEnableAmendments(ledgerResponse, network)
     await client.disconnect()
   } catch (err) {
     log.error(
