@@ -36,7 +36,7 @@ const RETIRED_AMENDMENTS = [
 ]
 
 export const NETWORKS_HOSTS = new Map([
-  ['main', 'ws://s2.ripple.com:51233'],
+  ['main', 'wss://xrplcluster.com'],
   ['test', 'wss://s.altnet.rippletest.net:51233'],
   ['dev', 'wss://s.devnet.rippletest.net:51233'],
 ])
