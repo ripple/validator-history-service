@@ -1,2 +1,2 @@
-#!/usr/bin/env node
-require('../build/index');
+#!/usr/bin/env -S node --trace-uncaught
+require('../build/index')
