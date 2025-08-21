@@ -26,6 +26,7 @@ export default async function setupTables(): Promise<void> {
   await setupBallotTable()
   await addAmendmentsDataFromJSON()
   await setupConnectionHealthTable()
+  await setupValidatedLedgersTable()
 }
 
 async function setupCrawlsTable(): Promise<void> {
@@ -275,6 +276,25 @@ async function setupConnectionHealthTable(): Promise<void> {
       table.string('network')
       table.boolean('connected')
       table.datetime('status_update_time')
+    })
+  }
+}
+
+async function setupValidatedLedgersTable(): Promise<void> {
+  const hasTable = await db().schema.hasTable('validated_ledgers')
+  if (!hasTable) {
+    await db().schema.createTable('validated_ledgers', (table) => {
+      table.string('network').notNullable()
+      table.string('ledger_hash').notNullable()
+      table.bigInteger('ledger_index').notNullable()
+      table.dateTime('ledger_time').notNullable()
+      // table.bigInteger('fee_base').notNullable()
+      // table.bigInteger('fee_ref').notNullable()
+      // table.bigInteger('reserve_base').notNullable()
+      // table.bigInteger('reserve_inc').notNullable()
+      table.integer('txn_count')
+      table.dateTime('received_at').defaultTo(db().fn.now())
+      table.primary(['network', 'ledger_hash'])
     })
   }
 }

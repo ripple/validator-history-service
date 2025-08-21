@@ -30,6 +30,7 @@ import logger from '../shared/utils/logger'
 
 import agreement from './agreement'
 import { handleManifest } from './manifests'
+import { insertValidatedLedger } from '../shared/database/validatedLedgers'
 
 const LEDGER_HASHES_SIZE = 10
 const GOT_MAJORITY_FLAG = 65536
@@ -110,6 +111,9 @@ export async function handleWsMessageSubscribeTypes(
   } else if (data.type.includes('ledger')) {
     const current_ledger = data as StreamLedger
     ledger_hashes.push(current_ledger.ledger_hash)
+    if (networks === 'main') {
+      await insertValidatedLedger(networks, current_ledger)
+    }
     if (networks) {
       const fee: FeeVote = {
         fee_base: current_ledger.fee_base,

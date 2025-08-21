@@ -200,3 +200,16 @@ This table keeps track of the WebSocket connection status for all networks.
 
 *Partial validations are not meant to vote for any particular ledger. A partial validation indicates that the validator is still online but not keeping up with consensus.
 **A chain is a group of validators validating the same set of ledgers. `main`, `test`, and `dev` represent the validated versions of mainnet, testnet, and devnet respectively. Validators on a fork/validating an alternate version of the ledger will have a different value, usually of the form `chain.[num]`.
+
+### `validated_ledgers`
+
+This table keeps track of all validated ledgers received from streaming subscriptions across different networks.
+
+| Key             | Definition                                                              |
+|-----------------|-------------------------------------------------------------------------|
+| `network`       | The network on which the ledger was validated.                          |
+| `ledger_hash`   | The hash of the validated ledger.                                       |
+| `ledger_index`  | The index of the validated ledger.                                      |
+| `ledger_time`   | The close time of the ledger (converted to datetime).                    |
+| `txn_count`     | The number of transactions in this ledger.                              |
+| `received_at`   | The time when this ledgerClosed message was received by the VHS.                    |
