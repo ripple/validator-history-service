@@ -19,7 +19,8 @@ interface Ledger {
 
 interface StreamLedger {
   fee_base: number
-  fee_ref: number
+  // Note: This field needs to be deprecated in the future releases of VHS.
+  fee_ref?: number
   ledger_hash: string
   ledger_index: number
   ledger_time: number
@@ -27,6 +28,8 @@ interface StreamLedger {
   reserve_inc: number
   txn_id: number
   type: string
+  // Note: The VHS code base needs to be updated to include this field in the LedgerStream response.
+  validated_ledgers?: string
 }
 
 interface AmendmentEnabled {
