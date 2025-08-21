@@ -297,16 +297,3 @@ export async function setupValidatedLedgersTable(): Promise<void> {
     })
   }
 }
-
-// delete all validated ledgers older than 30 days
-setInterval(pruneValidatedLedgersTable, 1000 * 60 * 60 * 24)
-async function pruneValidatedLedgersTable(): Promise<void> {
-  const hasTable = await db().schema.hasTable('validated_ledgers')
-  if (!hasTable) {
-    return
-  }
-
-  await query('validated_ledgers')
-    .where('received_at', '<', new Date(Date.now() - 1000 * 60 * 60 * 24 * 30))
-    .del()
-}

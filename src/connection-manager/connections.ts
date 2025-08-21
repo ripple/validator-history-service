@@ -233,5 +233,14 @@ export default async function startConnections(): Promise<void> {
     setInterval(() => {
       void backtrackAmendmentStatus()
     }, BACKTRACK_INTERVAL)
+
+    setInterval(pruneValidatedLedgersTable, 1000 * 60 * 60 * 24)
   }
+}
+
+// delete all validated ledgers older than 30 days
+export async function pruneValidatedLedgersTable(): Promise<void> {
+  await query('validated_ledgers')
+    .where('received_at', '<', new Date(Date.now() - 1000 * 60 * 60 * 24 * 30))
+    .del()
 }
