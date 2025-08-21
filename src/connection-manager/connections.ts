@@ -3,7 +3,7 @@
 
 import WebSocket from 'ws'
 
-import { query, getNetworks, getNodes } from '../shared/database'
+import { query, getNetworks, getNodes, db } from '../shared/database'
 import { fetchAmendmentInfo } from '../shared/database/amendments'
 import {
   clearConnectionHealthDb,
@@ -14,7 +14,7 @@ import {
   saveConnectionHealth,
   updateConnectionHealthStatus,
 } from '../shared/database/connectionHealth'
-import { FeeVote, WsNode } from '../shared/types'
+import { FeeVote, MissingLedger, WsNode } from '../shared/types'
 import { getIPv4Address } from '../shared/utils'
 import logger from '../shared/utils/logger'
 
@@ -24,6 +24,7 @@ import {
   handleWsMessageSubscribeTypes,
   subscribe,
 } from './wsHandling'
+import { insertMissingLedger } from '../shared/database/validatedLedgers'
 
 const log = logger({ name: 'connections' })
 const ports = [443, 80, 6005, 6006, 51233, 51234]
@@ -235,6 +236,7 @@ export default async function startConnections(): Promise<void> {
     }, BACKTRACK_INTERVAL)
 
     setInterval(pruneValidatedLedgersTable, 1000 * 60 * 60 * 24)
+    setInterval(checkForMissingLedgers, 1000 * 60)
   }
 }
 
@@ -243,4 +245,43 @@ export async function pruneValidatedLedgersTable(): Promise<void> {
   await query('validated_ledgers')
     .where('received_at', '<', new Date(Date.now() - 1000 * 60 * 60 * 24 * 30))
     .del()
+}
+
+// check for missing ledgers every minute
+const SCAN_PERIOD = 1000 * 60 * 5
+
+export async function checkForMissingLedgers(): Promise<void> {
+  const hasTable =
+    (await db().schema.hasTable('validated_ledgers')) &&
+    (await db().schema.hasTable('missing_ledgers'))
+  if (!hasTable) {
+    return
+  }
+  const recentLedgers = await query('validated_ledgers')
+    .orderBy('ledger_index', 'asc')
+    .where('received_at', '>', new Date(Date.now() - SCAN_PERIOD))
+    .where('network', 'main')
+    .select('ledger_index', 'received_at')
+
+  console.log('DEBUG: recentLedgers', recentLedgers)
+
+  for (let i = 0; i < recentLedgers.length - 1; i++) {
+    const currentLedger = recentLedgers[i]
+
+    if (
+      parseInt(recentLedgers[i + 1]['ledger_index'], 10) !==
+      parseInt(currentLedger['ledger_index'], 10) + 1
+    ) {
+      console.log(
+        'DEBUG: inserting missing ledger',
+        parseInt(currentLedger['ledger_index'], 10) + 1,
+      )
+      await insertMissingLedger({
+        network: 'main',
+        ledger_index: parseInt(currentLedger['ledger_index'], 10) + 1,
+        previous_ledger_index: parseInt(currentLedger['ledger_index'], 10),
+        previous_ledger_received_at: currentLedger.received_at,
+      } as MissingLedger)
+    }
+  }
 }

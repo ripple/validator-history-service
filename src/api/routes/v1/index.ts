@@ -15,6 +15,7 @@ import { handleNode, handleNodes, handleTopology } from './nodes'
 import { handleValidator, handleValidators } from './validator'
 import handleValidatorReport from './validator-report'
 import handleValidatedLedgers from './validated-ledgers'
+import handleMissingLedgers from './missing-ledgers'
 
 const api = createRouter()
 
@@ -22,6 +23,7 @@ api.use('/health', handleHealth)
 api.use('/metrics', handleMonitoringMetrics)
 
 api.use('/validated-ledgers/:network', handleValidatedLedgers)
+api.use('/missing-ledgers/:network', handleMissingLedgers)
 api.use('/network/validator_reports', handleDailyScores)
 api.use('/network/amendment/info/:param', handleAmendmentInfo)
 api.use('/network/amendments/info', handleAmendmentsInfo)

@@ -1,5 +1,5 @@
 import { query } from './utils'
-import { StreamLedger } from '../types'
+import { StreamLedger, MissingLedger } from '../types'
 
 export async function insertValidatedLedger(
   network: string,
@@ -28,5 +28,28 @@ export async function getRecentValidatedLedgers(
     .where('network', network)
     .orderBy('ledger_index', 'desc')
     .select('*')
-    .limit(limit ?? 10)
+    .limit(limit ?? 100)
+}
+
+export async function insertMissingLedger(
+  missedLedger: MissingLedger,
+): Promise<void> {
+  await query('missing_ledgers')
+    .insert({
+      network: missedLedger.network,
+      ledger_index: missedLedger.ledger_index,
+      previous_ledger_index: missedLedger.previous_ledger_index,
+      previous_ledger_received_at: missedLedger.previous_ledger_received_at,
+    })
+    .onConflict(['network', 'ledger_index'])
+    .ignore()
+}
+
+export async function getMissingLedgers(
+  network: string,
+): Promise<MissingLedger[]> {
+  return await query('missing_ledgers')
+    .where('network', network)
+    .orderBy('ledger_index', 'desc')
+    .select('*')
 }

@@ -27,6 +27,7 @@ export default async function setupTables(): Promise<void> {
   await addAmendmentsDataFromJSON()
   await setupConnectionHealthTable()
   await setupValidatedLedgersTable()
+  await setupMissingLedgersTable()
 }
 
 async function setupCrawlsTable(): Promise<void> {
@@ -294,6 +295,19 @@ export async function setupValidatedLedgersTable(): Promise<void> {
       table.integer('txn_id')
       table.dateTime('received_at').defaultTo(db().fn.now())
       table.primary(['network', 'ledger_hash'])
+    })
+  }
+}
+
+async function setupMissingLedgersTable(): Promise<void> {
+  const hasTable = await db().schema.hasTable('missing_ledgers')
+  if (!hasTable) {
+    await db().schema.createTable('missing_ledgers', (table) => {
+      table.string('network').notNullable()
+      table.bigInteger('ledger_index').notNullable()
+      table.bigInteger('previous_ledger_index').notNullable()
+      table.dateTime('previous_ledger_received_at').notNullable()
+      table.primary(['network', 'ledger_index'])
     })
   }
 }

@@ -32,6 +32,13 @@ interface StreamLedger {
   validated_ledgers?: string
 }
 
+interface MissingLedger {
+  network: string
+  ledger_index: number
+  previous_ledger_index: number
+  previous_ledger_received_at: Date
+}
+
 interface AmendmentEnabled {
   amendment_id: string
   networks: string
@@ -273,4 +280,5 @@ export {
   AmendmentInfo,
   ConnectionHealth,
   WsNode,
+  MissingLedger,
 }
