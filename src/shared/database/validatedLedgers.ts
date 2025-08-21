@@ -19,3 +19,14 @@ export async function insertValidatedLedger(
     .onConflict(['network', 'ledger_hash'])
     .ignore()
 }
+
+export async function getRecentValidatedLedgers(
+  network: string,
+  limit?: number,
+): Promise<StreamLedger[]> {
+  return await query('validated_ledgers')
+    .where('network', network)
+    .orderBy('ledger_index', 'desc')
+    .select('*')
+    .limit(limit ?? 10)
+}
