@@ -2,6 +2,13 @@ import { Request, Response } from 'express'
 
 import { getMissingLedgers } from '../../../shared/database/validatedLedgers'
 
+/**
+ * Handles the request to retrieve missing ledgers for a specific network.
+ *
+ * @param req - The Express request object containing the network parameter.
+ * @param res - The Express response object to send the response.
+ * @returns A promise resolving to the response with missing ledgers or an error.
+ */
 export default async function handleMissingLedgers(
   req: Request,
   res: Response,
@@ -17,6 +24,12 @@ export default async function handleMissingLedgers(
       missingLedgers,
     })
   } catch (err) {
+    if (err instanceof Error) {
+      return res.status(500).json({
+        result: 'error',
+        message: `Internal server error: ${err.message}`,
+      })
+    }
     return res.status(500).json({
       result: 'error',
       message: 'Internal server error',

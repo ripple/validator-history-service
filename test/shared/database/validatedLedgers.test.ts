@@ -1,8 +1,8 @@
-import { insertValidatedLedger } from '../../../src/shared/database/validatedLedgers'
 import { query } from '../../../src/shared/database/utils'
+import { insertValidatedLedger } from '../../../src/shared/database/validatedLedgers'
 import { StreamLedger } from '../../../src/shared/types'
 
-jest.mock('../../../src/shared/database/utils') // Mock the query function
+jest.mock('../../../src/shared/database/utils')
 
 describe('insertValidatedLedger', () => {
   const mockLedger: StreamLedger = {
@@ -52,6 +52,7 @@ describe('insertValidatedLedger', () => {
     await insertValidatedLedger('main', mockLedger)
 
     expect(mockOnConflict).toHaveBeenCalledWith(['network', 'ledger_hash'])
+    // eslint-disable-next-line @typescript-eslint/no-unsafe-member-access -- ignore is a mock function
     expect(mockOnConflict().ignore).toHaveBeenCalled()
   })
 })

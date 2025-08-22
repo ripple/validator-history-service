@@ -1,6 +1,14 @@
-import { query } from './utils'
 import { StreamLedger, MissingLedger } from '../types'
 
+import { query } from './utils'
+
+/**
+ * Inserts a validated ledger into the database, ignoring if it already exists.
+ *
+ * @param network - The network identifier.
+ * @param ledger - The ledger data to insert.
+ * @returns A promise that resolves when the insertion is complete.
+ */
 export async function insertValidatedLedger(
   network: string,
   ledger: StreamLedger,
@@ -20,17 +28,30 @@ export async function insertValidatedLedger(
     .ignore()
 }
 
+/**
+ * Retrieves the most recent validated ledgers for a network, up to a specified limit.
+ *
+ * @param network - The network identifier.
+ * @param limit - Optional limit on the number of ledgers to return (default: 100).
+ * @returns A promise resolving to an array of recent validated ledgers.
+ */
 export async function getRecentValidatedLedgers(
   network: string,
   limit?: number,
 ): Promise<StreamLedger[]> {
-  return await query('validated_ledgers')
+  return query('validated_ledgers')
     .where('network', network)
     .orderBy('ledger_index', 'desc')
     .select('*')
     .limit(limit ?? 100)
 }
 
+/**
+ * Inserts a missing ledger record into the database, ignoring if it already exists.
+ *
+ * @param missedLedger - The missing ledger data to insert.
+ * @returns A promise that resolves when the insertion is complete.
+ */
 export async function insertMissingLedger(
   missedLedger: MissingLedger,
 ): Promise<void> {
@@ -45,10 +66,16 @@ export async function insertMissingLedger(
     .ignore()
 }
 
+/**
+ * Retrieves all missing ledgers for a network, ordered by ledger index descending.
+ *
+ * @param network - The network identifier.
+ * @returns A promise resolving to an array of missing ledgers.
+ */
 export async function getMissingLedgers(
   network: string,
 ): Promise<MissingLedger[]> {
-  return await query('missing_ledgers')
+  return query('missing_ledgers')
     .where('network', network)
     .orderBy('ledger_index', 'desc')
     .select('*')

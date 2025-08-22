@@ -13,8 +13,9 @@ describe('setupValidatedLedgersTable', () => {
     })
     await setupValidatedLedgersTable()
 
+    // eslint-disable-next-line @typescript-eslint/unbound-method -- db() method is required for testing purposes.
     expect(db().schema.hasTable).toHaveBeenCalledWith('validated_ledgers')
-
+    // eslint-disable-next-line @typescript-eslint/unbound-method -- db() method is required for testing purposes.
     expect(db().schema.createTable).toHaveBeenCalledWith(
       'validated_ledgers',
       expect.any(Function),
@@ -30,7 +31,9 @@ describe('setupValidatedLedgersTable', () => {
     })
 
     await setupValidatedLedgersTable()
+    // eslint-disable-next-line @typescript-eslint/unbound-method -- db() method is required for testing purposes.
     expect(db().schema.hasTable).toHaveBeenCalledWith('validated_ledgers')
+    // eslint-disable-next-line @typescript-eslint/unbound-method -- db() method is required for testing purposes.
     expect(db().schema.createTable).not.toHaveBeenCalled()
   })
 })

@@ -19,6 +19,7 @@ import {
   NETWORKS_HOSTS,
   deleteAmendmentStatus,
 } from '../shared/database/amendments'
+import { insertValidatedLedger } from '../shared/database/validatedLedgers'
 import {
   AmendmentStatus,
   FeeVote,
@@ -30,7 +31,6 @@ import logger from '../shared/utils/logger'
 
 import agreement from './agreement'
 import { handleManifest } from './manifests'
-import { insertValidatedLedger } from '../shared/database/validatedLedgers'
 
 const LEDGER_HASHES_SIZE = 10
 const GOT_MAJORITY_FLAG = 65536

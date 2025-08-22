@@ -10,12 +10,12 @@ import handleDailyScores from './daily-report'
 import getNetworkOrAdd from './get-network'
 import handleHealth, { handleMonitoringMetrics } from './health'
 import handleValidatorManifest from './manifests'
+import handleMissingLedgers from './missing-ledgers'
 import handleNetworks from './networks'
 import { handleNode, handleNodes, handleTopology } from './nodes'
+import handleValidatedLedgers from './validated-ledgers'
 import { handleValidator, handleValidators } from './validator'
 import handleValidatorReport from './validator-report'
-import handleValidatedLedgers from './validated-ledgers'
-import handleMissingLedgers from './missing-ledgers'
 
 const api = createRouter()
 
