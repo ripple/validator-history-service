@@ -7,7 +7,8 @@ import missingLedgerExample from './fixtures/validated-ledgers-missing-98341289.
 import validatedLedgers from './fixtures/validated-ledgers.json'
 
 jest.mock('../../src/shared/database/validatedLedgers')
-jest.mock('../../src/shared/database', async () => {
+// eslint-disable-next-line @typescript-eslint/promise-function-async -- linter is incorrectly flagging this as an error
+jest.mock('../../src/shared/database', () => {
   // eslint-disable-next-line @typescript-eslint/no-unsafe-assignment -- tedious to strongly type the contents of a module
   const originalModule = jest.requireActual('../../src/shared/database')
 
@@ -31,6 +32,8 @@ jest.mock('../../src/shared/database', async () => {
 })
 
 describe('scanMissingLedgers', () => {
+  // beforeEach(() => {})
+
   afterEach(() => {
     jest.clearAllMocks()
   })
