@@ -93,6 +93,16 @@ const info = {
       route: '/v1/metrics',
       example: 'https://data.xrpl.org/v1/metrics',
     },
+    {
+      action: 'Get Recent Validated Ledgers',
+      route: '/v1/validated-ledgers/{network}',
+      example: 'https://data.xrpl.org/v1/validated-ledgers/{network}',
+    },
+    {
+      action: 'Get Missing Ledgers',
+      route: '/v1/missing-ledgers/{network}',
+      example: 'https://data.xrpl.org/v1/missing-ledgers/{network}',
+    },
   ],
 }
 

@@ -19,6 +19,7 @@ import {
   NETWORKS_HOSTS,
   deleteAmendmentStatus,
 } from '../shared/database/amendments'
+import { insertValidatedLedger } from '../shared/database/validatedLedgers'
 import {
   AmendmentStatus,
   FeeVote,
@@ -110,6 +111,9 @@ export async function handleWsMessageSubscribeTypes(
   } else if (data.type.includes('ledger')) {
     const current_ledger = data as StreamLedger
     ledger_hashes.push(current_ledger.ledger_hash)
+    if (networks === 'main') {
+      await insertValidatedLedger(networks, current_ledger)
+    }
     if (networks) {
       const fee: FeeVote = {
         fee_base: current_ledger.fee_base,
