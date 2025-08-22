@@ -26,6 +26,12 @@ export default async function handleValidatedLedgers(
         message: 'Invalid limit: must be a positive number',
       })
     }
+    if (limit > 50000) {
+      return res.status(400).json({
+        result: 'error',
+        message: 'Limit must be less than or equal to 50000',
+      })
+    }
   }
 
   try {
@@ -38,13 +44,7 @@ export default async function handleValidatedLedgers(
       count: ledgers.length,
       ledgers,
     })
-  } catch (err) {
-    if (err instanceof Error) {
-      return res.status(500).json({
-        result: 'error',
-        message: `Internal server error: ${err.message}`,
-      })
-    }
+  } catch (_err) {
     return res.status(500).json({
       result: 'error',
       message: 'Internal server error',

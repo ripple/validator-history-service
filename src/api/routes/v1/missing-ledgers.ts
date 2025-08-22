@@ -23,13 +23,7 @@ export default async function handleMissingLedgers(
       count: missingLedgers.length,
       missingLedgers,
     })
-  } catch (err) {
-    if (err instanceof Error) {
-      return res.status(500).json({
-        result: 'error',
-        message: `Internal server error: ${err.message}`,
-      })
-    }
+  } catch (_err) {
     return res.status(500).json({
       result: 'error',
       message: 'Internal server error',
