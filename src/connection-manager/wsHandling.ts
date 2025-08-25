@@ -93,6 +93,7 @@ export async function handleWsMessageSubscribeTypes(
 ): Promise<void> {
   if (data.type === 'validationReceived') {
     const validationData = data as ValidationRaw
+    // eslint-disable-next-line @typescript-eslint/no-unsafe-call -- valStream has undocumented fields
     await saveValidation(validationData)
     if (ledger_hashes.includes(validationData.ledger_hash)) {
       validationData.networks = networks

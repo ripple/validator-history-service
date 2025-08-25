@@ -1,7 +1,10 @@
-import { handleWsMessageSubscribeTypes } from '../../src/connection-manager/wsHandling'
-import validationStream from './fixtures/validation-stream.json'
 import ws from 'ws'
+
+import { handleWsMessageSubscribeTypes } from '../../src/connection-manager/wsHandling'
 import { saveValidation } from '../../src/shared/database'
+
+import validationStream from './fixtures/validation-stream.json'
+
 jest.mock('../../src/connection-manager/agreement')
 
 jest.mock('ws')

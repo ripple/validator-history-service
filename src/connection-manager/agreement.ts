@@ -1,3 +1,5 @@
+import { unixTimeToRippleTime } from 'xrpl'
+
 import {
   getAgreementScores,
   saveHourlyAgreement,
@@ -10,6 +12,7 @@ import {
   signingToMaster,
   decodeServerVersion,
   saveBallot,
+  query,
 } from '../shared/database'
 import {
   AgreementScore,
@@ -21,10 +24,8 @@ import {
 } from '../shared/types'
 import { getLists, overlaps } from '../shared/utils'
 import logger from '../shared/utils/logger'
-import { unixTimeToRippleTime } from 'xrpl'
 
 import chains from './chains'
-import { query } from '../shared/database'
 
 const log = logger({ name: 'agreement' })
 
@@ -330,6 +331,9 @@ class Agreement {
         unixTimeToRippleTime(Date.now() - 24 * 60 * 60 * 1000),
       )
       .del()
+      .catch((err) => {
+        log.error('Error purging validations: ', err)
+      })
     const twoHoursAgo = Date.now() - 2 * 60 * 60 * 1000
 
     /**
