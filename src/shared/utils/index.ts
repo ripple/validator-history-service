@@ -1,5 +1,5 @@
 import axios, { AxiosRequestConfig } from 'axios'
-import { unixTimeToRippleTime } from 'xrpl'
+import { unixTimeToRippleTime } from 'raj-xrpl'
 import { normalizeManifest } from 'xrpl-validator-domains'
 
 import { getNetworks, query } from '../database'

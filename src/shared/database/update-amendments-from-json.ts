@@ -1,4 +1,4 @@
-import { rippleTimeToUnixTime } from 'xrpl'
+import { rippleTimeToUnixTime } from 'raj-xrpl'
 
 import amendmentInfoData from '../data/amendments_info.json'
 import amendmentStatusData from '../data/amendments_status.json'

@@ -1,4 +1,4 @@
-import { LedgerResponseExpanded } from 'xrpl/dist/npm/models/methods/ledger'
+import { LedgerResponseExpanded } from 'raj-xrpl/dist/npm/models/methods/ledger'
 
 import { handleWsMessageLedgerEnableAmendments } from '../../src/connection-manager/wsHandling'
 import {

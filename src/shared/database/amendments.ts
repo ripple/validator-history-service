@@ -1,9 +1,9 @@
 import axios from 'axios'
-import { Client, ErrorResponse } from 'xrpl'
+import { Client, ErrorResponse } from 'raj-xrpl'
 import {
   FeatureAllResponse,
   FeatureOneResponse,
-} from 'xrpl/dist/npm/models/methods/feature'
+} from 'raj-xrpl/dist/npm/models/methods/feature'
 
 import { AmendmentInfo } from '../types'
 import logger from '../utils/logger'

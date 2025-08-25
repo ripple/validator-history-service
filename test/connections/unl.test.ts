@@ -1,4 +1,4 @@
-import { unixTimeToRippleTime } from 'xrpl'
+import { unixTimeToRippleTime } from 'raj-xrpl'
 
 import { getActiveBlobV2, parseBlob } from '../../src/shared/utils'
 

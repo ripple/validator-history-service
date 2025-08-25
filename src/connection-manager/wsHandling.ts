@@ -1,14 +1,14 @@
 /* eslint-disable max-lines -- Complex functions */
-import WebSocket from 'ws'
 import {
   Client,
   LedgerEntryResponse,
   LedgerResponse,
   RIPPLED_API_V1,
   rippleTimeToUnixTime,
-} from 'xrpl'
-import { Amendments, AMENDMENTS_ID } from 'xrpl/dist/npm/models/ledger'
-import { LedgerResponseExpanded } from 'xrpl/dist/npm/models/methods/ledger'
+} from 'raj-xrpl'
+import { Amendments, AMENDMENTS_ID } from 'raj-xrpl/dist/npm/models/ledger'
+import { LedgerResponseExpanded } from 'raj-xrpl/dist/npm/models/methods/ledger'
+import WebSocket from 'ws'
 
 import {
   getNetworks,
