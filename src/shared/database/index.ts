@@ -24,7 +24,7 @@ import {
 import { Network } from './networks'
 import setupTables from './setup'
 import { db, tearDown, query, destroy } from './utils'
-import { saveValidation } from './validations'
+import saveValidation from './validations'
 
 const log = logger({ name: 'database' })
 
