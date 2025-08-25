@@ -24,6 +24,7 @@ import {
 import { Network } from './networks'
 import setupTables from './setup'
 import { db, tearDown, query, destroy } from './utils'
+import { saveValidation } from './validations'
 
 const log = logger({ name: 'database' })
 
@@ -312,4 +313,5 @@ export {
   update24HourValidatorAgreement,
   update30DayValidatorAgreement,
   decodeServerVersion,
+  saveValidation,
 }

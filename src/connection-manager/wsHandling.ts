@@ -14,6 +14,7 @@ import {
   getNetworks,
   saveAmendmentsStatus,
   saveAmendmentStatus,
+  saveValidation,
 } from '../shared/database'
 import {
   NETWORKS_HOSTS,
@@ -92,6 +93,7 @@ export async function handleWsMessageSubscribeTypes(
 ): Promise<void> {
   if (data.type === 'validationReceived') {
     const validationData = data as ValidationRaw
+    await saveValidation(validationData)
     if (ledger_hashes.includes(validationData.ledger_hash)) {
       validationData.networks = networks
     }

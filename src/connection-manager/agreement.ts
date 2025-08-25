@@ -21,8 +21,10 @@ import {
 } from '../shared/types'
 import { getLists, overlaps } from '../shared/utils'
 import logger from '../shared/utils/logger'
+import { unixTimeToRippleTime } from 'xrpl'
 
 import chains from './chains'
+import { query } from '../shared/database'
 
 const log = logger({ name: 'agreement' })
 
@@ -320,6 +322,14 @@ class Agreement {
    * Purge validations seen more than two hours ago.
    */
   private purge(): void {
+    // purge validations seen more than 1 day ago
+    query('validations')
+      .where(
+        'signing_time',
+        '<',
+        unixTimeToRippleTime(Date.now() - 24 * 60 * 60 * 1000),
+      )
+      .del()
     const twoHoursAgo = Date.now() - 2 * 60 * 60 * 1000
 
     /**
