@@ -323,16 +323,16 @@ class Agreement {
    * Purge validations seen more than two hours ago.
    */
   private purge(): void {
-    // purge validations seen more than 1 day ago
+    // purge validations (persisted in the db) older than 5 hours
     query('validations')
       .where(
         'signing_time',
         '<',
-        unixTimeToRippleTime(Date.now() - 24 * 60 * 60 * 1000),
+        unixTimeToRippleTime(Date.now() - 5 * 60 * 60 * 1000),
       )
       .del()
       .catch((err) => {
-        log.error('Error purging validations: ', err)
+        log.error('Error purging validations from the db: ', err)
       })
     const twoHoursAgo = Date.now() - 2 * 60 * 60 * 1000
 
