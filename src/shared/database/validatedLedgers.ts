@@ -29,7 +29,7 @@ export async function insertValidatedLedger(
       reserve_inc: ledger.reserve_inc,
       txn_id: ledger.txn_id,
     })
-    .onConflict(['network', 'ledger_hash'])
+    .onConflict(['ledger_index', 'network', 'ledger_hash'])
     .ignore()
 }
 

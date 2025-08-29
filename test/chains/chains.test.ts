@@ -1,6 +1,10 @@
 import chains from '../../src/connection-manager/chains'
 import { destroy, query, setupTables } from '../../src/shared/database'
-import { ValidatedLedger } from '../../src/shared/database/validatedLedgers'
+import {
+  insertValidatedLedger,
+  ValidatedLedger,
+} from '../../src/shared/database/validatedLedgers'
+import { StreamLedger } from '../../src/shared/types'
 
 import validations from './fixtures/all-validations.json'
 
@@ -21,33 +25,30 @@ describe('Creates chains', () => {
 
     try {
       // seed the validated_ledgers table with 3 entries to mock the incoming LedgerStream
-      await query('validated_ledgers').insert({
+      await insertValidatedLedger('chain.0', {
         ledger_hash: 'LEDGER1',
         ledger_index: 1,
-        network: 'chain.0',
         ledger_time: 809801090,
         fee_base: 10,
         reserve_base: 1000000,
         reserve_inc: 200000,
-      })
-      await query('validated_ledgers').insert({
+      } as StreamLedger)
+      await insertValidatedLedger('chain.0', {
         ledger_hash: 'LEDGER2',
         ledger_index: 2,
-        network: 'chain.0',
         ledger_time: 809801090,
         fee_base: 10,
         reserve_base: 1000000,
         reserve_inc: 200000,
-      })
-      await query('validated_ledgers').insert({
+      } as StreamLedger)
+      await insertValidatedLedger('chain.0', {
         ledger_hash: 'LEDGER3',
         ledger_index: 3,
-        network: 'chain.0',
         ledger_time: 809801090,
         fee_base: 10,
         reserve_base: 1000000,
         reserve_inc: 200000,
-      })
+      } as StreamLedger)
     } catch (error) {
       if (typeof error === 'string') {
         throw new Error(`Unable to insert mocked test data: ${error}`)
