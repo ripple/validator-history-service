@@ -53,7 +53,11 @@ describe('insertValidatedLedger', () => {
 
     await insertValidatedLedger('main', mockLedger)
 
-    expect(mockOnConflict).toHaveBeenCalledWith(['network', 'ledger_hash'])
+    expect(mockOnConflict).toHaveBeenCalledWith([
+      'ledger_index',
+      'network',
+      'ledger_hash',
+    ])
     // eslint-disable-next-line @typescript-eslint/no-unsafe-member-access -- ignore is a mock function
     expect(mockOnConflict().ignore).toHaveBeenCalled()
   })
