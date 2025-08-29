@@ -288,7 +288,8 @@ export async function setupValidatedLedgersTable(): Promise<void> {
       table.string('network').notNullable()
       table.string('ledger_hash').notNullable()
       table.bigInteger('ledger_index').notNullable()
-      table.bigInteger('ledger_time').notNullable()
+      // Note: The VHS transforms the value from Ripple-Epoch-Time to UTC format
+      table.dateTime('ledger_time').notNullable()
       table.bigInteger('fee_base').notNullable()
       table.bigInteger('reserve_base').notNullable()
       table.bigInteger('reserve_inc').notNullable()

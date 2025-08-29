@@ -1,6 +1,7 @@
 import { query } from '../../../src/shared/database/utils'
 import { insertValidatedLedger } from '../../../src/shared/database/validatedLedgers'
 import { StreamLedger } from '../../../src/shared/types'
+import { rippleTimeToUnixTime } from 'xrpl'
 
 jest.mock('../../../src/shared/database/utils')
 
@@ -36,7 +37,7 @@ describe('insertValidatedLedger', () => {
       ledger_hash:
         '34F133C16E49FDB91E3BA6C59CCF9AD7F48BBDEFEB4277FF77C41367AA16FEBE',
       ledger_index: 98313833,
-      ledger_time: 809104601,
+      ledger_time: new Date(rippleTimeToUnixTime(809104601) * 1000),
       fee_base: 10,
       reserve_base: 1000000,
       reserve_inc: 200000,

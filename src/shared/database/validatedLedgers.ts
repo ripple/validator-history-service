@@ -1,3 +1,5 @@
+import { rippleTimeToUnixTime } from 'xrpl'
+
 import { StreamLedger, MissingLedger } from '../types'
 import logger from '../utils/logger'
 
@@ -21,7 +23,7 @@ export async function insertValidatedLedger(
       network,
       ledger_hash: ledger.ledger_hash,
       ledger_index: ledger.ledger_index,
-      ledger_time: ledger.ledger_time,
+      ledger_time: new Date(rippleTimeToUnixTime(ledger.ledger_time) * 1000),
       fee_base: ledger.fee_base,
       reserve_base: ledger.reserve_base,
       reserve_inc: ledger.reserve_inc,
@@ -36,7 +38,7 @@ export interface ValidatedLedger {
   ledger_index: number
   network: string
   validation_public_keys: string[]
-  ledger_time: number
+  ledger_time: Date
   fee_base: number
   reserve_base: number
   reserve_inc: number
