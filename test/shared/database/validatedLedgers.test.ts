@@ -1,7 +1,8 @@
+import { rippleTimeToUnixTime } from 'xrpl'
+
 import { query } from '../../../src/shared/database/utils'
 import { insertValidatedLedger } from '../../../src/shared/database/validatedLedgers'
 import { StreamLedger } from '../../../src/shared/types'
-import { rippleTimeToUnixTime } from 'xrpl'
 
 jest.mock('../../../src/shared/database/utils')
 

@@ -27,15 +27,7 @@ interface StreamLedger {
   reserve_inc: number
   txn_id: number
   type: string
-  // Note: The VHS code base needs to be updated to include this field in the LedgerStream response.
   validated_ledgers?: string
-}
-
-interface MissingLedger {
-  network: string
-  ledger_index: number
-  previous_ledger_index: number
-  previous_ledger_received_at: Date
 }
 
 interface AmendmentEnabled {
@@ -279,5 +271,4 @@ export {
   AmendmentInfo,
   ConnectionHealth,
   WsNode,
-  MissingLedger,
 }

@@ -211,16 +211,5 @@ This table keeps track of all validated ledgers received from streaming subscrip
 | `txn_count`     | The number of transactions in this ledger.                              |
 | `received_at`   | The time when this ledgerClosed message was received by the VHS.                    |
 
-### `missing_ledgers`
-
-This table keeps track of missing validated ledgers detected across different networks.
-
-| Key                          | Definition                                                              |
-|------------------------------|-------------------------------------------------------------------------|
-| `network`                    | The network on which the ledger is missing.                             |
-| `ledger_index`               | The index of the missing ledger.                                        |
-| `previous_ledger_index`      | The index of the previous ledger that was received.                     |
-| `previous_ledger_received_at`| The time when the previous ledger was received by the VHS.              |
-
 *Partial validations are not meant to vote for any particular ledger. A partial validation indicates that the validator is still online but not keeping up with consensus.
 **A chain is a group of validators validating the same set of ledgers. `main`, `test`, and `dev` represent the validated versions of mainnet, testnet, and devnet respectively. Validators on a fork/validating an alternate version of the ledger will have a different value, usually of the form `chain.[num]`.

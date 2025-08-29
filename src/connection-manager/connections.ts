@@ -18,7 +18,6 @@ import { FeeVote, WsNode } from '../shared/types'
 import { getIPv4Address } from '../shared/utils'
 import logger from '../shared/utils/logger'
 
-import checkForMissingLedgers from './scanMissingLedgers'
 import {
   backtrackAmendmentStatus,
   fetchAmendmentsFromLedgerEntry,
@@ -236,7 +235,6 @@ export default async function startConnections(): Promise<void> {
     }, BACKTRACK_INTERVAL)
 
     setInterval(pruneValidatedLedgersTable, 1000 * 60 * 60 * 24)
-    setInterval(checkForMissingLedgers, 1000 * 60)
   }
 }
 
