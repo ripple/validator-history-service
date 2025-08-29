@@ -13,8 +13,6 @@ There are 3 folders in `src`, corresponding to the 3 processes that the VHS runs
 * `v1`
   * `/health`: A health check for the VHS. Returns the number of nodes that it is connected to.
   * `/metrics`: A health check for the VHS. Returns the number of connected nodes for each network in prometheus exposition format.
-  * `/validated-ledgers/:network`: Returns the most recent validated ledgers for the specified network (e.g., mainnet). Optional ?limit=n query param to upper-bound the number of ledgers returned. Response is an array of ledger objects.
-  * `/missing-ledgers/:network`: Returns the list of missing validated ledger indices for the specified network (e.g., mainnet). Response is an object with count and an array of missing ledger objects (each including ledger_index, previous_ledger_index, and previous_ledger_received_at).
   * `/networks`: Returns the list of all networks on VHS database.
   * `/network/validator_reports`: Returns scores for the nodes that it has crawled in the last day.
   * `/network/topology`: Returns information about all the nodes that the crawler has crawled in the last hour.
