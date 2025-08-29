@@ -1,9 +1,12 @@
 import { Knex } from 'knex'
 
 import { query } from '../shared/database'
+import { insertValidations } from '../shared/database/validatedLedgers'
 import { Ledger, ValidationRaw, Chain } from '../shared/types'
 import { getLists, overlaps } from '../shared/utils'
 import logger from '../shared/utils/logger'
+
+import getNetworkNameFromChainId from './utils'
 
 const log = logger({ name: 'chains' })
 /**
@@ -18,12 +21,18 @@ function sortChainLength(chain1: Chain, chain2: Chain): number {
 }
 
 /**
- * Adds ledger information to chain.
+ * Adds ledger information to chain. Furthermore, it inserts validation_public_keys into the validated_ledgers table.
  *
  * @param ledger - Ledger to add to chain.
  * @param chain - Chain to update.
  */
-function addLedgerToChain(ledger: Ledger, chain: Chain): void {
+async function addLedgerToChain(ledger: Ledger, chain: Chain): Promise<void> {
+  await insertValidations(
+    ledger.ledger_hash,
+    ledger.ledger_index,
+    Array.from(ledger.validations),
+    await getNetworkNameFromChainId(chain),
+  )
   chain.ledgers.add(ledger.ledger_hash)
   for (const validator of ledger.validations) {
     chain.validators.add(validator)
@@ -102,7 +111,7 @@ class Chains {
    *
    * @returns List of chains being monitored by the system.
    */
-  public calculateChainsFromLedgers(): Chain[] {
+  public async calculateChainsFromLedgers(): Promise<Chain[]> {
     const list = []
     const now = Date.now()
 
@@ -121,7 +130,7 @@ class Chains {
     list.sort((ledger1, ledger2) => ledger1.ledger_index - ledger2.ledger_index)
 
     for (const ledger of list) {
-      this.updateChains(ledger)
+      await this.updateChains(ledger)
     }
 
     return this.chains
@@ -166,7 +175,7 @@ class Chains {
    *
    * @param ledger - Ledger being validated on a new chain.
    */
-  private addNewChain(ledger: Ledger): void {
+  private async addNewChain(ledger: Ledger): Promise<void> {
     const current = ledger.ledger_index
     const validators = ledger.validations
     const ledgerSet = new Set([ledger.ledger_hash])
@@ -183,6 +192,12 @@ class Chains {
 
     log.info(`Added new chain, chain.${chain.id}`)
     this.chains.push(chain)
+    await insertValidations(
+      ledger.ledger_hash,
+      ledger.ledger_index,
+      Array.from(ledger.validations),
+      await getNetworkNameFromChainId(chain),
+    )
   }
 
   /**
@@ -190,7 +205,7 @@ class Chains {
    *
    * @param ledger - The Ledger being handled in order to update the chains.
    */
-  private updateChains(ledger: Ledger): void {
+  private async updateChains(ledger: Ledger): Promise<void> {
     const next = ledger.ledger_index
     const validators = ledger.validations
 
@@ -203,7 +218,7 @@ class Chains {
       .shift()
 
     if (chainAtNextIndex !== undefined) {
-      addLedgerToChain(ledger, chainAtNextIndex)
+      await addLedgerToChain(ledger, chainAtNextIndex)
       return
     }
 
@@ -232,7 +247,7 @@ class Chains {
       log.warn(`Possibly skipped ${skipped} ledgers`)
       if (skipped > 1 && skipped < 20) {
         chainWithThisValidator.incomplete = true
-        addLedgerToChain(ledger, chainWithThisValidator)
+        await addLedgerToChain(ledger, chainWithThisValidator)
       }
     }
 
@@ -240,7 +255,7 @@ class Chains {
       return
     }
 
-    this.addNewChain(ledger)
+    await this.addNewChain(ledger)
   }
 }
 

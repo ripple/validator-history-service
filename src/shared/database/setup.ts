@@ -293,8 +293,9 @@ export async function setupValidatedLedgersTable(): Promise<void> {
       table.bigInteger('reserve_base').notNullable()
       table.bigInteger('reserve_inc').notNullable()
       table.integer('txn_id')
+      table.specificType('validation_public_keys', 'TEXT[]')
       table.dateTime('received_at').defaultTo(db().fn.now())
-      table.primary(['network', 'ledger_hash'])
+      table.primary(['ledger_index', 'network', 'ledger_hash'])
     })
   }
 }
