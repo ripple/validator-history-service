@@ -1,6 +1,6 @@
 {
   "name": "validator-history-service",
-  "version": "0.8.5",
+  "version": "0.8.6",
   "description": "Service for ingesting, aggregating, storing, and disbursing validation related data",
   "main": "./build/index.js",
   "scripts": {
@@ -69,7 +69,7 @@
     "pg": "8.16.3",
     "ripple-address-codec": "^5.0.0",
     "ws": "^8.13.0",
-    "xrpl": "^4.2.5",
+    "xrpl": "^4.4.1",
     "xrpl-validator-domains": "0.1.0"
   },
   "directories": {
