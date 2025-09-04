@@ -238,9 +238,18 @@ export default async function startConnections(): Promise<void> {
   }
 }
 
-// delete all validated ledgers older than 30 days
+// delete all validated ledgers older than the 0000 hours mark of the current date.
 async function pruneValidatedLedgersTable(): Promise<void> {
-  await query('validated_ledgers')
-    .where('received_at', '<', new Date(Date.now() - 1000 * 60 * 60 * 24 * 30))
-    .del()
+  const currentDate = new Date()
+  const previousDate = new Date()
+  previousDate.setDate(currentDate.getDate() - 1)
+
+  try {
+    const deletedRows: number = await query('validated_ledgers')
+      .where('ledger_time', '<', previousDate)
+      .del()
+    log.info(`Pruned ${deletedRows} rows from validated ledgers table`)
+  } catch (err: unknown) {
+    log.error(`Error pruning validated ledgers table`, err)
+  }
 }

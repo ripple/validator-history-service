@@ -18,19 +18,23 @@ export async function insertValidatedLedger(
   network: string,
   ledger: StreamLedger,
 ): Promise<void> {
-  await query('validated_ledgers')
-    .insert({
-      network,
-      ledger_hash: ledger.ledger_hash,
-      ledger_index: ledger.ledger_index,
-      ledger_time: new Date(rippleTimeToUnixTime(ledger.ledger_time) * 1000),
-      fee_base: ledger.fee_base,
-      reserve_base: ledger.reserve_base,
-      reserve_inc: ledger.reserve_inc,
-      txn_id: ledger.txn_id,
-    })
-    .onConflict(['ledger_index', 'network', 'ledger_hash'])
-    .ignore()
+  try {
+    await query('validated_ledgers')
+      .insert({
+        network,
+        ledger_hash: ledger.ledger_hash,
+        ledger_index: ledger.ledger_index,
+        ledger_time: new Date(rippleTimeToUnixTime(ledger.ledger_time)),
+        fee_base: ledger.fee_base,
+        reserve_base: ledger.reserve_base,
+        reserve_inc: ledger.reserve_inc,
+        txn_id: ledger.txn_id,
+      })
+      .onConflict(['ledger_index', 'network', 'ledger_hash'])
+      .ignore()
+  } catch (err: unknown) {
+    log.error(`Error inserting validated ledger`, err)
+  }
 }
 
 export interface ValidatedLedger {
@@ -60,31 +64,38 @@ export async function insertValidations(
   validation_public_keys: string[],
   networkName: string,
 ): Promise<void> {
-  const existingLedgers: ValidatedLedger[] = (await query('validated_ledgers')
-    .select('*')
-    .where('ledger_hash', ledger_hash)
-    .andWhere('ledger_index', ledger_index)
-    .andWhere('network', networkName)) as ValidatedLedger[]
+  try {
+    const existingLedgers: ValidatedLedger[] = (await query('validated_ledgers')
+      .select('*')
+      .where('ledger_hash', ledger_hash)
+      .andWhere('ledger_index', ledger_index)
+      .andWhere('network', networkName)) as ValidatedLedger[]
 
-  if (existingLedgers.length === 1) {
-    await query('validated_ledgers')
-      .insert({
-        ...existingLedgers[0],
-        validation_public_keys: Array.from(validation_public_keys),
-      })
-      .onConflict(['ledger_index', 'ledger_hash', 'network'])
-      .merge({
-        validation_public_keys: Array.from(validation_public_keys),
-      })
-  } else if (existingLedgers.length === 0) {
-    log.warn(
-      `Unable to locate the ledger with LedgerHash: ${ledger_hash}, LedgerIndex: ${ledger_index} and network: ${networkName} in the validated_ledgers table. Associated validations are not saved into the DB.`,
-    )
-  } else {
+    if (existingLedgers.length === 1) {
+      await query('validated_ledgers')
+        .insert({
+          ...existingLedgers[0],
+          validation_public_keys: Array.from(validation_public_keys),
+        })
+        .onConflict(['ledger_index', 'ledger_hash', 'network'])
+        .merge({
+          validation_public_keys: Array.from(validation_public_keys),
+        })
+    } else if (existingLedgers.length === 0) {
+      log.error(
+        `Unable to locate the ledger with LedgerHash: ${ledger_hash}, LedgerIndex: ${ledger_index} and network: ${networkName} in the validated_ledgers table. Associated validations are not saved into the DB.`,
+      )
+    } else {
+      log.error(
+        `Unexpected number of ledger entries ${Number(
+          existingLedgers.length,
+        )} found for ledger with LedgerHash: ${ledger_hash}, LedgerIndex: ${ledger_index} and network: ${networkName} in the validated_ledgers table.`,
+      )
+    }
+  } catch (err: unknown) {
     log.error(
-      `Unexpected number of ledger entries ${Number(
-        existingLedgers.length,
-      )} found for ledger with LedgerHash: ${ledger_hash}, LedgerIndex: ${ledger_index} and network: ${networkName} in the validated_ledgers table.`,
+      `Error inserting validations into the validated_ledgers table`,
+      err,
     )
   }
 }

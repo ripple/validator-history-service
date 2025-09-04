@@ -38,7 +38,7 @@ describe('insertValidatedLedger', () => {
       ledger_hash:
         '34F133C16E49FDB91E3BA6C59CCF9AD7F48BBDEFEB4277FF77C41367AA16FEBE',
       ledger_index: 98313833,
-      ledger_time: new Date(rippleTimeToUnixTime(809104601) * 1000),
+      ledger_time: new Date(rippleTimeToUnixTime(809104601)),
       fee_base: 10,
       reserve_base: 1000000,
       reserve_inc: 200000,
