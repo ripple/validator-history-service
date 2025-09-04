@@ -83,7 +83,9 @@ export async function insertValidations(
         })
     } else if (existingLedgers.length === 0) {
       log.error(
-        `Unable to locate the ledger with LedgerHash: ${ledger_hash}, LedgerIndex: ${ledger_index} and network: ${networkName} in the validated_ledgers table. Associated validations are not saved into the DB.`,
+        `Unable to locate the ledger with LedgerHash: ${ledger_hash}, LedgerIndex: ${ledger_index} and network: ${networkName} in the validated_ledgers table. Associated validations ${validation_public_keys.join(
+          ',',
+        )} are not saved into the DB.`,
       )
     } else {
       log.error(

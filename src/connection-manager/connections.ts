@@ -234,21 +234,24 @@ export default async function startConnections(): Promise<void> {
       void backtrackAmendmentStatus()
     }, BACKTRACK_INTERVAL)
 
-    setInterval(pruneValidatedLedgersTable, 1000 * 60 * 60 * 24)
+    const ONE_DAY_IN_MILLISECONDS = 1000 * 60 * 60 * 24
+    setInterval(pruneValidatedLedgersTable, ONE_DAY_IN_MILLISECONDS)
   }
 }
 
-// delete all validated ledgers older than the 0000 hours mark of the current date.
+// delete all validated ledgers older than 30 days.
 async function pruneValidatedLedgersTable(): Promise<void> {
-  const currentDate = new Date()
-  const previousDate = new Date()
-  previousDate.setDate(currentDate.getDate() - 1)
+  const cutoffDate = new Date()
+  cutoffDate.setUTCHours(0, 0, 0, 0)
+  cutoffDate.setUTCDate(cutoffDate.getUTCDate() - 30)
 
   try {
     const deletedRows: number = await query('validated_ledgers')
-      .where('ledger_time', '<', previousDate)
+      .where('ledger_time', '<', cutoffDate)
       .del()
-    log.info(`Pruned ${deletedRows} rows from validated ledgers table`)
+    log.info(
+      `Pruned ${deletedRows} rows from validated ledgers table. Deleted ledgers were older than ${cutoffDate.toISOString()}`,
+    )
   } catch (err: unknown) {
     log.error(`Error pruning validated ledgers table`, err)
   }
