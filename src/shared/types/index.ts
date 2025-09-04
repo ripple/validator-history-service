@@ -104,6 +104,8 @@ interface ValidationRaw {
   reserve_base?: number
   reserve_inc?: number
   ledger_fee?: FeeVote
+  cookie?: string
+  network_id?: number
 
   // The validation_public_key is the same as the signing_key in StreamManifest
 }
