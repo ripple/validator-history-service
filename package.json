@@ -29,8 +29,8 @@
   },
   "homepage": "https://github.com/ripple/validator-history-service#readme",
   "devDependencies": {
-    "@patelraj96/eslint-config": "^1.10.23",
-    "@patelraj96/prettier-config": "^1.9.1",
+    "@xrplf/eslint-config": "^2.0.0",
+    "@xrplf/prettier-config": "^1.9.1",
     "globals": "^16.3.0",
     "@eslint-community/eslint-plugin-eslint-comments": "^4.5.0",
     "@eslint/js": "^9.32.0",
@@ -41,7 +41,7 @@
     "@types/node": "^20.17.30",
     "@types/ws": "^8.5.5",
     "typescript-eslint": "^8.39.0",
-    "eslint-plugin-array-func": "^5.0.2",
+    "eslint-plugin-array-func": "^4.0.0",
     "eslint-plugin-import": "^2.32.0",
     "eslint-plugin-jsdoc": "^52.0.4",
     "eslint-plugin-n": "^17.21.3",
@@ -75,7 +75,7 @@
     "xrpl": "^4.2.5",
     "xrpl-validator-domains": "0.1.0"
   },
-  "prettier": "@patelraj96/prettier-config",
+  "prettier": "@xrplf/prettier-config",
   "directories": {
     "test": "test"
   }

@@ -1,5 +1,5 @@
 const globals = require('globals')
-const eslintConfig = require('@patelraj96/eslint-config/base')
+const eslintConfig = require('@xrplf/eslint-config/base')
 const tseslint = require('typescript-eslint')
 const jest = require('eslint-plugin-jest')
 
