@@ -1,6 +1,6 @@
 {
   "name": "validator-history-service",
-  "version": "0.8.5",
+  "version": "0.8.7",
   "description": "Service for ingesting, aggregating, storing, and disbursing validation related data",
   "main": "./build/index.js",
   "scripts": {
@@ -64,15 +64,15 @@
     "@types/bunyan": "^1.8.7",
     "axios": "^0.21.1",
     "bunyan": "^1.8.15",
-    "dotenv": "^16.3.1",
+    "dotenv": "^17.2.1",
     "express": "4.21.2",
     "knex": "2.5.1",
     "moment": "2.30.1",
     "nconf": "^0.12.0",
-    "pg": "8.12.0",
+    "pg": "8.16.3",
     "ripple-address-codec": "^5.0.0",
     "ws": "^8.13.0",
-    "xrpl": "^4.2.5",
+    "xrpl": "^4.4.1",
     "xrpl-validator-domains": "0.1.0"
   },
   "prettier": "@xrplf/prettier-config",
