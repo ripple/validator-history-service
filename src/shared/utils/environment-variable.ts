@@ -27,7 +27,7 @@ export enum EnvironmentVariable {
 export function getEnvironmentVariable(
   environmentVariable: EnvironmentVariable,
 ): string | undefined {
-  // eslint-disable-next-line node/no-process-env -- This is the one spot where we allow access to process.env
+  // eslint-disable-next-line n/no-process-env -- This is the one spot where we allow access to process.env
   const envVar = process.env[environmentVariable]
   if (!envVar) {
     return undefined

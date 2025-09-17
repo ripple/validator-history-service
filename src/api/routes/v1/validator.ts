@@ -269,9 +269,7 @@ export async function handleValidator(
       (resp: ValidatorResponse) => resp.validation_public_key === public_key,
     )
 
-    if (validator === undefined) {
-      validator = await findInDatabase(public_key)
-    }
+    validator ??= await findInDatabase(public_key)
 
     if (validator === undefined) {
       log.error(

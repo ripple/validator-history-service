@@ -1,6 +1,6 @@
 /* eslint-disable import/no-unassigned-import -- main file */
 /* eslint-disable import/unambiguous -- main file */
-/* eslint-disable global-require, node/global-require -- main file */
+/* eslint-disable n/global-require -- main file */
 /* eslint-disable @typescript-eslint/no-require-imports -- main file */
 if (process.argv.includes('--api')) {
   require('./api')

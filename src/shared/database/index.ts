@@ -82,7 +82,7 @@ export async function getNodes(sinceStartDate: Date): Promise<WsNode[]> {
     .leftJoin('connection_health as ch', 'c.public_key', 'ch.public_key')
     .select('c.ip', 'ch.ws_url', 'c.networks', 'c.public_key')
     .whereNotNull('c.ip')
-    .andWhere('c.start', '>', sinceStartDate)
+    .andWhere('c.start', '>', sinceStartDate) as Promise<WsNode[]>
 }
 
 /**
@@ -90,7 +90,6 @@ export async function getNodes(sinceStartDate: Date): Promise<WsNode[]> {
  *
  * @param manifest -- Incoming manifest.
  * @returns The original manifest with the revoked column updated.
- *
  */
 async function handleRevocations(
   manifest: DatabaseManifest,

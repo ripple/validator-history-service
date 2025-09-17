@@ -211,6 +211,7 @@ class Agreement {
    * @param validation - Validation from subscription stream.
    * @returns Void.
    */
+  // eslint-disable-next-line complexity -- Disabled for Eslint v9 migration, address this later.
   public async handleValidation(validation: ValidationRaw): Promise<void> {
     const signing_key = validation.validation_public_key
 

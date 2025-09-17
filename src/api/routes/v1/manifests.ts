@@ -22,7 +22,9 @@ interface ManifestResponse {
  * @returns Locations of nodes crawled in the last 10 minutes.
  */
 async function getReports(master_key: string): Promise<ManifestResponse[]> {
-  return query('manifests').select('*').where('master_key', '=', master_key)
+  return query('manifests')
+    .select('*')
+    .where('master_key', '=', master_key) as Promise<ManifestResponse[]>
 }
 
 /**

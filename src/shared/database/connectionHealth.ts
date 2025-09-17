@@ -149,7 +149,6 @@ export async function getTotalConnectedNodes(): Promise<number> {
  * Sets connected column to false and status_update_time to current time.
  *
  * @returns Promise that resolves to void.
- *
  */
 export async function clearConnectionHealthDb(): Promise<void> {
   try {
