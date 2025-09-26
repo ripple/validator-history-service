@@ -25,7 +25,7 @@ interface StreamLedger {
   ledger_time: number
   reserve_base: number
   reserve_inc: number
-  txn_id: number
+  txn_count: number
   type: string
   validated_ledgers?: string
 }

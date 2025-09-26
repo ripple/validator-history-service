@@ -28,7 +28,7 @@ export async function insertValidatedLedger(
         fee_base: ledger.fee_base,
         reserve_base: ledger.reserve_base,
         reserve_inc: ledger.reserve_inc,
-        txn_id: ledger.txn_id,
+        txn_count: ledger.txn_count,
       })
       .onConflict(['ledger_index', 'network', 'ledger_hash'])
       .ignore()
@@ -46,7 +46,7 @@ export interface ValidatedLedger {
   fee_base: number
   reserve_base: number
   reserve_inc: number
-  txn_id: number
+  txn_count: number
 }
 
 /**
@@ -72,14 +72,21 @@ export async function insertValidations(
       .andWhere('network', networkName)) as ValidatedLedger[]
 
     if (existingLedgers.length === 1) {
+      let newValidationPublicKeys: Set<string> = new Set<string>(validation_public_keys)
+      if (existingLedgers[0].validation_public_keys != null) {
+        for(const vpKey of existingLedgers[0].validation_public_keys) {
+          newValidationPublicKeys.add(vpKey)
+        }
+      }
+
       await query('validated_ledgers')
         .insert({
           ...existingLedgers[0],
-          validation_public_keys: Array.from(validation_public_keys),
+          validation_public_keys: Array.from(newValidationPublicKeys),
         })
         .onConflict(['ledger_index', 'ledger_hash', 'network'])
         .merge({
-          validation_public_keys: Array.from(validation_public_keys),
+          validation_public_keys: Array.from(newValidationPublicKeys),
         })
     } else if (existingLedgers.length === 0) {
       log.error(

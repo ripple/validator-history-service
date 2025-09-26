@@ -17,7 +17,7 @@ describe('insertValidatedLedger', () => {
     reserve_base: 1000000,
     reserve_inc: 200000,
     validated_ledgers: '32570-98313833',
-    txn_id: 106,
+    txn_count: 106,
   }
 
   beforeEach(() => {
@@ -42,7 +42,7 @@ describe('insertValidatedLedger', () => {
       fee_base: 10,
       reserve_base: 1000000,
       reserve_inc: 200000,
-      txn_id: 106,
+      txn_count: 106,
     })
   })
 
