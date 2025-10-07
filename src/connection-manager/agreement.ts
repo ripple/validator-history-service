@@ -302,6 +302,16 @@ class Agreement {
     const missed = setDifference(ledgers, validations)
     const validated = setIntersection(ledgers, validations)
 
+    if(validator_keys.master_key == 'nHU4bLE3EmSqNwfL4AP1UZeTNPrSPPP6FXLKXo2uqfHuvBQxDVKd' || validator_keys.signing_key == 'n9LbM9S5jeGopF5J1vBDoGxzV6rNS8K1T5DzhNynkFLqR9N2fywX') {
+      console.log('DEBUG: Number of Ledgers received by the entire(chain.0) network: ', ledgers.size)
+      console.log('DEBUG: Ledgers received by the entire(chain.0) network: ', ledgers)
+      console.log('Number of Validations received by ripple validator: ', validations.size)
+      console.log('Validations received by ripple validator: <ignore the second value, which is the timestamp>', validations)
+      console.log('Missed ledgers: ', missed)
+      console.log('Validated ledgers: ', validated)
+      console.log('Incomplete: ', incomplete)
+    }
+
     const agreement: AgreementScore = {
       validated: validated.size,
       missed: missed.size,

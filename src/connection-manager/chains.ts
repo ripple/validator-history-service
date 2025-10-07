@@ -113,6 +113,15 @@ class Chains {
         list.push(ledger)
       }
 
+      if (ledger.validations.size == 1) {
+        console.log('DEBUG: Throwing away this ledger because of only one validation: ')
+        console.log('DEBUG: Ledger hash: ', ledger_hash)
+        console.log('DEBUG: Ledger index: ', ledger.ledger_index)
+        console.log('DEBUG: Ledger validations: ', ledger.validations)
+        console.log('DEBUG: Ledger first seen: ', ledger.first_seen)
+        console.log('DEBUG: Is the ledger older than 10 seconds? ', tenSecondsOld)
+      }
+
       if (tenSecondsOld) {
         this.ledgersByHash.delete(ledger_hash)
       }
