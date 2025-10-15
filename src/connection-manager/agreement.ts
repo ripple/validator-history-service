@@ -18,6 +18,7 @@ import {
   ValidatorKeys,
   Ballot,
   Chain,
+  LedgerHashIndex,
 } from '../shared/types'
 import { getLists, overlaps } from '../shared/utils'
 import logger from '../shared/utils/logger'
@@ -268,7 +269,7 @@ class Agreement {
    */
   private async calculateValidatorAgreement(
     signing_key: string,
-    ledger_hashes: Set<string>,
+    ledger_hashes: Set<LedgerHashIndex>,
     incomplete: boolean,
   ): Promise<void> {
     const master_key = await signingToMaster(signing_key)
@@ -296,20 +297,24 @@ class Agreement {
   private async calculateHourlyAgreement(
     validator_keys: ValidatorKeys,
     validations: Map<string, number>,
-    ledgers: Set<string>,
+    ledgerHashIndexMap: Set<LedgerHashIndex>,
     incomplete: boolean,
   ): Promise<void> {
+    // obtain ledger_hashes validated by the network, strip out the ledger_index info for agreement calculation purposes
+    let ledgers = new Set<string>()
+    for(const value of ledgerHashIndexMap) {
+      ledgers.add(value.ledger_hash)
+    }
     const missed = setDifference(ledgers, validations)
     const validated = setIntersection(ledgers, validations)
 
     if(validator_keys.master_key == 'nHU4bLE3EmSqNwfL4AP1UZeTNPrSPPP6FXLKXo2uqfHuvBQxDVKd' || validator_keys.signing_key == 'n9LbM9S5jeGopF5J1vBDoGxzV6rNS8K1T5DzhNynkFLqR9N2fywX') {
-      console.log('DEBUG: Number of Ledgers received by the entire(chain.0) network: ', ledgers.size)
-      console.log('DEBUG: Ledgers received by the entire(chain.0) network: ', ledgers)
-      console.log('Number of Validations received by ripple validator: ', validations.size)
-      console.log('Validations received by ripple validator: <ignore the second value, which is the timestamp>', validations)
-      console.log('Missed ledgers: ', missed)
-      console.log('Validated ledgers: ', validated)
-      console.log('Incomplete: ', incomplete)
+      console.log('DEBUG: XRPL Mainnet received the following ledgers: ', Array.from(ledgerHashIndexMap))
+      console.log('DEBUG: Number of Validations received by the Ripple validator: ', validations.size)
+      console.log('DEBUG: Validations received by the Ripple validator: <ignore the second value, which is the timestamp>', validations)
+      console.log('DEBUG: Missed ledgers: ', missed)
+      console.log('DEBUG: Validated ledgers: ', validated)
+      console.log('DEBUG: Incomplete: ', incomplete)
     }
 
     const agreement: AgreementScore = {

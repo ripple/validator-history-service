@@ -1,12 +1,17 @@
 import { Manifest, StreamManifest } from 'xrpl-validator-domains'
 
+// export type LedgerHashIndex = [string, number];
+export interface LedgerHashIndex {
+  ledger_hash: string
+  ledger_index: number
+}
 interface Chain {
   id: string
   current: number
   first: number
   validators: Set<string>
   updated: number
-  ledgers: Set<string>
+  ledgers: Set<LedgerHashIndex>
   incomplete: boolean
 }
 
