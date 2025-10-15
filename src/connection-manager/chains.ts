@@ -1,11 +1,13 @@
 import { Knex } from 'knex'
 
 import { query } from '../shared/database'
-import { Ledger, ValidationRaw, Chain } from '../shared/types'
+import { Ledger, ValidationRaw, Chain, LedgerHashIndex } from '../shared/types'
 import { getLists, overlaps } from '../shared/utils'
 import logger from '../shared/utils/logger'
 
 const log = logger({ name: 'chains' })
+
+let LAST_SEEN_MAINNET_LEDGER_INDEX = -1
 
 /**
  * Adds ledger information to chain.
@@ -14,7 +16,7 @@ const log = logger({ name: 'chains' })
  * @param chain - Chain to update.
  */
 function addLedgerToChain(ledger: Ledger, chain: Chain): void {
-  chain.ledgers.add(ledger.ledger_hash)
+  chain.ledgers.add({ ledger_hash: ledger.ledger_hash, ledger_index: ledger.ledger_index } as LedgerHashIndex)
   for (const validator of ledger.validations) {
     chain.validators.add(validator)
   }
@@ -121,6 +123,28 @@ class Chains {
       this.updateChains(ledger)
     }
 
+    for(const chain of this.chains) {
+      if(chain.validators.has('nHU4bLE3EmSqNwfL4AP1UZeTNPrSPPP6FXLKXo2uqfHuvBQxDVKd') || chain.validators.has('n9LbM9S5jeGopF5J1vBDoGxzV6rNS8K1T5DzhNynkFLqR9N2fywX')) {
+        console.log('DEBUG: Validatig the continuity of XRPL Mainnet validated ledgers: ', chain)
+
+        // check if the obtained ledgers are consecutive
+        for(const ledger of chain.ledgers) {
+
+          // initialization of this variable occurs exactly once, at the start of the program
+          if(LAST_SEEN_MAINNET_LEDGER_INDEX === -1) {
+            LAST_SEEN_MAINNET_LEDGER_INDEX = ledger.ledger_index
+            continue
+          }
+
+
+          if(ledger.ledger_index !== LAST_SEEN_MAINNET_LEDGER_INDEX + 1) {
+            console.log('ERROR: Ledgers are not consecutive. Void between indices: ' + LAST_SEEN_MAINNET_LEDGER_INDEX + ' and ' + ledger.ledger_index)
+          }
+          LAST_SEEN_MAINNET_LEDGER_INDEX = ledger.ledger_index
+        }
+      }
+    }
+
     return this.chains
   }
 
@@ -151,7 +175,7 @@ class Chains {
   private addNewChain(ledger: Ledger): void {
     const current = ledger.ledger_index
     const validators = ledger.validations
-    const ledgerSet = new Set([ledger.ledger_hash])
+    const ledgerSet = new Set([{ ledger_hash: ledger.ledger_hash, ledger_index: ledger.ledger_index } as LedgerHashIndex])
 
     const chain: Chain = {
       network_id: ledger.network_id,
