@@ -1,7 +1,7 @@
 import { Knex } from 'knex'
 
 import { query } from '../shared/database'
-import { Ledger, ValidationRaw, Chain } from '../shared/types'
+import { Ledger, ValidationRaw, Chain, LedgerHashIndex } from '../shared/types'
 import { getLists, overlaps } from '../shared/utils'
 import logger from '../shared/utils/logger'
 
@@ -17,6 +17,8 @@ function sortChainLength(chain1: Chain, chain2: Chain): number {
   return chain2.current - chain2.first - (chain1.current - chain1.first)
 }
 
+let LAST_SEEN_MAINNET_LEDGER_INDEX = -1
+
 /**
  * Adds ledger information to chain.
  *
@@ -24,7 +26,7 @@ function sortChainLength(chain1: Chain, chain2: Chain): number {
  * @param chain - Chain to update.
  */
 function addLedgerToChain(ledger: Ledger, chain: Chain): void {
-  chain.ledgers.add(ledger.ledger_hash)
+  chain.ledgers.add({ ledger_hash: ledger.ledger_hash, ledger_index: ledger.ledger_index } as LedgerHashIndex)
   for (const validator of ledger.validations) {
     chain.validators.add(validator)
   }
@@ -113,6 +115,15 @@ class Chains {
         list.push(ledger)
       }
 
+      if (ledger.validations.size == 1) {
+        console.log('DEBUG: Throwing away this ledger because of only one validation: ')
+        console.log('DEBUG: Ledger hash: ', ledger_hash)
+        console.log('DEBUG: Ledger index: ', ledger.ledger_index)
+        console.log('DEBUG: Ledger validations: ', ledger.validations)
+        console.log('DEBUG: Ledger first seen: ', ledger.first_seen)
+        console.log('DEBUG: Is the ledger older than 10 seconds? ', tenSecondsOld)
+      }
+
       if (tenSecondsOld) {
         this.ledgersByHash.delete(ledger_hash)
       }
@@ -122,6 +133,35 @@ class Chains {
 
     for (const ledger of list) {
       this.updateChains(ledger)
+    }
+
+    for(const chain of this.chains) {
+      if(chain.validators.has('nHU4bLE3EmSqNwfL4AP1UZeTNPrSPPP6FXLKXo2uqfHuvBQxDVKd') || chain.validators.has('n9LbM9S5jeGopF5J1vBDoGxzV6rNS8K1T5DzhNynkFLqR9N2fywX')) {
+        log.info('DEBUG: Validatig the continuity of XRPL Mainnet validated ledgers: \n')
+        log.info('DEBUG: Chain ID: {chain.id}')
+        log.info(`DEBUG: Chain updated at: ${chain.updated}`)
+        log.info(`DEBUG: Chain first: ${chain.first}`)
+        log.info(`DEBUG: Chain current: ${chain.current}`)
+        log.info(`DEBUG: Chain validators: ${Array.from(chain.validators)}`)
+        log.info(`DEBUG: Chain ledgers: ${Array.from(chain.ledgers)}`)
+        log.info(`DEBUG: Chain incomplete: ${chain.incomplete}`)
+
+        // check if the obtained ledgers are consecutive
+        for(const ledger of chain.ledgers) {
+
+          // initialization of this variable occurs exactly once, at the start of the program
+          if(LAST_SEEN_MAINNET_LEDGER_INDEX === -1) {
+            LAST_SEEN_MAINNET_LEDGER_INDEX = ledger.ledger_index
+            continue
+          }
+
+
+          if(ledger.ledger_index !== LAST_SEEN_MAINNET_LEDGER_INDEX + 1) {
+            log.error('ERROR: Ledgers are not consecutive. Void between indices: ' + LAST_SEEN_MAINNET_LEDGER_INDEX + ' and ' + ledger.ledger_index)
+          }
+          LAST_SEEN_MAINNET_LEDGER_INDEX = ledger.ledger_index
+        }
+      }
     }
 
     return this.chains
@@ -169,7 +209,7 @@ class Chains {
   private addNewChain(ledger: Ledger): void {
     const current = ledger.ledger_index
     const validators = ledger.validations
-    const ledgerSet = new Set([ledger.ledger_hash])
+    const ledgerSet = new Set([{ ledger_hash: ledger.ledger_hash, ledger_index: ledger.ledger_index } as LedgerHashIndex])
 
     const chain: Chain = {
       id: this.getNextChainID(),
@@ -224,7 +264,7 @@ class Chains {
       .shift()
 
     const chainWithLedger: Chain | undefined = this.chains.find(
-      (chain: Chain) => chain.ledgers.has(ledger.ledger_hash),
+      (chain: Chain) => chain.ledgers.has({ ledger_hash: ledger.ledger_hash, ledger_index: ledger.ledger_index } as LedgerHashIndex),
     )
 
     if (chainWithThisValidator !== undefined) {
