@@ -91,26 +91,43 @@ export async function getNodes(sinceStartDate: Date): Promise<WsNode[]> {
  * @param manifest -- Incoming manifest.
  * @returns The original manifest with the revoked column updated.
  */
-async function handleRevocations(
+export async function handleRevocations(
   manifest: DatabaseManifest,
 ): Promise<DatabaseManifest> {
   // Mark all older manifests as revoked
-  const revokedSigningKeys = (await query('manifests')
-    .where({ master_key: manifest.master_key })
-    .andWhere('seq', '<', manifest.seq)
-    .update({ revoked: true }, ['manifests.signing_key'])
-    .catch((err: Error) =>
-      log.error('Error revoking older manifests', err),
-    )) as DatabaseManifest[]
+  let revokedSigningKeys = undefined
+  let numberOfAttempts = 0
+  while (numberOfAttempts < 3) {
+    try {
+      revokedSigningKeys = (await query('manifests')
+      .where({ master_key: manifest.master_key })
+      .andWhere('seq', '<', manifest.seq)
+      .update({ revoked: true }, ['manifests.signing_key'])
+      ) as DatabaseManifest[]
+      break
+
+    } catch (err: any) {
+
+      if (err.code === '40P01') {
+        log.error('Error revoking older manifests: Deadlock detected, retrying with Exponential Backoff')
+        await new Promise(resolve => setTimeout(resolve, Math.pow(2, numberOfAttempts) * 1000)); // Exponential backoff
+        numberOfAttempts++
+        continue
+      } else {
+        log.error('Error revoking older manifests', err)
+        break
+      }
+    }
+  }
 
   const revokedSigningKeysArray =
-    revokedSigningKeys.length > 0
-      ? await Promise.all(
-          revokedSigningKeys.map(async (obj) => {
-            return obj.signing_key
-          }),
-        )
-      : []
+    revokedSigningKeys && revokedSigningKeys.length > 0
+        ? await Promise.all(
+            revokedSigningKeys.map(async (obj) => {
+              return obj.signing_key
+            }),
+          )
+        : []
 
   // If there exists a newer manifest, mark this manifest as revoked
   const newer = (await query('manifests')
@@ -122,7 +139,7 @@ async function handleRevocations(
 
   const updated = { revoked: false, ...manifest }
 
-  if (newer.length !== 0) {
+  if (newer && newer.length !== 0) {
     updated.revoked = true
     revokedSigningKeysArray.push(manifest.signing_key)
   }
@@ -134,7 +151,7 @@ async function handleRevocations(
   // updates revocations in validators table
   await query('validators')
     .whereIn('signing_key', revokedSigningKeysCleaned)
-    .update({ revoked: true })
+    .update({ revoked: true }).catch((err) => log.error('Error updating revoked manifest in validators table', err))
 
   return updated
 }

@@ -5,6 +5,8 @@ import {
   updateManifestsFromRippled,
   updateUNLManifests,
   updateUnls,
+  updateUNLManifestNetwork,
+  getFirstUNL
 } from '../../src/connection-manager/manifests'
 import {
   destroy,
@@ -74,6 +76,8 @@ describe('manifest ingest', () => {
   })
 
   test('updateUnlManifests', async () => {
+    // the tests have a default timeout of 5s, which does not suffice for this test
+    jest.setTimeout(10000)
     networks.forEach((network) => {
       nock(`http://${network.unls[0]}`).get('/').reply(200, unl1)
     })
@@ -194,4 +198,13 @@ describe('manifest ingest', () => {
       unl: null,
     })
   })
+
+  test(`updateUNLManifestNetwork with null networkName should reject Promise`, async() => {
+    await expect(updateUNLManifestNetwork('')).rejects.toThrow('Network string should not be empty')
+  })
+
+  test(`getFirstUNL with empty networkName should reject Promise`, async() => {
+    await expect(getFirstUNL('')).rejects.toThrow('Network name is empty')
+  })
+
 })

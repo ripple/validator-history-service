@@ -32,7 +32,10 @@ let jobsStarted = false
  * @param networkName - The name of the network.
  * @returns The first UNL in the list of UNLs for the network.
  */
-async function getFirstUNL(networkName: string): Promise<string> {
+export async function getFirstUNL(networkName: string): Promise<string> {
+  if (!networkName) {
+    return Promise.reject(new Error('Network name is empty'))
+  }
   const networks = await getNetworks()
   const network = networks.filter((ntwk) => ntwk.id === networkName)[0]
   return network.unls[0]
@@ -96,9 +99,13 @@ export async function updateUNLManifests(): Promise<void> {
  * @param network - The network to update.
  * @returns A promise that resolves to void once all UNL validators are saved.
  */
-async function updateUNLManifestNetwork(network: string): Promise<void> {
+export async function updateUNLManifestNetwork(network: string): Promise<void> {
+  // TODO: In an ideal scenario, the networks table should not contain undefined network.id rows
+  if (!network) {
+    return Promise.reject(new Error('Network string should not be empty'))
+  }
   try {
-    log.info('Fetching UNL...')
+    log.info('Fetching Manifests for network: ' + network + '. Identified UNL: ' + await getFirstUNL(network))
     const unl: UNLBlob = await fetchValidatorList(await getFirstUNL(network))
     const promises: Array<Promise<void>> = []
 
