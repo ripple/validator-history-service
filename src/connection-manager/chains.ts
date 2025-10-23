@@ -31,8 +31,12 @@ function addLedgerToChain(ledger: Ledger, chain: Chain): void {
     chain.validators.add(validator)
   }
 
-  chain.current = ledger.ledger_index
-  chain.updated = ledger.first_seen
+  // is the incoming ledger more recent than the current chain's tip (i.e. chain.current)? If so, update the chain's tip.
+  chain.current = ledger.ledger_index > chain.current ? ledger.ledger_index : chain.current
+  chain.updated = ledger.ledger_index > chain.current ? ledger.first_seen : chain.updated
+
+  log.info(`Ledgers in the chain ${chain.id}: ${Array.from(chain.ledgers)}}`)
+  log.info(`Validators belonging to the chain ${chain.id}: ${Array.from(chain.validators)}}`)
 }
 
 /**
@@ -231,6 +235,7 @@ class Chains {
    * @param ledger - The Ledger being handled in order to update the chains.
    */
   private updateChains(ledger: Ledger): void {
+    log.info(`Updating chains for ledger ${JSON.stringify(ledger)}`)
     const next = ledger.ledger_index
     const validators = ledger.validations
 
@@ -243,6 +248,7 @@ class Chains {
       .shift()
 
     if (chainAtNextIndex !== undefined) {
+      log.info(`Adding ledger ${ledger.ledger_hash} to chain ${chainAtNextIndex.id} (chain at next index)`)
       addLedgerToChain(ledger, chainAtNextIndex)
       return
     }
@@ -256,6 +262,7 @@ class Chains {
       .shift()
 
     if (chainAtThisIndex !== undefined) {
+      log.info(`Found this ledger ${ledger.ledger_hash} in chain ${chainAtThisIndex.id}. No action taken.`)
       return
     }
 
@@ -269,18 +276,31 @@ class Chains {
 
     if (chainWithThisValidator !== undefined) {
       const skipped = ledger.ledger_index - chainWithThisValidator.current
-      log.warn(`Possibly skipped ${skipped} ledgers`)
-      if (skipped > 1 && skipped < 20) {
+      log.warn(`Processing ledger ${ledger.ledger_hash}: Discovered chain with an overlap of validators ${chainWithThisValidator.id}. Possibly skipped ${skipped} ledgers`)
+      if (skipped !== 0) {
+        log.info(`Adding ledger ${ledger.ledger_hash} to chain ${chainWithThisValidator.id} (chain with an overlap of validators); Existing chain id: ${JSON.stringify(chainWithThisValidator)}`)
         chainWithThisValidator.incomplete = true
         addLedgerToChain(ledger, chainWithThisValidator)
       }
     }
 
     if (chainWithThisValidator !== undefined || chainWithLedger !== undefined) {
+      log.info(`No action taken for ledger ${ledger.ledger_hash}; \nINFO: Chain with an overlap of validators: ${chainWithThisValidator?.id};\n  Chain that contains this ledger: ${chainWithLedger?.id}`)
       return
     }
 
+    log.info(`Adding new chain for ledger ${ledger.ledger_hash}`)
     this.addNewChain(ledger)
+  }
+
+  /**
+   *
+   * VHS tests use this method to reset the chains singleton value. This ensures that tests are not contaminating each other.
+   */
+  public __resetChainsSingletonForTests(): void {
+    this.ledgersByHash.clear()
+    this.chains = []
+    this.index = 0
   }
 }
 
