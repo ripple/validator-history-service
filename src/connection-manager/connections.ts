@@ -37,7 +37,7 @@ const REPORTING_INTERVAL = 15 * 60 * 1000
 const BACKTRACK_INTERVAL = 30 * 60 * 1000
 const BASE_RETRY_DELAY = 1 * 1000
 const MAX_RETRY_DELAY = 30 * 1000
-const WS_HEARTBEAT_CHECK_INTERVAL = 1 * 60 * 1000
+const WS_HEARTBEAT_CHECK_INTERVAL = 10 * 60 * 1000
 const WS_HEARTBEAT_TIMEOUT = 60 * 1000
 
 // The frequent closing codes seen so far after connections established include:
