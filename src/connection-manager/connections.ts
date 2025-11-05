@@ -37,6 +37,8 @@ const REPORTING_INTERVAL = 15 * 60 * 1000
 const BACKTRACK_INTERVAL = 30 * 60 * 1000
 const BASE_RETRY_DELAY = 1 * 1000
 const MAX_RETRY_DELAY = 30 * 1000
+const WS_HEARTBEAT_CHECK_INTERVAL = 10 * 60 * 1000
+const WS_HEARTBEAT_TIMEOUT = 60 * 1000
 
 // The frequent closing codes seen so far after connections established include:
 //  1008: Policy error: client is too slow. (Most frequent)
@@ -45,6 +47,8 @@ const MAX_RETRY_DELAY = 30 * 1000
 // Reconnection should happen after seeing these codes for established connections.
 const CLOSING_CODES = [1005, 1006, 1008]
 let cmStarted = false
+
+const webSocketHeartbeat: Map<string, Date> = new Map()
 
 /**
  * Sets the handlers for each WebSocket object.
@@ -79,9 +83,11 @@ async function setHandlers(
       })
       subscribe(ws)
 
+      webSocketHeartbeat.set(ws.url, new Date())
       resolve()
     })
     ws.on('message', function handleMessage(message: string) {
+      webSocketHeartbeat.set(ws.url, new Date())
       let data
       try {
         data = JSON.parse(message)
@@ -101,6 +107,7 @@ async function setHandlers(
       )
     })
     ws.on('close', async (code) => {
+      webSocketHeartbeat.delete(ws.url)
       void updateConnectionHealthStatus(ws.url, false)
       ws.terminate()
 
@@ -120,12 +127,34 @@ async function setHandlers(
       resolve()
     })
     ws.on('error', () => {
+      webSocketHeartbeat.delete(ws.url)
       void updateConnectionHealthStatus(ws.url, false)
       ws.terminate()
       resolve()
     })
   })
 }
+
+setInterval(() => {
+  log.info('WS INFO: Total number of live WS connections: ' + webSocketHeartbeat.size)
+  for (const [url, heartbeat] of webSocketHeartbeat.entries()) {
+    log.info('WS INFO: heartbeat for: ' + url + ' last received at: ' + (Date.now() - heartbeat.getTime()) + 'ms ago')
+  }
+
+  let staleConnections = 0
+  // report the stale connections whose heartbeat is older than 60 seconds (missing 15 validated ledgers)
+  for (const [url, heartbeat] of webSocketHeartbeat.entries()) {
+    if (Date.now() - heartbeat.getTime() > WS_HEARTBEAT_TIMEOUT) {
+      log.error('WS ERROR: stale connection for: ' + url + ' last receiveda message at: ' + heartbeat.toISOString() + '. (' + (Date.now() - heartbeat.getTime())/1000 + 'seconds ago). Terminating this WS connection.')
+      staleConnections++
+
+      // Note: It is possible that the Javascript runtime never garbage-collects these stale websockets. As part of future work, we should also record the `ws` instance and terminate stale web-sockets.
+      void updateConnectionHealthStatus(url, false)
+      webSocketHeartbeat.delete(url)
+    }
+  }
+  log.error('WS ERROR: Total number of stale connections: ' + staleConnections)
+}, WS_HEARTBEAT_CHECK_INTERVAL)
 
 /**
  * Tries to find a valid WebSockets endpoint for a node.
