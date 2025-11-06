@@ -6,16 +6,6 @@ import { getLists, overlaps } from '../shared/utils'
 import logger from '../shared/utils/logger'
 
 const log = logger({ name: 'chains' })
-/**
- * Helper to sort chains by chain length.
- *
- * @param chain1 - First Chain.
- * @param chain2 - Second Chain.
- * @returns Number for sorting criteria.
- */
-function sortChainLength(chain1: Chain, chain2: Chain): number {
-  return chain2.current - chain2.first - (chain1.current - chain1.first)
-}
 
 /**
  * Adds ledger information to chain.
@@ -31,6 +21,7 @@ function addLedgerToChain(ledger: Ledger, chain: Chain): void {
 
   chain.current = ledger.ledger_index
   chain.updated = ledger.first_seen
+  log.info(`Adding ledger ${JSON.stringify(ledger)} into the Chain ${chain.network_id}`)
 }
 
 /**
@@ -40,7 +31,7 @@ function addLedgerToChain(ledger: Ledger, chain: Chain): void {
  * @returns Void.
  */
 async function saveValidatorChains(chain: Chain): Promise<void> {
-  let id = chain.id
+  let id: number | string = chain.network_id
   const lists = await getLists().catch((err) => {
     log.error('Error getting validator lists', err)
     return undefined
@@ -56,7 +47,7 @@ async function saveValidatorChains(chain: Chain): Promise<void> {
   const promises: Knex.QueryBuilder[] = []
   chain.validators.forEach((signing_key) => {
     promises.push(
-      query('validators').where({ signing_key }).update({ chain: id }),
+      query('validators').where({ signing_key }).update({ chain: id.toString() }),
     )
   })
   try {
@@ -72,7 +63,6 @@ async function saveValidatorChains(chain: Chain): Promise<void> {
 class Chains {
   private readonly ledgersByHash: Map<string, Ledger> = new Map()
   private chains: Chain[] = []
-  private index = 0
 
   /**
    * Updates chains as validations come in.
@@ -80,6 +70,10 @@ class Chains {
    * @param validation - A raw validation message.
    */
   public updateLedgers(validation: ValidationRaw): void {
+    if(validation.network_id == undefined) {
+      log.warn(`Validation ${JSON.stringify(validation)} has no network id`)
+      return
+    }
     const { ledger_hash, validation_public_key: signing_key } = validation
     const ledger_index = Number(validation.ledger_index)
 
@@ -91,8 +85,11 @@ class Chains {
         ledger_index,
         validations: new Set(),
         first_seen: Date.now(),
+        network_id: validation.network_id,
       })
     }
+
+    log.info(`Grouping ledger ${ledger_hash} into the chain with network id: ${validation.network_id}`)
 
     this.ledgersByHash.get(ledger_hash)?.validations.add(signing_key)
   }
@@ -147,21 +144,6 @@ class Chains {
   }
 
   /**
-   * Returns the next chain id.
-   *
-   * @returns The chain id.
-   */
-  private getNextChainID(): string {
-    if (this.index > 10000) {
-      this.index = 0
-    }
-
-    const id = `chain.${this.index}`
-    this.index += 1
-    return id
-  }
-
-  /**
    * Adds a new chain to chains.
    *
    * @param ledger - Ledger being validated on a new chain.
@@ -172,7 +154,7 @@ class Chains {
     const ledgerSet = new Set([ledger.ledger_hash])
 
     const chain: Chain = {
-      id: this.getNextChainID(),
+      network_id: ledger.network_id,
       current,
       first: current,
       validators,
@@ -181,7 +163,7 @@ class Chains {
       incomplete: true,
     }
 
-    log.info(`Added new chain, chain.${chain.id}`)
+    log.info(`Discovered new chain with network id: ${chain.network_id}. Seeding it with ${JSON.stringify(ledger)}`)
     this.chains.push(chain)
   }
 
@@ -191,56 +173,17 @@ class Chains {
    * @param ledger - The Ledger being handled in order to update the chains.
    */
   private updateChains(ledger: Ledger): void {
-    const next = ledger.ledger_index
-    const validators = ledger.validations
+    // find the chain whose network_id matches the incoming ledger's network_id
+    const chainWithIdenticalNetID = this.chains.filter((chain: Chain) => chain.network_id == ledger.network_id)
 
-    const chainAtNextIndex: Chain | undefined = this.chains
-      .filter(
-        (chain: Chain) =>
-          next === chain.current + 1 && overlaps(validators, chain.validators),
-      )
-      .sort(sortChainLength)
-      .shift()
-
-    if (chainAtNextIndex !== undefined) {
-      addLedgerToChain(ledger, chainAtNextIndex)
-      return
+    if (chainWithIdenticalNetID == undefined || chainWithIdenticalNetID.length === 0) {
+      this.addNewChain(ledger)
+    } else if (chainWithIdenticalNetID.length > 1) {
+      log.error('Invariant Violation: Discovered multiple chains with identical network-id: ', JSON.stringify(chainWithIdenticalNetID))
     }
-
-    const chainAtThisIndex: Chain | undefined = this.chains
-      .filter(
-        (chain) =>
-          next === chain.current && overlaps(validators, chain.validators),
-      )
-      .sort(sortChainLength)
-      .shift()
-
-    if (chainAtThisIndex !== undefined) {
-      return
+    else {
+      addLedgerToChain(ledger, chainWithIdenticalNetID[0])
     }
-
-    const chainWithThisValidator: Chain | undefined = this.chains
-      .filter((chain) => overlaps(chain.validators, validators))
-      .shift()
-
-    const chainWithLedger: Chain | undefined = this.chains.find(
-      (chain: Chain) => chain.ledgers.has(ledger.ledger_hash),
-    )
-
-    if (chainWithThisValidator !== undefined) {
-      const skipped = ledger.ledger_index - chainWithThisValidator.current
-      log.warn(`Possibly skipped ${skipped} ledgers`)
-      if (skipped > 1 && skipped < 20) {
-        chainWithThisValidator.incomplete = true
-        addLedgerToChain(ledger, chainWithThisValidator)
-      }
-    }
-
-    if (chainWithThisValidator !== undefined || chainWithLedger !== undefined) {
-      return
-    }
-
-    this.addNewChain(ledger)
   }
 }
 

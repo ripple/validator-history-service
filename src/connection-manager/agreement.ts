@@ -129,7 +129,7 @@ function isPreceedingFlagLedger(ledger_index: string): boolean {
  * @returns String.
  */
 async function getNetworkNameFromChainId(chain: Chain): Promise<string> {
-  let id = chain.id
+  let networkID: number | string = chain.network_id
   const lists = await getLists().catch((err) => {
     log.error('Error getting validator lists', err)
     return undefined
@@ -138,12 +138,12 @@ async function getNetworkNameFromChainId(chain: Chain): Promise<string> {
   if (lists != null) {
     Object.entries(lists).forEach(([network, set]) => {
       if (overlaps(chain.validators, set)) {
-        id = network
+        networkID = network
       }
     })
   }
 
-  return id
+  return networkID.toString()
 }
 
 /**
@@ -182,7 +182,7 @@ class Agreement {
       const networkName = await getNetworkNameFromChainId(chain)
 
       log.info(
-        `Agreement: ${chain.id}:${networkName}:${Array.from(
+        `Agreement: ${chain.network_id}:${networkName}:${Array.from(
           chain.validators,
         ).join(',')}`,
       )

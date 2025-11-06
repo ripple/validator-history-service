@@ -1,7 +1,7 @@
 import { Manifest, StreamManifest } from 'xrpl-validator-domains'
 
 interface Chain {
-  id: string
+  network_id: number
   current: number
   first: number
   validators: Set<string>
@@ -15,6 +15,7 @@ interface Ledger {
   ledger_index: number
   validations: Set<string>
   first_seen: number
+  network_id: number // Which XRPL network does this ledger belong to?
 }
 
 interface StreamLedger {
@@ -87,6 +88,7 @@ interface Crawl {
 }
 
 // This is the raw validation message format you can expect to see from the validations stream
+// Please refer to this documentation section for more context: https://xrpl.org/docs/references/http-websocket-apis/public-api-methods/subscription-methods/subscribe#validations-stream
 interface ValidationRaw {
   flags: number
   full: boolean
@@ -104,6 +106,7 @@ interface ValidationRaw {
   reserve_base?: number
   reserve_inc?: number
   ledger_fee?: FeeVote
+  network_id: number
 
   // The validation_public_key is the same as the signing_key in StreamManifest
 }
