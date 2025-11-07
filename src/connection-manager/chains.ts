@@ -30,7 +30,7 @@ function addLedgerToChain(ledger: Ledger, chain: Chain): void {
  * @param chain - A chain object.
  * @returns Void.
  */
-async function saveValidatorChains(chain: Chain): Promise<void> {
+export async function saveValidatorChains(chain: Chain): Promise<void> {
   let id: number | string = chain.network_id
   const lists = await getLists().catch((err) => {
     log.error('Error getting validator lists', err)
@@ -172,7 +172,7 @@ class Chains {
    *
    * @param ledger - The Ledger being handled in order to update the chains.
    */
-  private updateChains(ledger: Ledger): void {
+  public updateChains(ledger: Ledger): void {
     // find the chain whose network_id matches the incoming ledger's network_id
     const chainWithIdenticalNetID = this.chains.filter((chain: Chain) => chain.network_id == ledger.network_id)
 
@@ -184,6 +184,24 @@ class Chains {
     else {
       addLedgerToChain(ledger, chainWithIdenticalNetID[0])
     }
+  }
+
+  /**
+   * Returns all the chains tracked by the Chains singleton instance.
+   *
+   * @returns The chains.
+   */
+  public getChains(): Chain[] {
+    return this.chains
+  }
+
+  /**
+   * Sets the chains. Note: This method is used for testing purposes only.
+   *
+   * @param chains - The specified chains array.
+   */
+  public setChains(chains: Chain[]): void {
+    this.chains = chains
   }
 }
 
