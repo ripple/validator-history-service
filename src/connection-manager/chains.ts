@@ -23,7 +23,7 @@ function addLedgerToChain(ledger: Ledger, chain: Chain): void {
 
   chain.current = ledger.ledger_index
   chain.updated = ledger.first_seen
-  log.info(`Adding ledger ${JSON.stringify(ledger)} into the Chain ${chain.network_id}`)
+  log.info(`Adding ledger ${JSON.stringify(ledger)} into the network ${chain.network_id}`)
 }
 
 /**
