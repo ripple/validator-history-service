@@ -125,7 +125,7 @@ class Chains {
 
     for(const chain of this.chains) {
       if(chain.validators.has('nHU4bLE3EmSqNwfL4AP1UZeTNPrSPPP6FXLKXo2uqfHuvBQxDVKd') || chain.validators.has('n9LbM9S5jeGopF5J1vBDoGxzV6rNS8K1T5DzhNynkFLqR9N2fywX')) {
-        console.log('DEBUG: Validatig the continuity of XRPL Mainnet validated ledgers: ', chain)
+        log.debug('DEBUG: Validating the continuity of XRPL Mainnet validated ledgers: ' + JSON.stringify(chain))
 
         // check if the obtained ledgers are consecutive
         for(const ledger of chain.ledgers) {
@@ -138,7 +138,7 @@ class Chains {
 
 
           if(ledger.ledger_index !== LAST_SEEN_MAINNET_LEDGER_INDEX + 1) {
-            console.log('ERROR: Ledgers are not consecutive. Void between indices: ' + LAST_SEEN_MAINNET_LEDGER_INDEX + ' and ' + ledger.ledger_index)
+            log.error('ERROR: Ledgers are not consecutive. Void between indices: ' + LAST_SEEN_MAINNET_LEDGER_INDEX + ' and ' + ledger.ledger_index)
           }
           LAST_SEEN_MAINNET_LEDGER_INDEX = ledger.ledger_index
         }
