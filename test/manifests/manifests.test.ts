@@ -204,15 +204,12 @@ describe('manifest ingest', () => {
     const sevenDaysAgo = new Date()
     sevenDaysAgo.setDate(sevenDaysAgo.getDate() - 8)
 
-    // Insert a non-UNL validator that is older than 7 days
+    // Insert a UNL validator and a non-UNL validator that is older than 7 days
     const nonUNLValidator = {
       master_key: 'nHBtDzdRDykxiuv7uSMPTcGexNm879RUUz5GW4h1qgjbtyvWZ1LE',
       signing_key: 'n9LCf7NtwcyXVc5fYB6UVByRoQZqJDhrMUoKnr3GQB6mFqpcmMzx',
       last_ledger_time: sevenDaysAgo,
     }
-
-    // Insert a UNL validator that is older than 7 days
-    // The signing key from unl1 fixture is: n9LCf7NtwcyXVc5fYB6UVByRoQZqJDhrMUoKnr3GQB6mFqpcmMzg
     const unlValidator = {
       master_key: 'nHBtDzdRDykxiuv7uSMPTcGexNm879RUUz5GW4h1qgjbtyvWZ1LE',
       signing_key: 'n9LCf7NtwcyXVc5fYB6UVByRoQZqJDhrMUoKnr3GQB6mFqpcmMzg',
@@ -241,7 +238,7 @@ describe('manifest ingest', () => {
     )
   })
 
-  test('handleManifest ensures validator is in database', async () => {
+  test('handleManifest retains UNL validators in database', async () => {
     const manifest = {
       master_key: 'nHBtDzdRDykxiuv7uSMPTcGexNm879RUUz5GW4h1qgjbtyvWZ1LE',
       master_signature:
@@ -258,7 +255,6 @@ describe('manifest ingest', () => {
     }>
     expect(validators).toHaveLength(0)
 
-    // Handle a manifest which should ensure the validator is in the database
     await handleManifest(manifest, 'test')
 
     // Verify that the validator is now in the database
