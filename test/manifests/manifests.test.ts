@@ -5,6 +5,7 @@ import {
   updateManifestsFromRippled,
   updateUNLManifests,
   updateUnls,
+  purgeOldValidators,
 } from '../../src/connection-manager/manifests'
 import {
   destroy,
@@ -193,5 +194,85 @@ describe('manifest ingest', () => {
       signing_key: 'n9LCf7NtwcyXVc5fYB6UVByRoQZqJDhrMUoKnr3GQB6mFqpcmMzg',
       unl: null,
     })
+  })
+
+  test('purgeOldValidators keeps UNL validators', async () => {
+    // Mock validator list contains a single validator
+    nock(`http://${VALIDATOR_URL}`).get('/').reply(200, unl1)
+
+    // Insert a UNL validator that is older than 7 days
+    const sevenDaysAgo = new Date()
+    sevenDaysAgo.setDate(sevenDaysAgo.getDate() - 8)
+
+    // Insert a non-UNL validator that is older than 7 days
+    const nonUNLValidator = {
+      master_key: 'nHBtDzdRDykxiuv7uSMPTcGexNm879RUUz5GW4h1qgjbtyvWZ1LE',
+      signing_key: 'n9LCf7NtwcyXVc5fYB6UVByRoQZqJDhrMUoKnr3GQB6mFqpcmMzx',
+      last_ledger_time: sevenDaysAgo,
+    }
+
+    // Insert a UNL validator that is older than 7 days
+    // The signing key from unl1 fixture is: n9LCf7NtwcyXVc5fYB6UVByRoQZqJDhrMUoKnr3GQB6mFqpcmMzg
+    const unlValidator = {
+      master_key: 'nHBtDzdRDykxiuv7uSMPTcGexNm879RUUz5GW4h1qgjbtyvWZ1LE',
+      signing_key: 'n9LCf7NtwcyXVc5fYB6UVByRoQZqJDhrMUoKnr3GQB6mFqpcmMzg',
+      last_ledger_time: sevenDaysAgo,
+    }
+
+    await query('validators').insert(nonUNLValidator)
+    await query('validators').insert(unlValidator)
+
+    // Verify both validators exist
+    let validators = (await query('validators').select('*')) as Array<{
+      signing_key: string
+    }>
+    expect(validators).toHaveLength(2)
+
+    // Run purge
+    await purgeOldValidators()
+
+    // Verify that the UNL validator is kept and the non-UNL validator is deleted
+    validators = (await query('validators').select('*')) as Array<{
+      signing_key: string
+    }>
+    expect(validators).toHaveLength(1)
+    expect(validators[0].signing_key).toBe(
+      'n9LCf7NtwcyXVc5fYB6UVByRoQZqJDhrMUoKnr3GQB6mFqpcmMzg',
+    )
+  })
+
+  test('handleManifest ensures validator is in database', async () => {
+    const manifest = {
+      master_key: 'nHBtDzdRDykxiuv7uSMPTcGexNm879RUUz5GW4h1qgjbtyvWZ1LE',
+      master_signature:
+        'BF0EE69D3CDE683828A2FCB997CC694A9D833B89D06B5AD65C9458F72D4CF0B1635DF95F02BE9C901D16C21414D27D30F8E7A429928D857355AE8CE7F9C07002',
+      seq: 1,
+      signature:
+        '3045022100B9558D709F8B2FE6B57056B0DB7BEEDE2329C344069455F33BFE4A953994287402205AF2FA3CC71A6F89895FE33746FA74210763A07E441964F3073ADEC2697CD781',
+      signing_key: 'n9LCf7NtwcyXVc5fYB6UVByRoQZqJDhrMUoKnr3GQB6mFqpcmMzg',
+    }
+
+    // Verify no validators exist initially
+    let validators = (await query('validators').select('*')) as Array<{
+      signing_key: string
+    }>
+    expect(validators).toHaveLength(0)
+
+    // Handle a manifest which should ensure the validator is in the database
+    await handleManifest(manifest)
+
+    // Verify that the validator is now in the database
+    const allValidators = (await query('validators').select('*')) as Array<{
+      signing_key: string
+      master_key: string
+    }>
+    expect(allValidators.length).toBeGreaterThanOrEqual(1)
+    const validator = allValidators.find(
+      (v) => v.signing_key === 'n9LCf7NtwcyXVc5fYB6UVByRoQZqJDhrMUoKnr3GQB6mFqpcmMzg',
+    )
+    expect(validator).toBeDefined()
+    expect(validator?.master_key).toBe(
+      'nHBtDzdRDykxiuv7uSMPTcGexNm879RUUz5GW4h1qgjbtyvWZ1LE',
+    )
   })
 })

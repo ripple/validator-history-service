@@ -40,6 +40,8 @@ async function getFirstUNL(networkName: string): Promise<string> {
 
 /**
  * Performs Domain verification and saves the Manifest.
+ * Also ensures the validator exists in the database as a heuristic
+ * to handle cases where validators may have been purged or are newly added to UNL.
  *
  * @param manifest - Manifest to be handled. Can be a Manifest, StreamManifest or hex string.
  * @returns A promise that resolves to void whether or not the manifest was saved.
@@ -48,24 +50,26 @@ export async function handleManifest(
   manifest: Manifest | StreamManifest | string,
 ): Promise<void> {
   let verification
+  let normalizedManifest: Manifest | undefined
   try {
     verification = await verifyValidatorDomain(manifest)
   } catch {
-    let normalized
     try {
-      normalized = normalizeManifest(manifest)
+      normalizedManifest = normalizeManifest(manifest)
     } catch (err: unknown) {
       log.error('Manifest could not be normalized', err)
       return
     }
     log.warn(
-      `Domain verification failed for manifest (master key): ${normalized.master_key}`,
+      `Domain verification failed for manifest (master key): ${normalizedManifest.master_key}`,
     )
     const dBManifest: DatabaseManifest = {
       domain_verified: false,
-      ...normalized,
+      ...normalizedManifest,
     }
     await saveManifest(dBManifest)
+    // Ensure validator is in database even if domain verification failed
+    await ensureValidatorInDatabase(normalizedManifest)
     return
   }
   if (verification.verified_manifest_signature && verification.manifest) {
@@ -74,6 +78,42 @@ export async function handleManifest(
       ...verification.manifest,
     }
     await saveManifest(dBManifest)
+    // Ensure validator is in database
+    await ensureValidatorInDatabase(verification.manifest)
+  }
+}
+
+/**
+ * Ensures a validator exists in the database.
+ * This is a heuristic to guarantee that validators in the UNL blob are tracked,
+ * even if they were previously purged due to inactivity or are newly added to the UNL.
+ *
+ * @param manifest - The normalized manifest.
+ * @returns A promise that resolves to void.
+ */
+async function ensureValidatorInDatabase(manifest: Manifest): Promise<void> {
+  try {
+    if (!manifest.signing_key || !manifest.master_key) {
+      return
+    }
+
+    // Check if validator already exists
+    const existing = await query('validators')
+      .where('signing_key', '=', manifest.signing_key)
+      .first()
+
+    if (!existing) {
+      // Insert the validator if it doesn't exist
+      await query('validators').insert({
+        signing_key: manifest.signing_key,
+        master_key: manifest.master_key,
+      })
+      log.info(
+        `Ensured validator ${manifest.signing_key} exists in database`,
+      )
+    }
+  } catch (err) {
+    log.error(`Error ensuring validator in database`, err)
   }
 }
 
@@ -244,16 +284,46 @@ async function updateRevocations(): Promise<void> {
 }
 
 /**
- * Deletes validators that are older than an hour.
+ * Deletes validators that are older than an hour, but keeps validators that are in the UNL.
  *
  * @returns Void.
  */
-async function purgeOldValidators(): Promise<void> {
+export async function purgeOldValidators(): Promise<void> {
   const oneWeekAgo = new Date()
   oneWeekAgo.setDate(oneWeekAgo.getDate() - 7)
   log.info('Deleting old validators')
   try {
-    await query('validators').where('last_ledger_time', '<', oneWeekAgo).del()
+    // Get all UNL validators from all networks
+    const networks = (await getNetworks()).map((network) => network.id)
+    const unlValidatorSigningKeys: Set<string> = new Set()
+
+    for (const network of networks) {
+      try {
+        const unl: UNLBlob = await fetchValidatorList(await getFirstUNL(network))
+        unl.validators.forEach((validator: UNLValidator) => {
+          const manifestHex = Buffer.from(validator.manifest, 'base64')
+            .toString('hex')
+            .toUpperCase()
+          const manifest = normalizeManifest(manifestHex)
+          if (manifest.signing_key) {
+            unlValidatorSigningKeys.add(manifest.signing_key)
+          }
+        })
+      } catch (err) {
+        log.error(`Error fetching UNL for network ${network}`, err)
+      }
+    }
+
+    // Delete old validators that are NOT in the UNL
+    if (unlValidatorSigningKeys.size > 0) {
+      await query('validators')
+        .where('last_ledger_time', '<', oneWeekAgo)
+        .whereNotIn('signing_key', Array.from(unlValidatorSigningKeys))
+        .del()
+    } else {
+      // If no UNL validators found, delete all old validators
+      await query('validators').where('last_ledger_time', '<', oneWeekAgo).del()
+    }
   } catch (err) {
     log.error(`Error purging old validators`, err)
   }
