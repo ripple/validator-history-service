@@ -44,10 +44,12 @@ async function getFirstUNL(networkName: string): Promise<string> {
  * to handle cases where validators may have been purged or are newly added to UNL.
  *
  * @param manifest - Manifest to be handled. Can be a Manifest, StreamManifest or hex string.
+ * @param network - Optional network identifier for UNL validators.
  * @returns A promise that resolves to void whether or not the manifest was saved.
  */
 export async function handleManifest(
   manifest: Manifest | StreamManifest | string,
+  network?: string,
 ): Promise<void> {
   let verification
   let normalizedManifest: Manifest | undefined
@@ -69,7 +71,9 @@ export async function handleManifest(
     }
     await saveManifest(dBManifest)
     // Ensure validator is in database even if domain verification failed
-    await ensureValidatorInDatabase(normalizedManifest)
+    if (network) {
+      await retainUNLValidatorInDatabase(normalizedManifest, network)
+    }
     return
   }
   if (verification.verified_manifest_signature && verification.manifest) {
@@ -79,19 +83,25 @@ export async function handleManifest(
     }
     await saveManifest(dBManifest)
     // Ensure validator is in database
-    await ensureValidatorInDatabase(verification.manifest)
+    if (network) {
+      await retainUNLValidatorInDatabase(verification.manifest, network)
+    }
   }
 }
 
 /**
- * Ensures a validator exists in the database.
+ * Ensures a UNL validator exists in the database.
  * This is a heuristic to guarantee that validators in the UNL blob are tracked,
  * even if they were previously purged due to inactivity or are newly added to the UNL.
  *
  * @param manifest - The normalized manifest.
+ * @param network - The network the validator belongs to.
  * @returns A promise that resolves to void.
  */
-async function ensureValidatorInDatabase(manifest: Manifest): Promise<void> {
+async function retainUNLValidatorInDatabase(
+  manifest: Manifest,
+  network: string,
+): Promise<void> {
   try {
     if (!manifest.signing_key || !manifest.master_key) {
       return
@@ -99,7 +109,7 @@ async function ensureValidatorInDatabase(manifest: Manifest): Promise<void> {
 
     // Check if validator already exists
     const existing = await query('validators')
-      .where('signing_key', '=', manifest.signing_key)
+      .where({ signing_key: manifest.signing_key })
       .first()
 
     if (!existing) {
@@ -107,13 +117,14 @@ async function ensureValidatorInDatabase(manifest: Manifest): Promise<void> {
       await query('validators').insert({
         signing_key: manifest.signing_key,
         master_key: manifest.master_key,
+        networks: network,
       })
       log.info(
-        `Ensured validator ${manifest.signing_key} exists in database`,
+        `Retained validator ${manifest.signing_key} in database for network ${network}`,
       )
     }
   } catch (err) {
-    log.error(`Error ensuring validator in database`, err)
+    log.error(`Error retaining validator in database`, err)
   }
 }
 
@@ -146,7 +157,7 @@ async function updateUNLManifestNetwork(network: string): Promise<void> {
       const manifestHex = Buffer.from(validator.manifest, 'base64')
         .toString('hex')
         .toUpperCase()
-      promises.push(handleManifest(manifestHex))
+      promises.push(handleManifest(manifestHex, network))
     })
     await Promise.all(promises)
   } catch (err) {

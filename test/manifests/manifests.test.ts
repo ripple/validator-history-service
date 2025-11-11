@@ -259,7 +259,7 @@ describe('manifest ingest', () => {
     expect(validators).toHaveLength(0)
 
     // Handle a manifest which should ensure the validator is in the database
-    await handleManifest(manifest)
+    await handleManifest(manifest, 'test')
 
     // Verify that the validator is now in the database
     const allValidators = (await query('validators').select('*')) as Array<{
