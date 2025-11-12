@@ -250,7 +250,7 @@ describe('manifest ingest', () => {
     }
 
     // Verify no validators exist initially
-    let validators = (await query('validators').select('*')) as Array<{
+    const validators = (await query('validators').select('*')) as Array<{
       signing_key: string
     }>
     expect(validators).toHaveLength(0)
@@ -264,7 +264,9 @@ describe('manifest ingest', () => {
     }>
     expect(allValidators.length).toBeGreaterThanOrEqual(1)
     const validator = allValidators.find(
-      (v) => v.signing_key === 'n9LCf7NtwcyXVc5fYB6UVByRoQZqJDhrMUoKnr3GQB6mFqpcmMzg',
+      (val) =>
+        val.signing_key ===
+        'n9LCf7NtwcyXVc5fYB6UVByRoQZqJDhrMUoKnr3GQB6mFqpcmMzg',
     )
     expect(validator).toBeDefined()
     expect(validator?.master_key).toBe(

@@ -238,7 +238,7 @@ export default async function getNetworkOrAdd(
     const { node_unl } = crawl
     if (node_unl != null) {
       const unlNetwork = await getNetworkFromUNL(node_unl)
-      // eslint-disable-next-line max-depth -- Necessary here
+
       if (unlNetwork != null) {
         return res.status(200).send({
           result: 'success',

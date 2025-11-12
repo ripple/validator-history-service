@@ -16,6 +16,7 @@ import {
   UNLBlob,
   UNLValidator,
   DatabaseManifest,
+  DatabaseValidator,
 } from '../shared/types'
 import { fetchValidatorList, fetchRpcManifest, getLists } from '../shared/utils'
 import logger from '../shared/utils/logger'
@@ -108,9 +109,9 @@ async function retainUNLValidatorInDatabase(
     }
 
     // Check if validator already exists
-    const existing = await query('validators')
+    const existing = (await query('validators')
       .where({ signing_key: manifest.signing_key })
-      .first()
+      .first()) as DatabaseValidator | undefined
 
     if (!existing) {
       // Insert the validator if it doesn't exist
@@ -186,7 +187,6 @@ export async function updateManifestsFromRippled(): Promise<void> {
 
     const handleManifestPromises: Array<Promise<void>> = []
     for (const manifestHex of manifests) {
-      // eslint-disable-next-line max-depth -- necessary depth
       if (manifestHex) {
         handleManifestPromises.push(handleManifest(manifestHex))
       }
@@ -310,7 +310,9 @@ export async function purgeOldValidators(): Promise<void> {
 
     for (const network of networks) {
       try {
-        const unl: UNLBlob = await fetchValidatorList(await getFirstUNL(network))
+        const unl: UNLBlob = await fetchValidatorList(
+          await getFirstUNL(network),
+        )
         unl.validators.forEach((validator: UNLValidator) => {
           const manifestHex = Buffer.from(validator.manifest, 'base64')
             .toString('hex')

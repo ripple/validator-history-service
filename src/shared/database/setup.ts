@@ -1,4 +1,3 @@
-/* eslint-disable max-lines -- Required here since we setup all the tables along with their columns. */
 import logger from '../utils/logger'
 
 import networks from './networks'

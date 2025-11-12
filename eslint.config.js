@@ -50,6 +50,7 @@ module.exports = [
         },
       ],
       'max-params': ['warn', 4],
+      'max-depth': ['warn', 3],
 
       // Removes comments and blank lines from the max-line rules
       'max-lines-per-function': [
@@ -63,7 +64,7 @@ module.exports = [
       'max-lines': [
         'warn',
         {
-          max: 250,
+          max: 300,
           skipBlankLines: true,
           skipComments: true,
         },

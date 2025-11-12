@@ -1,4 +1,3 @@
-/* eslint-disable max-lines -- Complex functions */
 import WebSocket from 'ws'
 import {
   Client,
