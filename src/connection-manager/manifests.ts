@@ -295,7 +295,7 @@ async function updateRevocations(): Promise<void> {
 }
 
 /**
- * Deletes validators that are older than an hour, but keeps validators that are in the UNL.
+ * Deletes validators that are older than a week, but keeps validators that are in the UNL.
  *
  * @returns Void.
  */
