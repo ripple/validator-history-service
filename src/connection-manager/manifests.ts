@@ -9,6 +9,7 @@ import {
   query,
   db,
   getNetworks,
+  saveValidator,
 } from '../shared/database'
 import {
   StreamManifest,
@@ -115,11 +116,12 @@ async function retainUNLValidatorInDatabase(
 
     if (!existing) {
       // Insert the validator if it doesn't exist
-      await query('validators').insert({
+      const retainedValidator = {
         signing_key: manifest.signing_key,
         master_key: manifest.master_key,
         networks: network,
-      })
+      }
+      await saveValidator(retainedValidator)
       log.info(
         `Retained validator ${manifest.signing_key} in database for network ${network}`,
       )
