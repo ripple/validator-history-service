@@ -87,7 +87,6 @@ async function fetchNetworkAmendments(
           feature: amendment_id,
         })
 
-      // eslint-disable-next-line max-depth -- The depth is only 2, try catch should not count.
       if ('result' in featureOneResponse) {
         const feature = featureOneResponse.result[amendment_id]
         addAmendmentToCache(amendment_id, feature.name)

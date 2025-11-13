@@ -132,10 +132,10 @@ interface FeeVote {
 interface Validator {
   master_key?: string
   signing_key: string
-  ledger_hash: string
-  current_index: number
-  partial: boolean
-  last_ledger_time: Date
+  ledger_hash?: string
+  current_index?: number
+  partial?: boolean
+  last_ledger_time?: Date
   server_version?: string
   networks?: string
 }
