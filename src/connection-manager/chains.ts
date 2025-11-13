@@ -73,9 +73,14 @@ class Chains {
    */
   public updateLedgers(validation: ValidationRaw): void {
     if(validation.network_id == undefined) {
-      log.warn(`Validation ${JSON.stringify(validation)} has no network id`)
+      log.trace(`Validation ${JSON.stringify(validation)} has no network id`)
       return
     }
+    if(validation.network_id == 0 && Number(validation.ledger_index) < 100000000) {
+      log.trace('XRPL Mainnet Validation is really old. Ignoring this validation: ' + JSON.stringify(validation))
+      return
+    }
+
     const { ledger_hash, validation_public_key: signing_key } = validation
     const ledger_index = Number(validation.ledger_index)
 
@@ -90,8 +95,6 @@ class Chains {
         network_id: validation.network_id,
       })
     }
-
-    log.info(`Grouping ledger ${ledger_hash} into the chain with network id: ${validation.network_id}`)
 
     this.ledgersByHash.get(ledger_hash)?.validations.add(signing_key)
   }
@@ -123,9 +126,13 @@ class Chains {
       this.updateChains(ledger)
     }
 
+    // Note: The below loop is purely used to debug the XRPL Mainnet. There are no functional side-effects from this loop.
     for(const chain of this.chains) {
-      if(chain.validators.has('nHU4bLE3EmSqNwfL4AP1UZeTNPrSPPP6FXLKXo2uqfHuvBQxDVKd') || chain.validators.has('n9LbM9S5jeGopF5J1vBDoGxzV6rNS8K1T5DzhNynkFLqR9N2fywX')) {
-        log.debug('DEBUG: Validating the continuity of XRPL Mainnet validated ledgers: ' + JSON.stringify(chain))
+      if (chain.network_id == 0) {
+        log.trace('Validating the continuity of XRPL Mainnet validated ledgers: ')
+        log.trace(JSON.stringify(chain))
+        log.trace('Ledgers stored in the chain: ' + JSON.stringify(Array.from(chain.ledgers)))
+        log.trace('Validators belonging to the chain: ' + JSON.stringify(Array.from(chain.validators)))
 
         // check if the obtained ledgers are consecutive
         for(const ledger of chain.ledgers) {
@@ -138,7 +145,7 @@ class Chains {
 
 
           if(ledger.ledger_index !== LAST_SEEN_MAINNET_LEDGER_INDEX + 1) {
-            log.error('ERROR: Ledgers are not consecutive. Void between indices: ' + LAST_SEEN_MAINNET_LEDGER_INDEX + ' and ' + ledger.ledger_index)
+            log.error('Ledgers are not consecutive on XRPL Mainnet. Void between indices: ' + LAST_SEEN_MAINNET_LEDGER_INDEX + ' and ' + ledger.ledger_index)
           }
           LAST_SEEN_MAINNET_LEDGER_INDEX = ledger.ledger_index
         }
