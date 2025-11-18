@@ -20,12 +20,8 @@ function addLedgerToChain(ledger: Ledger, chain: Chain): void {
   for (const existingLedger of chain.ledgers) {
     if (existingLedger.ledger_index === ledger.ledger_index) {
       log.error(
-        `Invariant Violation: Found two ledgers with conflicting hashes in chain: ${JSON.stringify(
-          chain,
-        )}`,
+        `Invariant Violation: Found two ledgers with conflicting hashes and identical ledger indices in chain: ${chain.network_id}. Existing ledger: ${JSON.stringify(existingLedger)}. \nNew ledger: ${JSON.stringify(ledger)} has the following validators: ${Array.from(ledger.validations).join(', ')}. \nChain is backed by the following validators: ${Array.from(chain.validators).join(', ')}`,
       )
-      log.error(`Existing ledger: ${JSON.stringify(existingLedger)}`)
-      log.error(`New ledger: ${JSON.stringify(ledger)}`)
       return
     }
   }
