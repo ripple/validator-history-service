@@ -134,7 +134,7 @@ class Chains {
    *
    * @returns List of chains being monitored by the system.
    */
-  /* eslint-disable max-statements, complexity -- this function performs useful debug tasks */
+  /* eslint-disable max-statements, complexity, max-lines-per-function -- this function performs useful debug tasks */
   public calculateChainsFromLedgers(): Chain[] {
     const list = []
     const now = Date.now()
@@ -176,8 +176,12 @@ class Chains {
         )
 
         /* eslint-disable max-depth -- this debug logic is specific to XRPL Mainnet only */
-        // check if the obtained ledgers are consecutive
-        for (const ledger of chain.ledgers) {
+        // Check if the obtained ledgers are consecutive.
+        // Sort the ledgers to account for out-of-order reciept of validations.
+        // Note: Sorting the ledgers does not affect the agreement computation.
+        for (const ledger of Array.from(chain.ledgers).sort(
+          (a, b) => a.ledger_index - b.ledger_index,
+        )) {
           // initialization of this variable occurs exactly once, at the start of the program
           if (LAST_SEEN_MAINNET_LEDGER_INDEX === -1) {
             LAST_SEEN_MAINNET_LEDGER_INDEX = ledger.ledger_index
@@ -199,7 +203,7 @@ class Chains {
 
     return this.chains
   }
-  /* eslint-enable max-statements, complexity */
+  /* eslint-enable max-statements, complexity, max-lines-per-function */
 
   /**
    * Clears all ledgers seen on a chain and saves the chain for each validator.
