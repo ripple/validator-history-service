@@ -107,7 +107,7 @@ async function setHandlers(
       const delay = BASE_RETRY_DELAY * 2 ** retryCount
 
       if (CLOSING_CODES.includes(code) && delay <= MAX_RETRY_DELAY) {
-        log.info(`Reconnecting to ${ws.url} on ${network} after ${delay}ms...`)
+        log.trace(`Reconnecting to ${ws.url} on ${network} after ${delay}ms...`)
 
         setTimeout(async () => {
           // Open a new Websocket connection for the same url
@@ -198,18 +198,20 @@ async function createConnections(): Promise<void> {
 
   const promises: Array<Promise<void>> = []
 
-  log.info(`Checking/Initiating connections to the following nodes: ${nodes.map((node) => node.ip + ' | ' + node.ws_url + ' | ' + node.networks + ' | ' + node.public_key).join(', ')}`)
+  log.info(
+    `Checking/Initiating connections to the following nodes: ${nodes.map((node) => `${node.ip} | ${node.ws_url} | ${node.networks} | ${node.public_key}`).join(', ')}`,
+  )
 
   nodes.forEach((node: WsNode) => {
     promises.push(findConnection(node))
   })
   await Promise.all(promises)
 
-  log.info(`${await getTotalConnectedNodes()} connections created`)
+  log.warn(`${await getTotalConnectedNodes()} connections created`)
 }
 
 setInterval(async () => {
-  log.info(`${await getTotalConnectedNodes()} connections established`)
+  log.warn(`${await getTotalConnectedNodes()} connections established`)
 }, REPORTING_INTERVAL)
 
 /**

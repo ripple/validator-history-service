@@ -16,14 +16,33 @@ let LAST_SEEN_MAINNET_LEDGER_INDEX = -1
  * @param chain - Chain to update.
  */
 function addLedgerToChain(ledger: Ledger, chain: Chain): void {
-  chain.ledgers.add({ ledger_hash: ledger.ledger_hash, ledger_index: ledger.ledger_index } as LedgerHashIndex)
+  // does the chain already have this ledger?
+  for (const existingLedger of chain.ledgers) {
+    if (existingLedger.ledger_index == ledger.ledger_index) {
+      log.error(
+        `Invariant Violation: Found two ledgers with conflicting hashes in chain: ${JSON.stringify(
+          chain,
+        )}`,
+      )
+      log.error(`Existing ledger: ${JSON.stringify(existingLedger)}`)
+      log.error(`New ledger: ${JSON.stringify(ledger)}`)
+      return
+    }
+  }
+
+  chain.ledgers.add({
+    ledger_hash: ledger.ledger_hash,
+    ledger_index: ledger.ledger_index,
+  } as LedgerHashIndex)
   for (const validator of ledger.validations) {
     chain.validators.add(validator)
   }
 
   chain.current = ledger.ledger_index
   chain.updated = ledger.first_seen
-  log.info(`Adding ledger ${JSON.stringify(ledger)} into the network ${chain.network_id}`)
+  log.info(
+    `Adding ledger ${JSON.stringify(ledger)} into the network ${chain.network_id}`,
+  )
 }
 
 /**
@@ -49,7 +68,9 @@ export async function saveValidatorChains(chain: Chain): Promise<void> {
   const promises: Knex.QueryBuilder[] = []
   chain.validators.forEach((signing_key) => {
     promises.push(
-      query('validators').where({ signing_key }).update({ chain: id.toString() }),
+      query('validators')
+        .where({ signing_key })
+        .update({ chain: id.toString() }),
     )
   })
   try {
@@ -72,12 +93,19 @@ class Chains {
    * @param validation - A raw validation message.
    */
   public updateLedgers(validation: ValidationRaw): void {
-    if(validation.network_id == undefined) {
+    if (validation.network_id == undefined) {
       log.trace(`Validation ${JSON.stringify(validation)} has no network id`)
       return
     }
-    if(validation.network_id == 0 && Number(validation.ledger_index) < 100000000) {
-      log.trace('XRPL Mainnet Validation is really old. Ignoring this validation: ' + JSON.stringify(validation))
+    if (
+      validation.network_id == 0 &&
+      Number(validation.ledger_index) < 100000000
+    ) {
+      log.trace(
+        `XRPL Mainnet Validation is really old. Ignoring this validation: ${JSON.stringify(
+          validation,
+        )}`,
+      )
       return
     }
 
@@ -127,25 +155,37 @@ class Chains {
     }
 
     // Note: The below loop is purely used to debug the XRPL Mainnet. There are no functional side-effects from this loop.
-    for(const chain of this.chains) {
+    for (const chain of this.chains) {
       if (chain.network_id == 0) {
-        log.trace('Validating the continuity of XRPL Mainnet validated ledgers: ')
+        log.trace(
+          'Validating the continuity of XRPL Mainnet validated ledgers: ',
+        )
         log.trace(JSON.stringify(chain))
-        log.trace('Ledgers stored in the chain: ' + JSON.stringify(Array.from(chain.ledgers)))
-        log.trace('Validators belonging to the chain: ' + JSON.stringify(Array.from(chain.validators)))
+        log.trace(
+          `Ledgers stored in the chain: ${JSON.stringify(
+            Array.from(chain.ledgers),
+          )}`,
+        )
+        log.trace(
+          `Validators belonging to the chain: ${JSON.stringify(
+            Array.from(chain.validators),
+          )}`,
+        )
 
         // check if the obtained ledgers are consecutive
-        for(const ledger of chain.ledgers) {
-
+        for (const ledger of chain.ledgers) {
           // initialization of this variable occurs exactly once, at the start of the program
-          if(LAST_SEEN_MAINNET_LEDGER_INDEX === -1) {
+          if (LAST_SEEN_MAINNET_LEDGER_INDEX === -1) {
             LAST_SEEN_MAINNET_LEDGER_INDEX = ledger.ledger_index
             continue
           }
 
-
-          if(ledger.ledger_index !== LAST_SEEN_MAINNET_LEDGER_INDEX + 1) {
-            log.error('Ledgers are not consecutive on XRPL Mainnet. Void between indices: ' + LAST_SEEN_MAINNET_LEDGER_INDEX + ' and ' + ledger.ledger_index)
+          if (ledger.ledger_index !== LAST_SEEN_MAINNET_LEDGER_INDEX + 1) {
+            log.error(
+              `Ledgers are not consecutive on XRPL Mainnet. Void between indices: ${
+                LAST_SEEN_MAINNET_LEDGER_INDEX
+              } and ${ledger.ledger_index}`,
+            )
           }
           LAST_SEEN_MAINNET_LEDGER_INDEX = ledger.ledger_index
         }
@@ -166,6 +206,18 @@ class Chains {
     })
 
     for (const chain of this.chains) {
+      if (
+        chain.network_id == 0 &&
+        chain.current != LAST_SEEN_MAINNET_LEDGER_INDEX
+      ) {
+        log.error(
+          `Invariant Violation: Purging XRPL Mainnet chain ledgers. Sanity Check -- LedgerIndex of the last recorded ledger: ${
+            chain.current
+          }. LAST_SEEN_MAINNET_LEDGER_INDEX: ${
+            LAST_SEEN_MAINNET_LEDGER_INDEX
+          }. These values must be identical to ensure no ledgers are lost.`,
+        )
+      }
       chain.ledgers.clear()
       chain.incomplete = false
       promises.push(saveValidatorChains(chain))
@@ -182,7 +234,12 @@ class Chains {
   private addNewChain(ledger: Ledger): void {
     const current = ledger.ledger_index
     const validators = ledger.validations
-    const ledgerSet = new Set([{ ledger_hash: ledger.ledger_hash, ledger_index: ledger.ledger_index } as LedgerHashIndex])
+    const ledgerSet = new Set([
+      {
+        ledger_hash: ledger.ledger_hash,
+        ledger_index: ledger.ledger_index,
+      } as LedgerHashIndex,
+    ])
 
     const chain: Chain = {
       network_id: ledger.network_id,
@@ -194,7 +251,9 @@ class Chains {
       incomplete: true,
     }
 
-    log.info(`Discovered new chain with network id: ${chain.network_id}. Seeding it with ${JSON.stringify(ledger)}`)
+    log.info(
+      `Discovered new chain with network id: ${chain.network_id}. Seeding it with ${JSON.stringify(ledger)}`,
+    )
     this.chains.push(chain)
   }
 
@@ -205,14 +264,21 @@ class Chains {
    */
   public updateChains(ledger: Ledger): void {
     // find the chain whose network_id matches the incoming ledger's network_id
-    const chainWithIdenticalNetID = this.chains.filter((chain: Chain) => chain.network_id == ledger.network_id)
+    const chainWithIdenticalNetID = this.chains.filter(
+      (chain: Chain) => chain.network_id == ledger.network_id,
+    )
 
-    if (chainWithIdenticalNetID == undefined || chainWithIdenticalNetID.length === 0) {
+    if (
+      chainWithIdenticalNetID == undefined ||
+      chainWithIdenticalNetID.length === 0
+    ) {
       this.addNewChain(ledger)
     } else if (chainWithIdenticalNetID.length > 1) {
-      log.error('Invariant Violation: Discovered multiple chains with identical network-id: ', JSON.stringify(chainWithIdenticalNetID))
-    }
-    else {
+      log.error(
+        'Invariant Violation: Discovered multiple chains with identical network-id: ',
+        JSON.stringify(chainWithIdenticalNetID),
+      )
+    } else {
       addLedgerToChain(ledger, chainWithIdenticalNetID[0])
     }
   }

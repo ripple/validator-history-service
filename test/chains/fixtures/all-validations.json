@@ -9,7 +9,7 @@
     "signing_time": 669928656,
     "type": "validationReceived",
     "validation_public_key": "VALIDATOR1",
-    "network_id": 0
+    "network_id": 1025
   },
   {
     "flags": 2147483649,
@@ -21,7 +21,7 @@
     "signing_time": 669928656,
     "type": "validationReceived",
     "validation_public_key": "VALIDATOR2",
-    "network_id": 0
+    "network_id": 1025
   },
   {
     "flags": 2147483649,
@@ -33,7 +33,7 @@
     "signing_time": 669928656,
     "type": "validationReceived",
     "validation_public_key": "VALIDATOR3",
-    "network_id": 0
+    "network_id": 1025
   },
   {
     "flags": 2147483649,
@@ -45,7 +45,7 @@
     "signing_time": 669928656,
     "type": "validationReceived",
     "validation_public_key": "VALIDATOR1",
-    "network_id": 0
+    "network_id": 1025
   },
   {
     "flags": 2147483649,
@@ -57,7 +57,7 @@
     "signing_time": 669928656,
     "type": "validationReceived",
     "validation_public_key": "VALIDATOR2",
-    "network_id": 0
+    "network_id": 1025
   },
   {
     "flags": 2147483649,
@@ -69,7 +69,7 @@
     "signing_time": 669928656,
     "type": "validationReceived",
     "validation_public_key": "VALIDATOR3",
-    "network_id": 0
+    "network_id": 1025
   },
   {
     "flags": 2147483649,
@@ -81,7 +81,7 @@
     "signing_time": 669928656,
     "type": "validationReceived",
     "validation_public_key": "VALIDATOR1",
-    "network_id": 0
+    "network_id": 1025
   },
   {
     "flags": 2147483649,
@@ -93,7 +93,7 @@
     "signing_time": 669928656,
     "type": "validationReceived",
     "validation_public_key": "VALIDATOR2",
-    "network_id": 0
+    "network_id": 1025
   },
   {
     "flags": 2147483649,
@@ -105,6 +105,6 @@
     "signing_time": 669928656,
     "type": "validationReceived",
     "validation_public_key": "VALIDATOR3",
-    "network_id": 0
+    "network_id": 1025
   }
 ]

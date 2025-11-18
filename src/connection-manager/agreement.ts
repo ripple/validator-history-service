@@ -291,6 +291,7 @@ class Agreement {
    * @param validator_keys - Signing keys of validations for one validator.
    * @param validations - Set of ledger_hashes validated by signing_key.
    * @param ledgers - Set of ledger_hashes validated by network.
+   * @param ledgerHashIndexMap
    * @param incomplete - Is this agreement score incomplete.
    * @returns Void.
    */
@@ -301,20 +302,37 @@ class Agreement {
     incomplete: boolean,
   ): Promise<void> {
     // obtain ledger_hashes validated by the network, strip out the ledger_index info for agreement calculation purposes
-    let ledgers = new Set<string>()
-    for(const value of ledgerHashIndexMap) {
+    const ledgers = new Set<string>()
+    for (const value of ledgerHashIndexMap) {
       ledgers.add(value.ledger_hash)
     }
     const missed = setDifference(ledgers, validations)
     const validated = setIntersection(ledgers, validations)
 
-    if (validator_keys.master_key == 'nHU4bLE3EmSqNwfL4AP1UZeTNPrSPPP6FXLKXo2uqfHuvBQxDVKd' || validator_keys.signing_key == 'n9LbM9S5jeGopF5J1vBDoGxzV6rNS8K1T5DzhNynkFLqR9N2fywX') {
-      log.info('XRPL Mainnet received the following ledgers: ' + JSON.stringify(Array.from(ledgerHashIndexMap)))
-      log.info('Number of Validations received from the Ripple validator: ' + validations.size)
-      log.info('Validations received by the Ripple validator: ' + JSON.stringify(Array.from(validations.keys())))
-      log.info('Missed ledgers: ' + JSON.stringify(Array.from(missed)))
-      log.info('Validated ledgers: ' + JSON.stringify(Array.from(validated)))
-      log.info('Incomplete: ' + incomplete)
+    if (
+      validator_keys.master_key ==
+        'nHU4bLE3EmSqNwfL4AP1UZeTNPrSPPP6FXLKXo2uqfHuvBQxDVKd' ||
+      validator_keys.signing_key ==
+        'n9LbM9S5jeGopF5J1vBDoGxzV6rNS8K1T5DzhNynkFLqR9N2fywX'
+    ) {
+      log.info(
+        `XRPL Mainnet received the following ledgers: ${JSON.stringify(
+          Array.from(ledgerHashIndexMap),
+        )}`,
+      )
+      log.info(
+        `Number of Validations received from the Ripple validator: ${
+          validations.size
+        }`,
+      )
+      log.info(
+        `Validations received by the Ripple validator: ${JSON.stringify(
+          Array.from(validations.keys()),
+        )}`,
+      )
+      log.info(`Missed ledgers: ${JSON.stringify(Array.from(missed))}`)
+      log.info(`Validated ledgers: ${JSON.stringify(Array.from(validated))}`)
+      log.info(`Incomplete: ${incomplete}`)
     }
 
     const agreement: AgreementScore = {
