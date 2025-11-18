@@ -1,3 +1,4 @@
+/* eslint-disable max-lines -- this file contains complex, essential logic */
 import {
   getAgreementScores,
   saveHourlyAgreement,
@@ -290,8 +291,7 @@ class Agreement {
    *
    * @param validator_keys - Signing keys of validations for one validator.
    * @param validations - Set of ledger_hashes validated by signing_key.
-   * @param ledgers - Set of ledger_hashes validated by network.
-   * @param ledgerHashIndexMap
+   * @param ledgerHashIndexMap - Set of pairs of (ledger_hash, ledger_index) ledgers validated by the network.
    * @param incomplete - Is this agreement score incomplete.
    * @returns Void.
    */
@@ -310,9 +310,9 @@ class Agreement {
     const validated = setIntersection(ledgers, validations)
 
     if (
-      validator_keys.master_key ==
+      validator_keys.master_key ===
         'nHU4bLE3EmSqNwfL4AP1UZeTNPrSPPP6FXLKXo2uqfHuvBQxDVKd' ||
-      validator_keys.signing_key ==
+      validator_keys.signing_key ===
         'n9LbM9S5jeGopF5J1vBDoGxzV6rNS8K1T5DzhNynkFLqR9N2fywX'
     ) {
       log.info(

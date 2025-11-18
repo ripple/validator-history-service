@@ -1,13 +1,12 @@
-import { jest } from '@jest/globals'
-import type { Chain } from '../../src/shared/types'
-
-import { destroy, query, setupTables } from '../../src/shared/database'
 import { saveValidatorChains } from '../../src/connection-manager/chains'
-
+import { destroy, query, setupTables } from '../../src/shared/database'
+import type { Chain, LedgerHashIndex } from '../../src/shared/types'
 
 jest.mock('../../src/shared/utils', () => {
   // Re-export actual utilities except `getLists`
-  const actual = jest.requireActual('../../src/shared/utils')
+  const actual: typeof import('../../src/shared/utils') = jest.requireActual(
+    '../../src/shared/utils',
+  )
   return {
     ...(actual as object),
     getLists: jest.fn(async () => {
@@ -39,14 +38,18 @@ describe('validate the logic of saveValidatorChains', () => {
     jest.useRealTimers()
   })
 
-  test('test the happy-path scenario of saveValidatorChains', async () => {
+  test('the happy-path scenario of saveValidatorChains', async () => {
     const sampleChain: Chain = {
       network_id: 1025,
       current: 1,
       first: 1,
       validators: new Set(['VALIDATOR1', 'VALIDATOR2', 'VALIDATOR3']),
       updated: Date.now(),
-      ledgers: new Set(['LEDGER1', 'LEDGER2', 'LEDGER3']),
+      ledgers: new Set([
+        { ledger_hash: 'LEDGER1', ledger_index: 1 } as LedgerHashIndex,
+        { ledger_hash: 'LEDGER2', ledger_index: 2 } as LedgerHashIndex,
+        { ledger_hash: 'LEDGER3', ledger_index: 3 } as LedgerHashIndex,
+      ]),
       incomplete: false,
     }
     // seed the validators table with three entries, with all but the `chain` column.
@@ -57,8 +60,12 @@ describe('validate the logic of saveValidatorChains', () => {
     ])
     await saveValidatorChains(sampleChain)
 
-    const validators = await query('validators').select('*')
-    expect(validators.length).toBe(3)
+    const validators: Array<{ signing_key: string; chain: string }> =
+      (await query('validators').select('*')) as Array<{
+        signing_key: string
+        chain: string
+      }>
+    expect(validators).toHaveLength(3)
 
     expect(validators[0].chain).toBe('fake-network')
     expect(validators[1].chain).toBe('fake-network')

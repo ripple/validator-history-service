@@ -199,7 +199,7 @@ async function createConnections(): Promise<void> {
   const promises: Array<Promise<void>> = []
 
   log.info(
-    `Checking/Initiating connections to the following nodes: ${nodes.map((node) => `${node.ip} | ${node.ws_url} | ${node.networks} | ${node.public_key}`).join(', ')}`,
+    `Checking/Initiating connections to the following nodes: ${nodes.map((node) => `${node.ip} | ${node.ws_url ?? ''} | ${node.networks} | ${node.public_key ?? ''}`).join(', ')}`,
   )
 
   nodes.forEach((node: WsNode) => {

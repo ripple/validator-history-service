@@ -1,6 +1,5 @@
 import { Manifest, StreamManifest } from 'xrpl-validator-domains'
 
-// export type LedgerHashIndex = [string, number];
 export interface LedgerHashIndex {
   ledger_hash: string
   ledger_index: number
@@ -20,7 +19,7 @@ interface Ledger {
   ledger_index: number
   validations: Set<string>
   first_seen: number
-  network_id: number // Which XRPL network does this ledger belong to?
+  network_id: number
 }
 
 interface StreamLedger {

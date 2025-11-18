@@ -18,7 +18,7 @@ let LAST_SEEN_MAINNET_LEDGER_INDEX = -1
 function addLedgerToChain(ledger: Ledger, chain: Chain): void {
   // does the chain already have this ledger?
   for (const existingLedger of chain.ledgers) {
-    if (existingLedger.ledger_index == ledger.ledger_index) {
+    if (existingLedger.ledger_index === ledger.ledger_index) {
       log.error(
         `Invariant Violation: Found two ledgers with conflicting hashes in chain: ${JSON.stringify(
           chain,
@@ -93,12 +93,14 @@ class Chains {
    * @param validation - A raw validation message.
    */
   public updateLedgers(validation: ValidationRaw): void {
-    if (validation.network_id == undefined) {
+    // eslint-disable-next-line max-len -- comment is required to explain the legacy behavior
+    // eslint-disable-next-line @typescript-eslint/no-unnecessary-condition -- older rippled binaries do not return a network_id field
+    if (validation.network_id === undefined) {
       log.trace(`Validation ${JSON.stringify(validation)} has no network id`)
       return
     }
     if (
-      validation.network_id == 0 &&
+      validation.network_id === 0 &&
       Number(validation.ledger_index) < 100000000
     ) {
       log.trace(
@@ -132,6 +134,7 @@ class Chains {
    *
    * @returns List of chains being monitored by the system.
    */
+  /* eslint-disable max-statements, complexity -- this function performs useful debug tasks */
   public calculateChainsFromLedgers(): Chain[] {
     const list = []
     const now = Date.now()
@@ -156,7 +159,7 @@ class Chains {
 
     // Note: The below loop is purely used to debug the XRPL Mainnet. There are no functional side-effects from this loop.
     for (const chain of this.chains) {
-      if (chain.network_id == 0) {
+      if (chain.network_id === 0) {
         log.trace(
           'Validating the continuity of XRPL Mainnet validated ledgers: ',
         )
@@ -172,6 +175,7 @@ class Chains {
           )}`,
         )
 
+        /* eslint-disable max-depth -- this debug logic is specific to XRPL Mainnet only */
         // check if the obtained ledgers are consecutive
         for (const ledger of chain.ledgers) {
           // initialization of this variable occurs exactly once, at the start of the program
@@ -189,11 +193,13 @@ class Chains {
           }
           LAST_SEEN_MAINNET_LEDGER_INDEX = ledger.ledger_index
         }
+        /* eslint-enable max-depth */
       }
     }
 
     return this.chains
   }
+  /* eslint-enable max-statements, complexity */
 
   /**
    * Clears all ledgers seen on a chain and saves the chain for each validator.
@@ -207,8 +213,8 @@ class Chains {
 
     for (const chain of this.chains) {
       if (
-        chain.network_id == 0 &&
-        chain.current != LAST_SEEN_MAINNET_LEDGER_INDEX
+        chain.network_id === 0 &&
+        chain.current !== LAST_SEEN_MAINNET_LEDGER_INDEX
       ) {
         log.error(
           `Invariant Violation: Purging XRPL Mainnet chain ledgers. Sanity Check -- LedgerIndex of the last recorded ledger: ${
@@ -224,6 +230,47 @@ class Chains {
     }
 
     await Promise.all(promises)
+  }
+
+  /**
+   * Updates Chains as ledgers are parsed.
+   *
+   * @param ledger - The Ledger being handled in order to update the chains.
+   */
+  public updateChains(ledger: Ledger): void {
+    // find the chain whose network_id matches the incoming ledger's network_id
+    const chainWithIdenticalNetID: Chain[] = this.chains.filter(
+      (chain: Chain) => chain.network_id === ledger.network_id,
+    )
+
+    if (chainWithIdenticalNetID.length === 0) {
+      this.addNewChain(ledger)
+    } else if (chainWithIdenticalNetID.length > 1) {
+      log.error(
+        'Invariant Violation: Discovered multiple chains with identical network-id: ',
+        JSON.stringify(chainWithIdenticalNetID),
+      )
+    } else {
+      addLedgerToChain(ledger, chainWithIdenticalNetID[0])
+    }
+  }
+
+  /**
+   * Returns all the chains tracked by the Chains singleton instance.
+   *
+   * @returns The chains.
+   */
+  public getChains(): Chain[] {
+    return this.chains
+  }
+
+  /**
+   * Sets the chains. Note: This method is used for testing purposes only.
+   *
+   * @param chains - The specified chains array.
+   */
+  public setChains(chains: Chain[]): void {
+    this.chains = chains
   }
 
   /**
@@ -255,50 +302,6 @@ class Chains {
       `Discovered new chain with network id: ${chain.network_id}. Seeding it with ${JSON.stringify(ledger)}`,
     )
     this.chains.push(chain)
-  }
-
-  /**
-   * Updates Chains as ledgers are parsed.
-   *
-   * @param ledger - The Ledger being handled in order to update the chains.
-   */
-  public updateChains(ledger: Ledger): void {
-    // find the chain whose network_id matches the incoming ledger's network_id
-    const chainWithIdenticalNetID = this.chains.filter(
-      (chain: Chain) => chain.network_id == ledger.network_id,
-    )
-
-    if (
-      chainWithIdenticalNetID == undefined ||
-      chainWithIdenticalNetID.length === 0
-    ) {
-      this.addNewChain(ledger)
-    } else if (chainWithIdenticalNetID.length > 1) {
-      log.error(
-        'Invariant Violation: Discovered multiple chains with identical network-id: ',
-        JSON.stringify(chainWithIdenticalNetID),
-      )
-    } else {
-      addLedgerToChain(ledger, chainWithIdenticalNetID[0])
-    }
-  }
-
-  /**
-   * Returns all the chains tracked by the Chains singleton instance.
-   *
-   * @returns The chains.
-   */
-  public getChains(): Chain[] {
-    return this.chains
-  }
-
-  /**
-   * Sets the chains. Note: This method is used for testing purposes only.
-   *
-   * @param chains - The specified chains array.
-   */
-  public setChains(chains: Chain[]): void {
-    this.chains = chains
   }
 }
 

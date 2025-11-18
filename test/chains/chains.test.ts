@@ -34,7 +34,8 @@ describe('Creates chains', () => {
       validators: Set<string>
     }> = chains.calculateChainsFromLedgers()
 
-    expect(constructed).toHaveLength(1) // ledgers are recorded for only network_id == 0
+    // ledgers are recorded for only network_id == 1025
+    expect(constructed).toHaveLength(1)
     expect(constructed[0].ledgers).toEqual(
       new Set([
         { ledger_hash: 'LEDGER1', ledger_index: 1 } as LedgerHashIndex,
@@ -133,10 +134,11 @@ describe('Creates chains', () => {
         first: 1,
         validators: new Set(['VALIDATOR1', 'VALIDATOR2', 'VALIDATOR3']),
         updated: Date.now(),
+        // Note: This is the only change in the state of the system under test
         ledgers: new Set([
           { ledger_hash: 'LEDGER1', ledger_index: 1 } as LedgerHashIndex,
           { ledger_hash: 'LEDGER2', ledger_index: 2 } as LedgerHashIndex,
-        ]), // Note: This is the only change in the state of the system under test
+        ]),
         incomplete: true,
       } as Chain,
       {
@@ -246,7 +248,8 @@ describe('Creates chains', () => {
     // Attempt to add another ledger with the same index (should be ignored)
     chains.updateChains({
       ledger_hash: 'HASH_B',
-      ledger_index: 1, // same index as HASH_A
+      // same ledger_index as HASH_A
+      ledger_index: 1,
       validations: new Set(['VAL2']),
       first_seen: now + 1,
       network_id: 1025,
