@@ -175,9 +175,19 @@ class Chains {
         // Check if the obtained ledgers are consecutive.
         // Sort the ledgers to account for out-of-order reciept of validations.
         // Note: Sorting the ledgers does not affect the agreement computation.
-        for (const ledger of Array.from(chain.ledgers).sort(
-          (a, b) => a.ledger_index - b.ledger_index,
-        )) {
+        const sortedLedgers: LedgerHashIndex[] = Array.from(chain.ledgers).sort(
+          (a: LedgerHashIndex, b: LedgerHashIndex) =>
+            a.ledger_index - b.ledger_index,
+        )
+
+        // Note: Due to the async reception of validations, the previous hourly computation of agreement scores
+        // might have received "tardy" validations.
+        // That should not affect the continuity of ledgers in the VHS.
+        if (LAST_SEEN_MAINNET_LEDGER_INDEX >= sortedLedgers[0].ledger_index) {
+          LAST_SEEN_MAINNET_LEDGER_INDEX = -1
+        }
+
+        for (const ledger of sortedLedgers) {
           // initialization of this variable occurs exactly once, at the start of the program
           if (LAST_SEEN_MAINNET_LEDGER_INDEX === -1) {
             LAST_SEEN_MAINNET_LEDGER_INDEX = ledger.ledger_index
