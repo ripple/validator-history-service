@@ -1,3 +1,4 @@
+/* eslint-disable max-lines -- this file contains complex, essential logic */
 import {
   getAgreementScores,
   saveHourlyAgreement,
@@ -18,6 +19,7 @@ import {
   ValidatorKeys,
   Ballot,
   Chain,
+  LedgerHashIndex,
 } from '../shared/types'
 import { getLists, overlaps } from '../shared/utils'
 import logger from '../shared/utils/logger'
@@ -129,7 +131,7 @@ function isPreceedingFlagLedger(ledger_index: string): boolean {
  * @returns String.
  */
 async function getNetworkNameFromChainId(chain: Chain): Promise<string> {
-  let id = chain.id
+  let networkID: number | string = chain.network_id
   const lists = await getLists().catch((err) => {
     log.error('Error getting validator lists', err)
     return undefined
@@ -138,12 +140,12 @@ async function getNetworkNameFromChainId(chain: Chain): Promise<string> {
   if (lists != null) {
     Object.entries(lists).forEach(([network, set]) => {
       if (overlaps(chain.validators, set)) {
-        id = network
+        networkID = network
       }
     })
   }
 
-  return id
+  return networkID.toString()
 }
 
 /**
@@ -182,7 +184,7 @@ class Agreement {
       const networkName = await getNetworkNameFromChainId(chain)
 
       log.info(
-        `Agreement: ${chain.id}:${networkName}:${Array.from(
+        `Agreement: ${chain.network_id}:${networkName}:${Array.from(
           chain.validators,
         ).join(',')}`,
       )
@@ -268,7 +270,7 @@ class Agreement {
    */
   private async calculateValidatorAgreement(
     signing_key: string,
-    ledger_hashes: Set<string>,
+    ledger_hashes: Set<LedgerHashIndex>,
     incomplete: boolean,
   ): Promise<void> {
     const master_key = await signingToMaster(signing_key)
@@ -289,18 +291,49 @@ class Agreement {
    *
    * @param validator_keys - Signing keys of validations for one validator.
    * @param validations - Set of ledger_hashes validated by signing_key.
-   * @param ledgers - Set of ledger_hashes validated by network.
+   * @param ledgerHashIndexMap - Set of pairs of (ledger_hash, ledger_index) ledgers validated by the network.
    * @param incomplete - Is this agreement score incomplete.
    * @returns Void.
    */
   private async calculateHourlyAgreement(
     validator_keys: ValidatorKeys,
     validations: Map<string, number>,
-    ledgers: Set<string>,
+    ledgerHashIndexMap: Set<LedgerHashIndex>,
     incomplete: boolean,
   ): Promise<void> {
+    // obtain ledger_hashes validated by the network, strip out the ledger_index info for agreement calculation purposes
+    const ledgers = new Set<string>()
+    for (const value of ledgerHashIndexMap) {
+      ledgers.add(value.ledger_hash)
+    }
     const missed = setDifference(ledgers, validations)
     const validated = setIntersection(ledgers, validations)
+
+    if (
+      validator_keys.master_key ===
+        'nHU4bLE3EmSqNwfL4AP1UZeTNPrSPPP6FXLKXo2uqfHuvBQxDVKd' ||
+      validator_keys.signing_key ===
+        'n9LbM9S5jeGopF5J1vBDoGxzV6rNS8K1T5DzhNynkFLqR9N2fywX'
+    ) {
+      log.info(
+        `XRPL Mainnet received the following ledgers: ${JSON.stringify(
+          Array.from(ledgerHashIndexMap),
+        )}`,
+      )
+      log.info(
+        `Number of Validations received from the Ripple validator: ${
+          validations.size
+        }`,
+      )
+      log.info(
+        `Validations received by the Ripple validator: ${JSON.stringify(
+          Array.from(validations.keys()),
+        )}`,
+      )
+      log.info(`Missed ledgers: ${JSON.stringify(Array.from(missed))}`)
+      log.info(`Validated ledgers: ${JSON.stringify(Array.from(validated))}`)
+      log.info(`Incomplete: ${incomplete}`)
+    }
 
     const agreement: AgreementScore = {
       validated: validated.size,
