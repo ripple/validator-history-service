@@ -30,7 +30,10 @@ export default async function setupTables(): Promise<void> {
 
 async function setupCrawlsTable(): Promise<void> {
   const hasCrawls = await db().schema.hasTable('crawls')
-  if (!hasCrawls) {
+  if (!hasCrawls || !(await db().schema.hasColumn('crawls', 'network_id'))) {
+    // Note: Even though the existing data is lost due to the dropTable command,
+    // it will be repopulated by the crawls service in due time.
+    await db().raw('DROP TABLE IF EXISTS crawls CASCADE')
     await db().schema.createTable('crawls', (table) => {
       table.string('public_key').primary()
       table.dateTime('start')
@@ -42,6 +45,7 @@ async function setupCrawlsTable(): Promise<void> {
       table.string('ws_url')
       table.boolean('connected')
       table.string('networks')
+      table.integer('network_id')
       table.string('type')
       table.integer('uptime')
       table.integer('inbound_count')
@@ -192,13 +196,21 @@ async function setupDailyAgreementTable(): Promise<void> {
 
 async function setupNetworksTable(): Promise<void> {
   const hasNetworks = await db().schema.hasTable('networks')
-  if (!hasNetworks) {
+  // The network_id column is a new update to the schema. Check for its presence if a table already exists.
+  if (
+    !hasNetworks ||
+    !(await db().schema.hasColumn('networks', 'network_id'))
+  ) {
+    // Note: Even though the existing data is lost due to the dropTable command,
+    // it will be repopulated by the crawls service in due time.
+    await db().raw('DROP TABLE IF EXISTS networks CASCADE')
     await db().schema.createTable('networks', (table) => {
       table.string('id')
       table.string('entry')
       table.integer('port')
       table.string('unls')
-      table.primary(['entry'])
+      table.integer('network_id')
+      table.primary(['entry', 'network_id'])
     })
   }
   const networksIds = await query('networks').pluck('id')
@@ -218,6 +230,7 @@ async function setupNetworksTable(): Promise<void> {
           entry: network.entry,
           port: network.port,
           unls: network.unls.join(','),
+          network_id: network.network_id,
         })
         .catch((err: Error) => log.error(err.message))
     }

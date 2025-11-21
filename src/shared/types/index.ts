@@ -63,6 +63,7 @@ interface Node {
   server_state?: string
   io_latency_ms?: string
   load_factor_server?: string
+  network_id: number
 }
 
 interface Location {
@@ -167,6 +168,7 @@ interface DatabaseNetwork {
   entry: string
   port?: number
   unls: string
+  network_id: number
 }
 
 // This is the shape returned by vl.ripple.com
