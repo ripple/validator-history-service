@@ -154,6 +154,7 @@ class Chains {
     }
 
     // Note: The below loop is purely used to debug the XRPL Mainnet. There are no functional side-effects from this loop.
+    const START_OF_MAINNET_LEDGER_INDEX = LAST_SEEN_MAINNET_LEDGER_INDEX
     for (const chain of this.chains) {
       if (chain.network_id === 0) {
         log.trace(
@@ -206,6 +207,7 @@ class Chains {
         /* eslint-enable max-depth */
       }
     }
+    log.info(`Over the previous hour, VHS processed ledgers between indices: (${START_OF_MAINNET_LEDGER_INDEX} to ${LAST_SEEN_MAINNET_LEDGER_INDEX} (inclusive)] on XRPL Mainnet.`)
 
     return this.chains
   }
