@@ -26,6 +26,7 @@ export default async function setupTables(): Promise<void> {
   await setupBallotTable()
   await addAmendmentsDataFromJSON()
   await setupConnectionHealthTable()
+  await setupValidationsTable()
 }
 
 async function setupCrawlsTable(): Promise<void> {
@@ -275,6 +276,33 @@ async function setupConnectionHealthTable(): Promise<void> {
       table.string('network')
       table.boolean('connected')
       table.datetime('status_update_time')
+    })
+  }
+}
+
+async function setupValidationsTable(): Promise<void> {
+  const hasValidations = await db().schema.hasTable('validations')
+  if (!hasValidations) {
+    await db().schema.createTable('validations', (table) => {
+      table.bigInteger('flags')
+      table.boolean('full')
+      table.string('ledger_hash')
+      table.string('ledger_index')
+      table.string('master_key')
+      table.text('signature').primary()
+      table.bigInteger('signing_time')
+      table.string('type')
+      table.string('validation_public_key')
+      table.string('server_version').nullable()
+      table.string('networks').nullable()
+      // table.json('amendments').nullable()
+      table.integer('base_fee').nullable()
+      table.integer('reserve_base').nullable()
+      table.integer('reserve_inc').nullable()
+      // table.json('ledger_fee').nullable()
+      table.string('cookie').nullable()
+      table.string('validated_hash').nullable()
+      table.integer('network_id').nullable()
     })
   }
 }
