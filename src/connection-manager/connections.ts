@@ -207,11 +207,11 @@ async function createConnections(): Promise<void> {
   })
   await Promise.all(promises)
 
-  log.warn(`${await getTotalConnectedNodes()} connections created`)
+  log.info(`${await getTotalConnectedNodes()} connections created`)
 }
 
 setInterval(async () => {
-  log.warn(`${await getTotalConnectedNodes()} connections established`)
+  log.info(`${await getTotalConnectedNodes()} connections established`)
 }, REPORTING_INTERVAL)
 
 /**

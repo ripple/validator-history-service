@@ -251,7 +251,7 @@ export default async function getNetworkOrAdd(
     }
 
     // check if node public key is already recorded
-    const { public_key } = crawl.this_node
+    const { public_key, network_id } = crawl.this_node
     const publicKeyNetwork = await getNetworkFromPublicKey(public_key)
     if (publicKeyNetwork != null) {
       return res.status(200).send({
@@ -260,12 +260,7 @@ export default async function getNetworkOrAdd(
       })
     }
     // add node to networks list
-    const newNetwork = await addNode(
-      entryUrl,
-      node_unl,
-      port,
-      crawl.this_node.network_id,
-    )
+    const newNetwork = await addNode(entryUrl, node_unl, port, network_id)
 
     return res.status(200).send({
       result: 'success',
