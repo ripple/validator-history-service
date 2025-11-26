@@ -207,7 +207,9 @@ class Chains {
         /* eslint-enable max-depth */
       }
     }
-    log.info(`Over the previous hour, VHS processed ledgers between indices: (${START_OF_MAINNET_LEDGER_INDEX} to ${LAST_SEEN_MAINNET_LEDGER_INDEX} (inclusive)] on XRPL Mainnet.`)
+    log.info(
+      `Over the previous hour, VHS processed ledgers between indices: (${START_OF_MAINNET_LEDGER_INDEX} to ${LAST_SEEN_MAINNET_LEDGER_INDEX} (inclusive)] on XRPL Mainnet.`,
+    )
 
     return this.chains
   }

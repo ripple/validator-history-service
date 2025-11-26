@@ -1,4 +1,3 @@
-/* eslint-disable max-lines -- this file contains complex, essential logic */
 import {
   getAgreementScores,
   saveHourlyAgreement,
@@ -309,31 +308,11 @@ class Agreement {
     const missed = setDifference(ledgers, validations)
     const validated = setIntersection(ledgers, validations)
 
-    if (
-      validator_keys.master_key ===
-        'nHU4bLE3EmSqNwfL4AP1UZeTNPrSPPP6FXLKXo2uqfHuvBQxDVKd' ||
-      validator_keys.signing_key ===
-        'n9LbM9S5jeGopF5J1vBDoGxzV6rNS8K1T5DzhNynkFLqR9N2fywX'
-    ) {
-      log.info(
-        `XRPL Mainnet received the following ledgers: ${JSON.stringify(
-          Array.from(ledgerHashIndexMap),
-        )}`,
-      )
-      log.info(
-        `Number of Validations received from the Ripple validator: ${
-          validations.size
-        }`,
-      )
-      log.info(
-        `Validations received by the Ripple validator: ${JSON.stringify(
-          Array.from(validations.keys()),
-        )}`,
-      )
-      log.info(`Missed ledgers: ${JSON.stringify(Array.from(missed))}`)
-      log.info(`Validated ledgers: ${JSON.stringify(Array.from(validated))}`)
-      log.info(`Incomplete: ${incomplete}`)
-    }
+    log.trace(
+      `Tracking information from validator with Master-Key: ${validator_keys.master_key ?? ''}, Signing-Key: ${validator_keys.signing_key}`,
+    )
+    log.trace(`Missed ledgers: ${JSON.stringify(Array.from(missed))}`)
+    log.trace(`Validated ledgers: ${JSON.stringify(Array.from(validated))}`)
 
     const agreement: AgreementScore = {
       validated: validated.size,
