@@ -30,7 +30,7 @@ let unlSigningKeys: Set<string> = new Set()
 /**
  * Resets the UNL signing keys set.
  */
-export function resetUNLSigningKeys(): void {
+function resetUNLSigningKeys(): void {
   unlSigningKeys = new Set()
 }
 
