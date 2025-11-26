@@ -130,7 +130,7 @@ class Chains {
    *
    * @returns List of chains being monitored by the system.
    */
-  /* eslint-disable max-statements, complexity, max-lines-per-function -- this function performs useful debug tasks */
+
   public calculateChainsFromLedgers(): Chain[] {
     const list = []
     const now = Date.now()
@@ -153,67 +153,10 @@ class Chains {
       this.updateChains(ledger)
     }
 
-    // Note: The below loop is purely used to debug the XRPL Mainnet. There are no functional side-effects from this loop.
-    const START_OF_MAINNET_LEDGER_INDEX = LAST_SEEN_MAINNET_LEDGER_INDEX
-    for (const chain of this.chains) {
-      if (chain.network_id === 0) {
-        log.trace(
-          'Validating the continuity of XRPL Mainnet validated ledgers: ',
-        )
-        log.trace(JSON.stringify(chain))
-        log.trace(
-          `Ledgers stored in the chain: ${JSON.stringify(
-            Array.from(chain.ledgers),
-          )}`,
-        )
-        log.trace(
-          `Validators belonging to the chain: ${JSON.stringify(
-            Array.from(chain.validators),
-          )}`,
-        )
-
-        /* eslint-disable max-depth -- this debug logic is specific to XRPL Mainnet only */
-        // Check if the obtained ledgers are consecutive.
-        // Sort the ledgers to account for out-of-order reciept of validations.
-        // Note: Sorting the ledgers does not affect the agreement computation.
-        const sortedLedgers: LedgerHashIndex[] = Array.from(chain.ledgers).sort(
-          (a: LedgerHashIndex, b: LedgerHashIndex) =>
-            a.ledger_index - b.ledger_index,
-        )
-
-        // Note: Due to the async reception of validations, the previous hourly computation of agreement scores
-        // might have received "tardy" validations.
-        // That should not affect the continuity of ledgers in the VHS.
-        if (LAST_SEEN_MAINNET_LEDGER_INDEX >= sortedLedgers[0].ledger_index) {
-          LAST_SEEN_MAINNET_LEDGER_INDEX = -1
-        }
-
-        for (const ledger of sortedLedgers) {
-          // initialization of this variable occurs exactly once, at the start of the program
-          if (LAST_SEEN_MAINNET_LEDGER_INDEX === -1) {
-            LAST_SEEN_MAINNET_LEDGER_INDEX = ledger.ledger_index
-            continue
-          }
-
-          if (ledger.ledger_index !== LAST_SEEN_MAINNET_LEDGER_INDEX + 1) {
-            log.error(
-              `Ledgers are not consecutive on XRPL Mainnet. Void between indices: ${
-                LAST_SEEN_MAINNET_LEDGER_INDEX
-              } and ${ledger.ledger_index}`,
-            )
-          }
-          LAST_SEEN_MAINNET_LEDGER_INDEX = ledger.ledger_index
-        }
-        /* eslint-enable max-depth */
-      }
-    }
-    log.info(
-      `Over the previous hour, VHS processed ledgers between indices: (${START_OF_MAINNET_LEDGER_INDEX} to ${LAST_SEEN_MAINNET_LEDGER_INDEX} (inclusive)] on XRPL Mainnet.`,
-    )
+    this.auditMainnetLedgers()
 
     return this.chains
   }
-  /* eslint-enable max-statements, complexity, max-lines-per-function */
 
   /**
    * Clears all ledgers seen on a chain and saves the chain for each validator.
@@ -285,6 +228,71 @@ class Chains {
    */
   public setChains(chains: Chain[]): void {
     this.chains = chains
+  }
+
+  /**
+   * Audits the continuity of XRPL Mainnet validated ledgers.
+   * This is a purely debug function, with no functional side-effects.
+   * This method makes use of the this.chains data member to access the XRPL Mainnet ledgers.
+   *
+   */
+  private auditMainnetLedgers(): void {
+    const START_OF_MAINNET_LEDGER_INDEX = LAST_SEEN_MAINNET_LEDGER_INDEX
+    for (const chain of this.chains) {
+      if (chain.network_id === 0) {
+        log.trace(
+          'Validating the continuity of XRPL Mainnet validated ledgers: ',
+        )
+        log.trace(JSON.stringify(chain))
+        log.trace(
+          `Ledgers stored in the chain: ${JSON.stringify(
+            Array.from(chain.ledgers),
+          )}`,
+        )
+        log.trace(
+          `Validators belonging to the chain: ${JSON.stringify(
+            Array.from(chain.validators),
+          )}`,
+        )
+
+        /* eslint-disable max-depth -- this debug logic is specific to XRPL Mainnet only */
+        // Check if the obtained ledgers are consecutive.
+        // Sort the ledgers to account for out-of-order reciept of validations.
+        // Note: Sorting the ledgers does not affect the agreement computation.
+        const sortedLedgers: LedgerHashIndex[] = Array.from(chain.ledgers).sort(
+          (a: LedgerHashIndex, b: LedgerHashIndex) =>
+            a.ledger_index - b.ledger_index,
+        )
+
+        // Note: Due to the async reception of validations, the previous hourly computation of agreement scores
+        // might have received "tardy" validations.
+        // That should not affect the continuity of ledgers in the VHS.
+        if (LAST_SEEN_MAINNET_LEDGER_INDEX >= sortedLedgers[0].ledger_index) {
+          LAST_SEEN_MAINNET_LEDGER_INDEX = -1
+        }
+
+        for (const ledger of sortedLedgers) {
+          // initialization of this variable occurs exactly once, at the start of the program
+          if (LAST_SEEN_MAINNET_LEDGER_INDEX === -1) {
+            LAST_SEEN_MAINNET_LEDGER_INDEX = ledger.ledger_index
+            continue
+          }
+
+          if (ledger.ledger_index !== LAST_SEEN_MAINNET_LEDGER_INDEX + 1) {
+            log.error(
+              `Ledgers are not consecutive on XRPL Mainnet. Void between indices: ${
+                LAST_SEEN_MAINNET_LEDGER_INDEX
+              } and ${ledger.ledger_index}`,
+            )
+          }
+          LAST_SEEN_MAINNET_LEDGER_INDEX = ledger.ledger_index
+        }
+        /* eslint-enable max-depth */
+      }
+    }
+    log.info(
+      `Over the previous hour, VHS processed ledgers between indices: (${START_OF_MAINNET_LEDGER_INDEX} to ${LAST_SEEN_MAINNET_LEDGER_INDEX} (inclusive)] on XRPL Mainnet.`,
+    )
   }
 
   /**
