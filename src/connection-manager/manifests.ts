@@ -29,8 +29,6 @@ let unlSigningKeys: Set<string> = new Set()
 
 /**
  * Resets the UNL signing keys set. Used for testing.
- *
- * @returns Void.
  */
 export function resetUNLSigningKeys(): void {
   unlSigningKeys = new Set()

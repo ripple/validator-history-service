@@ -209,14 +209,18 @@ describe('manifest ingest', () => {
     })
 
     // Verify validator exists before purge
-    let validators = await query('validators').select('*')
+    let validators = (await query('validators').select('*')) as Array<{
+      signing_key: string
+    }>
     expect(validators).toHaveLength(1)
 
     // Run purge
     await purgeOldValidators()
 
     // Verify validator was deleted
-    validators = await query('validators').select('*')
+    validators = (await query('validators').select('*')) as Array<{
+      signing_key: string
+    }>
     expect(validators).toHaveLength(0)
   })
 
@@ -240,19 +244,27 @@ describe('manifest ingest', () => {
     })
 
     // Verify validator exists before purge
-    let validators = await query('validators').select('*')
+    let validators = (await query('validators').select('*')) as Array<{
+      signing_key: string
+    }>
     expect(validators.length).toBeGreaterThanOrEqual(1)
 
     // Run purge
     await purgeOldValidators()
 
     // Verify UNL validator was NOT deleted
-    validators = await query('validators').select('*')
+    validators = (await query('validators').select('*')) as Array<{
+      signing_key: string
+    }>
     const unlValidator = validators.find(
-      (v: any) => v.signing_key === 'n9LCf7NtwcyXVc5fYB6UVByRoQZqJDhrMUoKnr3GQB6mFqpcmMzg',
+      (validator) =>
+        validator.signing_key ===
+        'n9LCf7NtwcyXVc5fYB6UVByRoQZqJDhrMUoKnr3GQB6mFqpcmMzg',
     )
     expect(unlValidator).toBeDefined()
-    expect(unlValidator?.signing_key).toBe('n9LCf7NtwcyXVc5fYB6UVByRoQZqJDhrMUoKnr3GQB6mFqpcmMzg')
+    expect(unlValidator?.signing_key).toBe(
+      'n9LCf7NtwcyXVc5fYB6UVByRoQZqJDhrMUoKnr3GQB6mFqpcmMzg',
+    )
   })
 
   test('purgeOldValidators - keeps validator less than 30 days old', async () => {
@@ -266,15 +278,21 @@ describe('manifest ingest', () => {
     })
 
     // Verify validator exists before purge
-    let validators = await query('validators').select('*')
+    let validators = (await query('validators').select('*')) as Array<{
+      signing_key: string
+    }>
     expect(validators).toHaveLength(1)
 
     // Run purge
     await purgeOldValidators()
 
     // Verify recent validator was NOT deleted
-    validators = await query('validators').select('*')
+    validators = (await query('validators').select('*')) as Array<{
+      signing_key: string
+    }>
     expect(validators).toHaveLength(1)
-    expect(validators[0].signing_key).toBe('n9RecentValidator11111111111111111111111111111111111111111')
+    expect(validators[0].signing_key).toBe(
+      'n9RecentValidator11111111111111111111111111111111111111111',
+    )
   })
 })
