@@ -28,7 +28,7 @@ let jobsStarted = false
 let unlSigningKeys: Set<string> = new Set()
 
 /**
- * Resets the UNL signing keys set. Used for testing.
+ * Resets the UNL signing keys set.
  */
 export function resetUNLSigningKeys(): void {
   unlSigningKeys = new Set()
@@ -109,6 +109,7 @@ async function updateUNLManifestNetwork(network: string): Promise<void> {
     log.info('Fetching UNL...')
     const unl: UNLBlob = await fetchValidatorList(await getFirstUNL(network))
     const promises: Array<Promise<void>> = []
+    resetUNLSigningKeys()
 
     unl.validators.forEach((validator: UNLValidator) => {
       const manifestHex = Buffer.from(validator.manifest, 'base64')

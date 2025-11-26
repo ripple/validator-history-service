@@ -6,7 +6,6 @@ import {
   updateUNLManifests,
   updateUnls,
   purgeOldValidators,
-  resetUNLSigningKeys,
 } from '../../src/connection-manager/manifests'
 import {
   destroy,
@@ -34,7 +33,6 @@ describe('manifest ingest', () => {
   })
 
   beforeEach(async () => {
-    resetUNLSigningKeys()
     await query('manifests').delete('*')
     await query('validators').delete('*')
   })
