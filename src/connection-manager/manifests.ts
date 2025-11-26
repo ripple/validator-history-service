@@ -25,6 +25,16 @@ import hard_dunl from './fixtures/unl-hard.json'
 const log = logger({ name: 'manifests' })
 const MANIFESTS_JOB_INTERVAL = 60 * 60 * 1000
 let jobsStarted = false
+let unlSigningKeys: Set<string> = new Set()
+
+/**
+ * Resets the UNL signing keys set. Used for testing.
+ *
+ * @returns Void.
+ */
+export function resetUNLSigningKeys(): void {
+  unlSigningKeys = new Set()
+}
 
 /**
  * Get the first UNL in the list of UNLs for the network with name `networkName`.
@@ -106,6 +116,10 @@ async function updateUNLManifestNetwork(network: string): Promise<void> {
       const manifestHex = Buffer.from(validator.manifest, 'base64')
         .toString('hex')
         .toUpperCase()
+      const manifest = normalizeManifest(manifestHex)
+      if (manifest.signing_key) {
+        unlSigningKeys.add(manifest.signing_key)
+      }
       promises.push(handleManifest(manifestHex))
     })
     await Promise.all(promises)
@@ -244,16 +258,20 @@ async function updateRevocations(): Promise<void> {
 }
 
 /**
- * Deletes validators that are older than an hour.
+ * Deletes validators that are older than 30 days.
+ * UNL validators are not deleted even if they are older than 30 days.
  *
  * @returns Void.
  */
-async function purgeOldValidators(): Promise<void> {
-  const oneWeekAgo = new Date()
-  oneWeekAgo.setDate(oneWeekAgo.getDate() - 7)
+export async function purgeOldValidators(): Promise<void> {
+  const thirtyDaysAgo = new Date()
+  thirtyDaysAgo.setDate(thirtyDaysAgo.getDate() - 30)
   log.info('Deleting old validators')
   try {
-    await query('validators').where('last_ledger_time', '<', oneWeekAgo).del()
+    await query('validators')
+      .where('last_ledger_time', '<', thirtyDaysAgo)
+      .whereNotIn('signing_key', Array.from(unlSigningKeys))
+      .del()
   } catch (err) {
     log.error(`Error purging old validators`, err)
   }
