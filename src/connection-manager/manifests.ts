@@ -267,6 +267,10 @@ export async function purgeOldValidators(): Promise<void> {
   thirtyDaysAgo.setDate(thirtyDaysAgo.getDate() - 30)
   log.info('Deleting old validators')
   try {
+    if (unlSigningKeys.size === 0) {
+      log.info('No UNL signing keys, skipping purge')
+      return
+    }
     await query('validators')
       .where('last_ledger_time', '<', thirtyDaysAgo)
       .whereNotIn('signing_key', Array.from(unlSigningKeys))
