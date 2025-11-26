@@ -85,26 +85,47 @@ export async function getNodes(sinceStartDate: Date): Promise<WsNode[]> {
     .andWhere('c.start', '>', sinceStartDate) as Promise<WsNode[]>
 }
 
+/* eslint-disable max-lines-per-function -- this method updates manifests and validators tables */
 /**
  * Updates revoked column on older manifests.
  *
  * @param manifest -- Incoming manifest.
  * @returns The original manifest with the revoked column updated.
  */
-async function handleRevocations(
+export async function handleRevocations(
   manifest: DatabaseManifest,
 ): Promise<DatabaseManifest> {
   // Mark all older manifests as revoked
-  const revokedSigningKeys = (await query('manifests')
-    .where({ master_key: manifest.master_key })
-    .andWhere('seq', '<', manifest.seq)
-    .update({ revoked: true }, ['manifests.signing_key'])
-    .catch((err: Error) =>
-      log.error('Error revoking older manifests', err),
-    )) as DatabaseManifest[]
+  let revokedSigningKeys
+  for (let numberOfAttempts = 0; numberOfAttempts < 3; numberOfAttempts++) {
+    try {
+      revokedSigningKeys = (await query('manifests')
+        .where({ master_key: manifest.master_key })
+        .andWhere('seq', '<', manifest.seq)
+        .update({ revoked: true }, [
+          'manifests.signing_key',
+        ])) as DatabaseManifest[]
+      break
+    } catch (err: unknown) {
+      // eslint-disable-next-line max-depth -- DB deadlock needs special retry logic
+      if (err instanceof Error && 'code' in err && err.code === '40P01') {
+        log.error(
+          'Error revoking older manifests: Deadlock detected, retrying with Exponential Backoff',
+        )
+        // Exponential backoff
+        await new Promise(function executor(resolve, _reject) {
+          setTimeout(resolve, 2 ** numberOfAttempts * 1000)
+        })
+        continue
+      } else {
+        log.error('Error revoking older manifests', err)
+        break
+      }
+    }
+  }
 
   const revokedSigningKeysArray =
-    revokedSigningKeys.length > 0
+    revokedSigningKeys && revokedSigningKeys.length > 0
       ? await Promise.all(
           revokedSigningKeys.map(async (obj) => {
             return obj.signing_key
@@ -122,7 +143,8 @@ async function handleRevocations(
 
   const updated = { revoked: false, ...manifest }
 
-  if (newer.length !== 0) {
+  // eslint-disable-next-line @typescript-eslint/no-unnecessary-condition -- DB errors may return undefined responses
+  if (newer && newer.length !== 0) {
     updated.revoked = true
     revokedSigningKeysArray.push(manifest.signing_key)
   }
@@ -135,9 +157,13 @@ async function handleRevocations(
   await query('validators')
     .whereIn('signing_key', revokedSigningKeysCleaned)
     .update({ revoked: true })
+    .catch((err) =>
+      log.error('Error updating revoked manifest in validators table', err),
+    )
 
   return updated
 }
+/* eslint-enable max-lines-per-function */
 
 /**
  * Saves a Manifest to database.
