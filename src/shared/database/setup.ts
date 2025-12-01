@@ -30,10 +30,14 @@ export default async function setupTables(): Promise<void> {
 
 async function setupCrawlsTable(): Promise<void> {
   const hasCrawls = await db().schema.hasTable('crawls')
-  if (!hasCrawls || !(await db().schema.hasColumn('crawls', 'network_id'))) {
-    // Note: Even though the existing data is lost due to the dropTable command,
-    // it will be repopulated by the crawls service in due time.
-    await db().raw('DROP TABLE IF EXISTS crawls CASCADE')
+
+  if (hasCrawls && !(await db().schema.hasColumn('crawls', 'network_id'))) {
+    await db().schema.alterTable('crawls', (table) => {
+      table.integer('network_id')
+    })
+  }
+
+  if (!hasCrawls) {
     await db().schema.createTable('crawls', (table) => {
       table.string('public_key').primary()
       table.dateTime('start')
@@ -42,8 +46,6 @@ async function setupCrawlsTable(): Promise<void> {
       table.text('incomplete_shards')
       table.string('ip')
       table.integer('port')
-      table.string('ws_url')
-      table.boolean('connected')
       table.string('networks')
       table.integer('network_id')
       table.string('type')
@@ -196,21 +198,20 @@ async function setupDailyAgreementTable(): Promise<void> {
 
 async function setupNetworksTable(): Promise<void> {
   const hasNetworks = await db().schema.hasTable('networks')
+  if (hasNetworks && !(await db().schema.hasColumn('networks', 'network_id'))) {
+    await db().schema.alterTable('networks', (table) => {
+      table.integer('network_id')
+    })
+  }
   // The network_id column is a new update to the schema. Check for its presence if a table already exists.
-  if (
-    !hasNetworks ||
-    !(await db().schema.hasColumn('networks', 'network_id'))
-  ) {
-    // Note: Even though the existing data is lost due to the dropTable command,
-    // it will be repopulated by the crawls service in due time.
-    await db().raw('DROP TABLE IF EXISTS networks CASCADE')
+  if (!hasNetworks) {
     await db().schema.createTable('networks', (table) => {
       table.string('id')
       table.string('entry')
       table.integer('port')
       table.string('unls')
       table.integer('network_id')
-      table.primary(['entry', 'network_id'])
+      table.primary(['entry'])
     })
   }
   const networksIds = await query('networks').pluck('id')
