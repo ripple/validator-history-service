@@ -97,7 +97,7 @@ export async function handleRevocations(
 ): Promise<DatabaseManifest> {
   // Mark all older manifests as revoked
   let revokedSigningKeys
-  for (let numberOfAttempts = 0; numberOfAttempts < 3; numberOfAttempts++) {
+  for (let numberOfAttempts = 1; numberOfAttempts <= 3; numberOfAttempts++) {
     try {
       revokedSigningKeys = (await query('manifests')
         .where({ master_key: manifest.master_key })
@@ -110,7 +110,8 @@ export async function handleRevocations(
       // eslint-disable-next-line max-depth -- DB deadlock needs special retry logic
       if (err instanceof Error && 'code' in err && err.code === '40P01') {
         log.error(
-          'Error revoking older manifests: Deadlock detected, retrying with Exponential Backoff',
+          `Error revoking older manifests: Deadlock detected, retrying with Exponential Backoff. Current attempt: ${numberOfAttempts} of a maximum of 3 attempts.`,
+          err,
         )
         // Exponential backoff
         await new Promise(function executor(resolve, _reject) {
@@ -138,7 +139,10 @@ export async function handleRevocations(
     .where({ master_key: manifest.master_key })
     .andWhere('seq', '>', manifest.seq)
     .catch((err) =>
-      log.error('Error revoking current manifest', err),
+      log.error(
+        `Error finding newer manifests (whose sequence numbers are greater than the incoming manifest sequence number: ${manifest.seq})`,
+        err,
+      ),
     )) as DatabaseManifest[]
 
   const updated = { revoked: false, ...manifest }

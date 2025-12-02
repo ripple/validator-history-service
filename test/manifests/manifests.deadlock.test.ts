@@ -75,5 +75,6 @@ describe('handleRevocations - deadlock retry', () => {
     // returns the original manifest with possibly-updated revoked flag
     expect(updated.master_key).toBe('nMASTER1')
     expect(updated.seq).toBe(5)
+    expect(updated.revoked).toBe(false)
   })
 })
