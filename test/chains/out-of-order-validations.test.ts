@@ -17,7 +17,7 @@ describe('XRPL Mainnet continuity check - out-of-order ledgers', () => {
   })
 
   test('out-of-order validated ledgers do not log errors', () => {
-    jest.isolateModules(() => {
+    jest.isolateModules(async () => {
       jest.doMock('../../src/shared/utils/logger', () => ({
         __esModule: true,
         default: (): MockLogger => ({
@@ -69,12 +69,12 @@ describe('XRPL Mainnet continuity check - out-of-order ledgers', () => {
       const L3 = 100000003
 
       // Intentionally out-of-order arrival
-      chains.updateLedgers(makeValidationMessage('H3', L3, 'VAL_A'))
-      chains.updateLedgers(makeValidationMessage('H3', L3, 'VAL_B'))
-      chains.updateLedgers(makeValidationMessage('H2', L2, 'VAL_A'))
-      chains.updateLedgers(makeValidationMessage('H2', L2, 'VAL_B'))
-      chains.updateLedgers(makeValidationMessage('H1', L1, 'VAL_A'))
-      chains.updateLedgers(makeValidationMessage('H1', L1, 'VAL_B'))
+      await chains.updateLedgers(makeValidationMessage('H3', L3, 'VAL_A'))
+      await chains.updateLedgers(makeValidationMessage('H3', L3, 'VAL_B'))
+      await chains.updateLedgers(makeValidationMessage('H2', L2, 'VAL_A'))
+      await chains.updateLedgers(makeValidationMessage('H2', L2, 'VAL_B'))
+      await chains.updateLedgers(makeValidationMessage('H1', L1, 'VAL_A'))
+      await chains.updateLedgers(makeValidationMessage('H1', L1, 'VAL_B'))
 
       // Age entries past 10s threshold so they are processed
       Date.now = (): number => base + 11_000
@@ -86,6 +86,7 @@ describe('XRPL Mainnet continuity check - out-of-order ledgers', () => {
       expect(errorMock).not.toHaveBeenCalled()
 
       // restore clock
+      // eslint-disable-next-line require-atomic-updates -- there is no harm in reading stale value of Date.now
       Date.now = originalNow
     })
   })

@@ -255,7 +255,7 @@ class Agreement {
         validator.server_version = serverVersion
       }
 
-      chains.updateLedgers(validation)
+      await chains.updateLedgers(validation)
       await saveValidator(validator)
     }
   }

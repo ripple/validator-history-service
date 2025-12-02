@@ -22,7 +22,7 @@ describe('Single Validations', () => {
 
   test('Ignores single validations', async () => {
     for (const validation of singleValidations) {
-      chains.updateLedgers(validation)
+      await chains.updateLedgers(validation)
     }
 
     const time = Date.now() + 11000

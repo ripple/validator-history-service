@@ -1,7 +1,14 @@
+/* eslint-disable max-lines -- this file needs to handle modern and legacy rippled validators */
 import { Knex } from 'knex'
 
 import { query } from '../shared/database'
-import { Ledger, ValidationRaw, Chain, LedgerHashIndex } from '../shared/types'
+import {
+  Ledger,
+  ValidationRaw,
+  Chain,
+  LedgerHashIndex,
+  Validator,
+} from '../shared/types'
 import { getLists, overlaps } from '../shared/utils'
 import logger from '../shared/utils/logger'
 
@@ -88,12 +95,45 @@ class Chains {
    *
    * @param validation - A raw validation message.
    */
-  public updateLedgers(validation: ValidationRaw): void {
+  /* eslint-disable max-lines-per-function, max-statements -- this method needs to handle modern and legacy rippled validators */
+  public async updateLedgers(validation: ValidationRaw): Promise<void> {
     // eslint-disable-next-line max-len -- comment is required to explain the legacy behavior
     // eslint-disable-next-line @typescript-eslint/no-unnecessary-condition -- older rippled binaries do not return a network_id field
     if (validation.network_id === undefined) {
-      log.trace(`Validation ${JSON.stringify(validation)} has no network id`)
-      return
+      const networkNameToChainID = new Map<string, number>()
+      networkNameToChainID.set('mainnet', 0)
+      networkNameToChainID.set('testnet', 1)
+      networkNameToChainID.set('devnet', 2)
+      networkNameToChainID.set('amm-dev', 25)
+      networkNameToChainID.set('xahau-main', 21337)
+      networkNameToChainID.set('xahau-test', 21338)
+
+      // fetch the information from the validators table
+      let validator: Validator | undefined
+      try {
+        validator = (await query('validators')
+          .where('signing_key', validation.validation_public_key)
+          .first()) as Validator
+      } catch (err: unknown) {
+        log.error(
+          `updateLedgers: Error getting validator with signing key ${validation.validation_public_key} from the database`,
+          err,
+        )
+      }
+      if (validator?.networks && networkNameToChainID.has(validator.networks)) {
+        // eslint-disable-next-line require-atomic-updates -- there is no harm in reading stale value
+        validation.network_id = networkNameToChainID.get(
+          validator.networks,
+        ) as number
+        log.info(
+          `Validation ${JSON.stringify(validation)} is assigned into chain ${validation.network_id} based on the historical data in the validators table.`,
+        )
+      } else {
+        log.info(
+          `Validation ${JSON.stringify(validation)} has no network id. Ignoring this validation.`,
+        )
+        return
+      }
     }
     if (
       validation.network_id === 0 &&
@@ -124,6 +164,7 @@ class Chains {
 
     this.ledgersByHash.get(ledger_hash)?.validations.add(signing_key)
   }
+  /* eslint-enable max-lines-per-function, max-statements */
 
   /**
    * Updates and returns all chains. Called once per hour by calculateAgreement.

@@ -72,11 +72,11 @@ describe('XRPL Mainnet continuity check - missing ledgers', () => {
       // clear the previous state of the chains module
       await chains.purgeChains()
       // out-of-order ledgers will be sorted by ledger_index
-      chains.updateLedgers(makeValidationMessage('H3', L3, 'VAL_A'))
-      chains.updateLedgers(makeValidationMessage('H3', L3, 'VAL_B'))
+      await chains.updateLedgers(makeValidationMessage('H3', L3, 'VAL_A'))
+      await chains.updateLedgers(makeValidationMessage('H3', L3, 'VAL_B'))
 
-      chains.updateLedgers(makeValidationMessage('H1', L1, 'VAL_A'))
-      chains.updateLedgers(makeValidationMessage('H1', L1, 'VAL_B'))
+      await chains.updateLedgers(makeValidationMessage('H1', L1, 'VAL_A'))
+      await chains.updateLedgers(makeValidationMessage('H1', L1, 'VAL_B'))
 
       // Age entries past 10s threshold so they are processed
       Date.now = (): number => base + 11_000
