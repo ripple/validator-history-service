@@ -204,17 +204,29 @@ async function setupNetworksTable(): Promise<void> {
   const networksIds = await query('networks').pluck('id')
 
   if (networksIds.includes('hooks-test')) {
-    query('networks')
+    await query('networks')
       .del()
       .where('id', '=', 'hooks-test')
       .catch((err: Error) => log.error(err.message))
   }
 
-  networks.forEach((network) => {
+  networks.forEach(async (network) => {
     if (!networksIds.includes(network.id)) {
-      query('networks')
+      await query('networks')
         .insert({
           id: network.id,
+          entry: network.entry,
+          port: network.port,
+          unls: network.unls.join(','),
+        })
+        .catch((err: Error) => log.error(err.message))
+    }
+
+    if (network.id === 'test') {
+      await query('networks')
+        .where('id', '=', 'test')
+        .andWhere('entry', '!=', network.entry)
+        .update({
           entry: network.entry,
           port: network.port,
           unls: network.unls.join(','),
