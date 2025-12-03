@@ -23,6 +23,10 @@ const db = {
       '120000',
     10,
   ),
+  pool: {
+    min: 0,
+    max: 40,
+  },
 }
 
 const maxmind = {
