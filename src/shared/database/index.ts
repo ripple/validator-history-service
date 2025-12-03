@@ -115,7 +115,7 @@ export async function handleRevocations(
         )
         // Exponential backoff
         await new Promise(function executor(resolve, _reject) {
-          setTimeout(resolve, 2 ** numberOfAttempts * 1000)
+          setTimeout(resolve, 2 ** (numberOfAttempts - 1) * 1000)
         })
         continue
       } else {

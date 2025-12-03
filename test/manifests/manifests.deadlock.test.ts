@@ -65,11 +65,9 @@ describe('handleRevocations - deadlock retry', () => {
     // TODO: After upgrading to Jest 29, make use of jest fakeTimers
 
     const updated = await handleRevocations(manifest)
-    await new Promise(function executor(resolve, _reject) {
-      setTimeout(resolve, 3000)
-    })
-    // 2 retries + 1 invocation in this test
-    expect(setTimeout).toHaveBeenCalledTimes(2 + 1)
+    // mock has been wired to throw an error twice and then succeed in the third attempt
+    // setTimeout is only executed in the case of Deadlock detected error
+    expect(setTimeout).toHaveBeenCalledTimes(2)
     expect(updateMock).toHaveBeenCalledTimes(3)
 
     // returns the original manifest with possibly-updated revoked flag
