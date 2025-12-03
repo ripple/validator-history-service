@@ -30,7 +30,7 @@ const networks: Network[] = [
   },
   {
     id: 'test',
-    entry: 's.altnet.rippletest.net',
+    entry: 's1.altnet.rippletest.net',
     port: 51235,
     unls: ['vl.altnet.rippletest.net'],
   },
