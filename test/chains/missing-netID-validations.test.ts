@@ -1,9 +1,6 @@
 import chains from '../../src/connection-manager/chains'
 import { destroy, query, setupTables } from '../../src/shared/database'
-import type {
-  LedgerHashIndex,
-  ValidationRaw,
-} from '../../src/shared/types'
+import type { LedgerHashIndex, ValidationRaw } from '../../src/shared/types'
 
 import validations from './fixtures/all-validations.json'
 
