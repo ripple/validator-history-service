@@ -22,7 +22,8 @@
         "io_latency_ms": "1",
         "load_factor_server": "1",
         "uptime": "1",
-        "version": "1.6.0"
+        "version": "1.6.0",
+        "network_id": 0
       },
       "unl": {
         "validator_sites": [
@@ -54,7 +55,8 @@
         "io_latency_ms": "1",
         "load_factor_server": "1",
         "uptime": "1",
-        "version": "1.6.0"
+        "version": "1.6.0",
+        "network_id": 0
       }
     },
     "1.1.1.23": {
@@ -68,7 +70,8 @@
         "io_latency_ms": "1",
         "load_factor_server": "1",
         "uptime": "1",
-        "version": "1.6.0"
+        "version": "1.6.0",
+        "network_id": 0
       }
     }
   },
@@ -76,17 +79,20 @@
     {
       "public_key" : "n9Mh83gUuY4hBXVD9geWHsyVwz5h32rjauLWQCZJVTEbCb5TYs21",
       "ip": null,
-      "port": null
+      "port": null,
+      "network_id": 0
     },
     {
       "public_key": "n9Kt2gdtxsYV6h4SAfHkRFUMU8gB6rDQ3MktiB3MMEDS9s9obu9b",
       "ip": null,
-      "port": null
+      "port": null,
+      "network_id": 0
     },
     {
       "public_key": "n9LgkNWaPfRnxLKAgnSCMHRCyHBZsSdGBdRmyaYEArL3SBoq1EqK",
       "ip": "1.1.1.23",
-      "port": 51235
+      "port": 51235,
+      "network_id": 0
     }
   ]
 }

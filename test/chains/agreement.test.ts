@@ -57,6 +57,20 @@ describe('Agreement', () => {
     expect(daily_master_keys).toContain('VALIDATOR1MASTER')
     expect(daily_master_keys).toContain('VALIDATOR2MASTER')
     expect(daily_master_keys).toContain('VALIDATOR3MASTER')
+
+    expect(hourly_agreement).toHaveLength(3)
+    for (let i = 0; i < 3; i++) {
+      expect(hourly_agreement[i].agreement.validated).toBe(3)
+      expect(hourly_agreement[i].agreement.missed).toBe(0)
+      expect(hourly_agreement[i].agreement.incomplete).toBe(true)
+    }
+
+    expect(daily_agreement).toHaveLength(3)
+    for (let i = 0; i < 3; i++) {
+      expect(daily_agreement[i].agreement.validated).toBe(3)
+      expect(daily_agreement[i].agreement.missed).toBe(0)
+      expect(daily_agreement[i].agreement.incomplete).toBe(true)
+    }
   })
 
   test('Correctly decode server version for validators', () => {

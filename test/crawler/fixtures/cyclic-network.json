@@ -18,7 +18,8 @@
         "io_latency_ms": "1",
         "load_factor_server": "1",
         "uptime": "1",
-        "version": "1.6.0"
+        "version": "1.6.0",
+        "network_id": 0
       }
     },
     "2.2.2.23": {
@@ -39,7 +40,8 @@
         "io_latency_ms": "1",
         "load_factor_server": "1",
         "uptime": "1",
-        "version": "1.6.0"
+        "version": "1.6.0",
+        "network_id": 0
       }
     },
     "3.3.3.3": {
@@ -60,7 +62,8 @@
         "io_latency_ms": "1",
         "load_factor_server": "1",
         "uptime": "1",
-        "version": "1.6.0"
+        "version": "1.6.0",
+        "network_id": 0
       }
     }
   },
