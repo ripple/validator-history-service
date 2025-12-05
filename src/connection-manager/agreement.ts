@@ -1,3 +1,4 @@
+/* eslint-disable max-lines -- This file contains useful logging statements and complex logic. */
 import {
   getAgreementScores,
   saveHourlyAgreement,
@@ -99,18 +100,48 @@ async function updateAgreementScores(
 async function updateDailyAgreement(
   validator_keys: ValidatorKeys,
 ): Promise<void> {
-  const start = new Date()
-  start.setHours(0, 0, 0, 0)
-  const end = new Date()
-  end.setHours(23, 59, 59, 999)
+  interface DailyAgreementDate {
+    start: Date
+    end: Date
+  }
+  const datesForDailyAgreementComputation: DailyAgreementDate[] = []
+  const todayStart = new Date()
+  todayStart.setHours(0, 0, 0, 0)
+  const todayEnd = new Date()
+  todayEnd.setHours(23, 59, 59, 999)
 
-  const agreement = await getAgreementScores(validator_keys, start, end)
+  datesForDailyAgreementComputation.push({ start: todayStart, end: todayEnd })
 
-  await saveDailyAgreement({
-    main_key: validator_keys.master_key ?? validator_keys.signing_key,
-    day: start,
-    agreement,
-  })
+  // if this method is invoked over the last hour of a given day, save the agreement scores for the previous day.
+  // Without this additional logic, the agreement scores for the last hour (over VHSs' 24 hour time period) will not be saved.
+  // Background Context: VHS retroactively measures agreement scores for the validations received over the previous hour.
+  if (new Date().getHours() === 0) {
+    const yesterdayStart = new Date()
+    yesterdayStart.setDate(yesterdayStart.getDate() - 1)
+    yesterdayStart.setHours(0, 0, 0, 0)
+
+    const yesterdayEnd = new Date()
+    yesterdayEnd.setHours(23, 59, 59, 999)
+
+    datesForDailyAgreementComputation.push({
+      start: yesterdayStart,
+      end: yesterdayEnd,
+    })
+    // Note: saveDailyAgreement method is idempotent. There is no harm in invoking it for today and previous day.
+  }
+
+  for (const date of datesForDailyAgreementComputation) {
+    const agreement = await getAgreementScores(
+      validator_keys,
+      date.start,
+      date.end,
+    )
+    await saveDailyAgreement({
+      main_key: validator_keys.master_key ?? validator_keys.signing_key,
+      day: date.start,
+      agreement,
+    })
+  }
 }
 
 /**
@@ -324,6 +355,9 @@ class Agreement {
       start: this.reported_at,
       agreement,
     })
+    log.info(
+      `Saving hourly agreement for validator with Master-Key: ${validator_keys.master_key ?? ''}, Signing-Key: ${validator_keys.signing_key} indexed by time: ${this.reported_at.toISOString()}; Current time: ${new Date().toISOString()}; Agreement: ${JSON.stringify(agreement)}`,
+    )
 
     await update1HourValidatorAgreement(validator_keys, agreement)
     await updateAgreementScores(validator_keys)
@@ -373,3 +407,4 @@ function getAgreementInstance(): Agreement {
 }
 
 export default getAgreementInstance()
+/* eslint-enable max-lines */
