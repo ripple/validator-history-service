@@ -1,5 +1,5 @@
+/* eslint-disable import/first -- the fake time needs to be set before the construction of agreement object. */
 // set the time to be 2320 hours on an arbitrary dateat the UTC timezone.
-// the time needs to be set before the construction of agreement object.
 jest.useFakeTimers('modern')
 const agreementComputationStartTime = new Date('2025-01-01T16:20:00.000Z')
 jest.setSystemTime(agreementComputationStartTime)
@@ -8,6 +8,7 @@ import agreement from '../../src/connection-manager/agreement'
 import chains from '../../src/connection-manager/chains'
 import { destroy, query, setupTables } from '../../src/shared/database'
 import { DailyAgreement, ValidationRaw } from '../../src/shared/types'
+/* eslint-enable import/first */
 
 describe('Turn of the Day Agreement', () => {
   beforeAll(async () => {
