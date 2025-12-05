@@ -29,17 +29,19 @@ describe('Compute Total Ledgers Per Hour', () => {
 
   test('compute the total ledgers processed every hour', async () => {
     const sampleValidation = {
-      flags: 2147483649,
-      full: true,
+      type: 'validationReceived',
+      // the below four fields differ for each validation
       ledger_hash: 'LEDGER1',
       ledger_index: '1',
       master_key: 'VALIDATOR1MASTER',
+      validation_public_key: 'VALIDATOR1',
+      // the below fields are not pertinent to below test
+      flags: 2147483649,
+      full: true,
       signature:
         '30440220342DFBFBA1ACF758805A1CD5FF0C4E39F0A2800D0400F430A22BEBDB2B9E327A02204776C0E90942FB9CACDB763535AFAADBA1506E94CD92A605296153D8362D01E3',
       signing_time: 669928656,
-      type: 'validationReceived',
-      validation_public_key: 'VALIDATOR1',
-      network_id: 1025,
+      network_id: 1028,
     } as ValidationRaw
 
     const TOTAL_LEDGERS_PER_HOUR = 900

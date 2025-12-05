@@ -277,6 +277,7 @@ class Chains {
    * This method makes use of the this.chains data member to access the XRPL Mainnet ledgers.
    *
    */
+  /* eslint-disable max-lines-per-function, max-statements -- method contains useful logs */
   private auditMainnetLedgers(): void {
     const START_OF_MAINNET_LEDGER_INDEX = LAST_SEEN_MAINNET_LEDGER_INDEX
     for (const chain of this.chains) {
@@ -304,6 +305,13 @@ class Chains {
           (a: LedgerHashIndex, b: LedgerHashIndex) =>
             a.ledger_index - b.ledger_index,
         )
+
+        if (sortedLedgers.length === 0) {
+          log.error(
+            'FATAL: No ledgers recorded over the previous hour on XRPL Mainnet. This should never happen.',
+          )
+          break
+        }
 
         // Note: Due to the async reception of validations, the previous hourly computation of agreement scores
         // might have received "tardy" validations.
@@ -336,6 +344,7 @@ class Chains {
     )
   }
 
+  /* eslint-enable max-lines-per-function, max-statements */
   /**
    * Adds a new chain to chains.
    *
