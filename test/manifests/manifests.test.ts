@@ -226,18 +226,11 @@ describe('manifest ingest', () => {
     const thirtyOneDaysAgo = new Date()
     thirtyOneDaysAgo.setDate(thirtyOneDaysAgo.getDate() - 31)
 
-    // Mock UNL response with a validator
-    networks.forEach((network) => {
-      nock(`http://${network.unls[0]}`).get('/').reply(200, unl1)
-    })
-
-    // First, populate the UNL signing keys by calling updateUNLManifests
-    await updateUNLManifests()
-
     // Insert a validator that matches the UNL (from unl1 fixture)
     await query('validators').insert({
       signing_key: 'n9LCf7NtwcyXVc5fYB6UVByRoQZqJDhrMUoKnr3GQB6mFqpcmMzg',
       master_key: 'nHBtDzdRDykxiuv7uSMPTcGexNm879RUUz5GW4h1qgjbtyvWZ1LE',
+      unl: 'vl.ripple.com',
       last_ledger_time: thirtyOneDaysAgo,
     })
 
