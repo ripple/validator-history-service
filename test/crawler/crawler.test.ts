@@ -31,6 +31,10 @@ describe('Runs test crawl', () => {
     await query('crawls').delete('*')
   })
 
+  afterEach(async () => {
+    await query('crawls').delete('*')
+  })
+
   test('successfully crawls 3 node network', async () => {
     // Sets up mocking at endpoints specified in network1
     Object.keys(network1.peers).forEach((peer: string) => {

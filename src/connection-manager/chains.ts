@@ -101,7 +101,7 @@ class Chains {
    *
    * @param validation - A raw validation message.
    */
-  /* eslint-disable max-lines-per-function -- this method needs to handle modern and legacy rippled validators */
+  /* eslint-disable max-lines-per-function, max-statements, complexity -- method handles modern and legacy rippled validators */
   public async updateLedgers(validation: ValidationRaw): Promise<void> {
     // eslint-disable-next-line max-len -- comment is required to explain the legacy behavior
     // eslint-disable-next-line @typescript-eslint/no-unnecessary-condition -- older rippled binaries do not return a network_id field
@@ -133,9 +133,32 @@ class Chains {
         return
       }
     }
+    let XRPL_MAINNET_CURRENT_LEDGER_INDEX: number | undefined
+
+    const XRPL_MAINNET_CHAIN = this.chains.filter(
+      (chain) => chain.network_id === 0,
+    )
+    if (XRPL_MAINNET_CHAIN.length > 1) {
+      throw new Error(
+        `Non-unique XRPL Mainnet chain (network_id == 0) found. This should never happen. These are the conflicting chains: ${JSON.stringify(
+          XRPL_MAINNET_CHAIN,
+        )}`,
+      )
+    }
+
+    if (XRPL_MAINNET_CHAIN.length === 0) {
+      log.info(
+        'No XRPL Mainnet chain (network_id == 0) found. Discarding the check for recent ledgers on XRPL Mainnet.',
+      )
+    } else {
+      XRPL_MAINNET_CURRENT_LEDGER_INDEX = XRPL_MAINNET_CHAIN[0].current
+    }
+
+    // Discarding validations which are older than the last 100 ledgers on XRPL Mainnet (older than 380 seconds)
     if (
       validation.network_id === 0 &&
-      Number(validation.ledger_index) < 100000000
+      XRPL_MAINNET_CURRENT_LEDGER_INDEX !== undefined &&
+      Number(validation.ledger_index) < XRPL_MAINNET_CURRENT_LEDGER_INDEX - 100
     ) {
       log.trace(
         `XRPL Mainnet Validation is really old. Ignoring this validation: ${JSON.stringify(
@@ -162,7 +185,7 @@ class Chains {
 
     this.ledgersByHash.get(ledger_hash)?.validations.add(signing_key)
   }
-  /* eslint-enable max-lines-per-function */
+  /* eslint-enable max-lines-per-function, max-statements, complexity */
 
   /**
    * Updates and returns all chains. Called once per hour by calculateAgreement.
