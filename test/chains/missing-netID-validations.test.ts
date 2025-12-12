@@ -6,7 +6,7 @@ import validations from './fixtures/all-validations.json'
 
 jest.useFakeTimers()
 
-describe('Test the assignment of ledgers into appropriate chains', () => {
+describe('Test the assignment of ledgers into appropriate chains with legacy validations', () => {
   beforeAll(async () => {
     await setupTables()
   })
@@ -23,9 +23,9 @@ describe('Test the assignment of ledgers into appropriate chains', () => {
 
   test(`Simulate validationReceived messages without network_id field`, async () => {
     await query('validators').insert([
-      { signing_key: 'VALIDATOR1', networks: 'testnet' },
-      { signing_key: 'VALIDATOR2', networks: 'testnet' },
-      { signing_key: 'VALIDATOR3', networks: 'testnet' },
+      { signing_key: 'VALIDATOR1', networks: 'test' },
+      { signing_key: 'VALIDATOR2', networks: 'test' },
+      { signing_key: 'VALIDATOR3', networks: 'test' },
     ])
 
     for (const validation of validations) {

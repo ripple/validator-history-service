@@ -2,6 +2,7 @@
 import { Knex } from 'knex'
 
 import { query } from '../shared/database'
+import networks from '../shared/database/networks'
 import {
   Ledger,
   ValidationRaw,
@@ -83,6 +84,11 @@ export async function saveValidatorChains(chain: Chain): Promise<void> {
   }
 }
 
+const networkNameToChainID = new Map<string, number>()
+for (const item of networks) {
+  networkNameToChainID.set(item.id, item.network_id)
+}
+
 /**
  *
  */
@@ -95,19 +101,11 @@ class Chains {
    *
    * @param validation - A raw validation message.
    */
-  /* eslint-disable max-lines-per-function, max-statements -- this method needs to handle modern and legacy rippled validators */
+  /* eslint-disable max-lines-per-function -- this method needs to handle modern and legacy rippled validators */
   public async updateLedgers(validation: ValidationRaw): Promise<void> {
     // eslint-disable-next-line max-len -- comment is required to explain the legacy behavior
     // eslint-disable-next-line @typescript-eslint/no-unnecessary-condition -- older rippled binaries do not return a network_id field
     if (validation.network_id === undefined) {
-      const networkNameToChainID = new Map<string, number>()
-      networkNameToChainID.set('mainnet', 0)
-      networkNameToChainID.set('testnet', 1)
-      networkNameToChainID.set('devnet', 2)
-      networkNameToChainID.set('amm-dev', 25)
-      networkNameToChainID.set('xahau-main', 21337)
-      networkNameToChainID.set('xahau-test', 21338)
-
       // fetch the information from the validators table
       let validator: Validator | undefined
       try {
@@ -164,7 +162,7 @@ class Chains {
 
     this.ledgersByHash.get(ledger_hash)?.validations.add(signing_key)
   }
-  /* eslint-enable max-lines-per-function, max-statements */
+  /* eslint-enable max-lines-per-function */
 
   /**
    * Updates and returns all chains. Called once per hour by calculateAgreement.
