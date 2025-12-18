@@ -5,6 +5,7 @@ import {
   updateManifestsFromRippled,
   updateUNLManifests,
   updateUnls,
+  purgeOldValidators,
 } from '../../src/connection-manager/manifests'
 import {
   destroy,
@@ -193,5 +194,96 @@ describe('manifest ingest', () => {
       signing_key: 'n9LCf7NtwcyXVc5fYB6UVByRoQZqJDhrMUoKnr3GQB6mFqpcmMzg',
       unl: null,
     })
+  })
+
+  test('purgeOldValidators - purges validator older than 30 days', async () => {
+    const thirtyOneDaysAgo = new Date()
+    thirtyOneDaysAgo.setDate(thirtyOneDaysAgo.getDate() - 31)
+
+    await query('validators').insert({
+      signing_key: 'n9OldValidator1111111111111111111111111111111111111111111',
+      master_key: 'nHOldValidator1111111111111111111111111111111111111111111',
+      last_ledger_time: thirtyOneDaysAgo,
+    })
+
+    // Verify validator exists before purge
+    let validators = (await query('validators').select('*')) as Array<{
+      signing_key: string
+    }>
+    expect(validators).toHaveLength(1)
+
+    // Run purge
+    await purgeOldValidators()
+
+    // Verify validator was deleted
+    validators = (await query('validators').select('*')) as Array<{
+      signing_key: string
+    }>
+    expect(validators).toHaveLength(0)
+  })
+
+  test('purgeOldValidators - keeps UNL validator even if older than 30 days', async () => {
+    const thirtyOneDaysAgo = new Date()
+    thirtyOneDaysAgo.setDate(thirtyOneDaysAgo.getDate() - 31)
+
+    // Insert a validator that matches the UNL (from unl1 fixture)
+    await query('validators').insert({
+      signing_key: 'n9LCf7NtwcyXVc5fYB6UVByRoQZqJDhrMUoKnr3GQB6mFqpcmMzg',
+      master_key: 'nHBtDzdRDykxiuv7uSMPTcGexNm879RUUz5GW4h1qgjbtyvWZ1LE',
+      unl: 'vl.ripple.com',
+      last_ledger_time: thirtyOneDaysAgo,
+    })
+
+    // Verify validator exists before purge
+    let validators = (await query('validators').select('*')) as Array<{
+      signing_key: string
+    }>
+    expect(validators.length).toBeGreaterThanOrEqual(1)
+
+    // Run purge
+    await purgeOldValidators()
+
+    // Verify UNL validator was NOT deleted
+    validators = (await query('validators').select('*')) as Array<{
+      signing_key: string
+    }>
+    const unlValidator = validators.find(
+      (validator) =>
+        validator.signing_key ===
+        'n9LCf7NtwcyXVc5fYB6UVByRoQZqJDhrMUoKnr3GQB6mFqpcmMzg',
+    )
+    expect(unlValidator).toBeDefined()
+    expect(unlValidator?.signing_key).toBe(
+      'n9LCf7NtwcyXVc5fYB6UVByRoQZqJDhrMUoKnr3GQB6mFqpcmMzg',
+    )
+  })
+
+  test('purgeOldValidators - keeps validator less than 30 days old', async () => {
+    const tenDaysAgo = new Date()
+    tenDaysAgo.setDate(tenDaysAgo.getDate() - 10)
+
+    await query('validators').insert({
+      signing_key: 'n9RecentValidator11111111111111111111111111111111111111111',
+      master_key: 'nHRecentValidator11111111111111111111111111111111111111111',
+      last_ledger_time: tenDaysAgo,
+    })
+
+    // Verify validator exists before purge
+    let validators = (await query('validators').select('*')) as Array<{
+      signing_key: string
+    }>
+    expect(validators).toHaveLength(1)
+
+    // Run purge
+    await purgeOldValidators()
+
+    // Verify recent validator was NOT deleted
+    validators = (await query('validators').select('*')) as Array<{
+      signing_key: string
+    }>
+    expect(validators).toHaveLength(1)
+    expect(validators[0].signing_key).toBe(
+      'n9RecentValidator11111111111111111111111111111111111111111',
+    )
   })
 })

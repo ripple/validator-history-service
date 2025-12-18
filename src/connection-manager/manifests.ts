@@ -244,16 +244,20 @@ async function updateRevocations(): Promise<void> {
 }
 
 /**
- * Deletes validators that are older than an hour.
+ * Deletes validators that are older than 30 days.
+ * UNL validators are not deleted even if they are older than 30 days.
  *
  * @returns Void.
  */
-async function purgeOldValidators(): Promise<void> {
-  const oneWeekAgo = new Date()
-  oneWeekAgo.setDate(oneWeekAgo.getDate() - 7)
+export async function purgeOldValidators(): Promise<void> {
+  const thirtyDaysAgo = new Date()
+  thirtyDaysAgo.setDate(thirtyDaysAgo.getDate() - 30)
   log.info('Deleting old validators')
   try {
-    await query('validators').where('last_ledger_time', '<', oneWeekAgo).del()
+    await query('validators')
+      .where('last_ledger_time', '<', thirtyDaysAgo)
+      .whereNull('unl')
+      .del()
   } catch (err) {
     log.error(`Error purging old validators`, err)
   }
