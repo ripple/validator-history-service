@@ -1,6 +1,7 @@
 import bunyan from 'bunyan'
 
 interface Logger {
+  trace: (arg: string) => void
   info: (arg: string) => void
   warn: (arg: string) => void
   error: (arg: string, err?: unknown) => void
@@ -27,6 +28,14 @@ export default function logger(options: LoggerOptions): Logger {
   })
 
   return {
+    /**
+     * Trace level logs.
+     *
+     * @param arg - Message.
+     */
+    trace(arg: string): void {
+      log.trace(arg)
+    },
     /**
      * Info level logs.
      *

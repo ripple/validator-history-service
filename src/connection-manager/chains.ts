@@ -1,21 +1,21 @@
+/* eslint-disable max-lines -- this file needs to handle modern and legacy rippled validators */
 import { Knex } from 'knex'
 
 import { query } from '../shared/database'
-import { Ledger, ValidationRaw, Chain } from '../shared/types'
+import networks from '../shared/database/networks'
+import {
+  Ledger,
+  ValidationRaw,
+  Chain,
+  LedgerHashIndex,
+  Validator,
+} from '../shared/types'
 import { getLists, overlaps } from '../shared/utils'
 import logger from '../shared/utils/logger'
 
 const log = logger({ name: 'chains' })
-/**
- * Helper to sort chains by chain length.
- *
- * @param chain1 - First Chain.
- * @param chain2 - Second Chain.
- * @returns Number for sorting criteria.
- */
-function sortChainLength(chain1: Chain, chain2: Chain): number {
-  return chain2.current - chain2.first - (chain1.current - chain1.first)
-}
+
+let LAST_SEEN_MAINNET_LEDGER_INDEX = -1
 
 /**
  * Adds ledger information to chain.
@@ -24,13 +24,29 @@ function sortChainLength(chain1: Chain, chain2: Chain): number {
  * @param chain - Chain to update.
  */
 function addLedgerToChain(ledger: Ledger, chain: Chain): void {
-  chain.ledgers.add(ledger.ledger_hash)
+  // does the chain already have this ledger?
+  for (const existingLedger of chain.ledgers) {
+    if (existingLedger.ledger_index === ledger.ledger_index) {
+      log.error(
+        `Invariant Violation: Found two ledgers with conflicting hashes and identical ledger indices in chain: ${chain.network_id}. Existing ledger: ${JSON.stringify(existingLedger)}. \nNew ledger: ${JSON.stringify(ledger)} has the following validators: ${Array.from(ledger.validations).join(', ')}. \nChain is backed by the following validators: ${Array.from(chain.validators).join(', ')}`,
+      )
+      return
+    }
+  }
+
+  chain.ledgers.add({
+    ledger_hash: ledger.ledger_hash,
+    ledger_index: ledger.ledger_index,
+  } as LedgerHashIndex)
   for (const validator of ledger.validations) {
     chain.validators.add(validator)
   }
 
   chain.current = ledger.ledger_index
   chain.updated = ledger.first_seen
+  log.info(
+    `Adding ledger ${JSON.stringify(ledger)} into the network ${chain.network_id}`,
+  )
 }
 
 /**
@@ -39,8 +55,8 @@ function addLedgerToChain(ledger: Ledger, chain: Chain): void {
  * @param chain - A chain object.
  * @returns Void.
  */
-async function saveValidatorChains(chain: Chain): Promise<void> {
-  let id = chain.id
+export async function saveValidatorChains(chain: Chain): Promise<void> {
+  let id: number | string = chain.network_id
   const lists = await getLists().catch((err) => {
     log.error('Error getting validator lists', err)
     return undefined
@@ -56,7 +72,9 @@ async function saveValidatorChains(chain: Chain): Promise<void> {
   const promises: Knex.QueryBuilder[] = []
   chain.validators.forEach((signing_key) => {
     promises.push(
-      query('validators').where({ signing_key }).update({ chain: id }),
+      query('validators')
+        .where({ signing_key })
+        .update({ chain: id.toString() }),
     )
   })
   try {
@@ -66,20 +84,90 @@ async function saveValidatorChains(chain: Chain): Promise<void> {
   }
 }
 
+const networkNameToChainID = new Map<string, number>()
+for (const item of networks) {
+  networkNameToChainID.set(item.id, item.network_id)
+}
+
 /**
  *
  */
 class Chains {
   private readonly ledgersByHash: Map<string, Ledger> = new Map()
   private chains: Chain[] = []
-  private index = 0
 
   /**
    * Updates chains as validations come in.
    *
    * @param validation - A raw validation message.
    */
-  public updateLedgers(validation: ValidationRaw): void {
+  /* eslint-disable max-lines-per-function, max-statements, complexity -- method handles modern and legacy rippled validators */
+  public async updateLedgers(validation: ValidationRaw): Promise<void> {
+    // eslint-disable-next-line max-len -- comment is required to explain the legacy behavior
+    // eslint-disable-next-line @typescript-eslint/no-unnecessary-condition -- older rippled binaries do not return a network_id field
+    if (validation.network_id === undefined) {
+      // fetch the information from the validators table
+      let validator: Validator | undefined
+      try {
+        validator = (await query('validators')
+          .where('signing_key', validation.validation_public_key)
+          .first()) as Validator
+      } catch (err: unknown) {
+        log.error(
+          `updateLedgers: Error getting validator with signing key ${validation.validation_public_key} from the database`,
+          err,
+        )
+      }
+      if (validator?.networks && networkNameToChainID.has(validator.networks)) {
+        // eslint-disable-next-line require-atomic-updates -- there is no harm in reading stale value
+        validation.network_id = networkNameToChainID.get(
+          validator.networks,
+        ) as number
+        log.info(
+          `Validation ${JSON.stringify(validation)} is assigned into chain ${validation.network_id} based on the historical data in the validators table.`,
+        )
+      } else {
+        log.info(
+          `Validation ${JSON.stringify(validation)} has no network id. Ignoring this validation.`,
+        )
+        return
+      }
+    }
+    let XRPL_MAINNET_CURRENT_LEDGER_INDEX: number | undefined
+
+    const XRPL_MAINNET_CHAIN = this.chains.filter(
+      (chain) => chain.network_id === 0,
+    )
+    if (XRPL_MAINNET_CHAIN.length > 1) {
+      throw new Error(
+        `Non-unique XRPL Mainnet chain (network_id == 0) found. This should never happen. These are the conflicting chains: ${JSON.stringify(
+          XRPL_MAINNET_CHAIN,
+        )}`,
+      )
+    }
+
+    if (XRPL_MAINNET_CHAIN.length === 0) {
+      log.info(
+        'No XRPL Mainnet chain (network_id == 0) found. Discarding the check for recent ledgers on XRPL Mainnet.',
+      )
+    } else {
+      XRPL_MAINNET_CURRENT_LEDGER_INDEX = XRPL_MAINNET_CHAIN[0].current
+    }
+
+    // Discarding validations which are older than the last 100 ledgers on XRPL Mainnet (older than 380 seconds)
+    if (
+      validation.network_id === 0 &&
+      XRPL_MAINNET_CURRENT_LEDGER_INDEX !== undefined &&
+      Number(validation.ledger_index) < XRPL_MAINNET_CURRENT_LEDGER_INDEX - 100
+    ) {
+      log.trace(
+        `XRPL Mainnet Validation is really old. Ignoring this validation: ${JSON.stringify(
+          validation,
+        )}`,
+      )
+      return
+    }
+
     const { ledger_hash, validation_public_key: signing_key } = validation
     const ledger_index = Number(validation.ledger_index)
 
@@ -91,17 +179,20 @@ class Chains {
         ledger_index,
         validations: new Set(),
         first_seen: Date.now(),
+        network_id: validation.network_id,
       })
     }
 
     this.ledgersByHash.get(ledger_hash)?.validations.add(signing_key)
   }
+  /* eslint-enable max-lines-per-function, max-statements, complexity */
 
   /**
    * Updates and returns all chains. Called once per hour by calculateAgreement.
    *
    * @returns List of chains being monitored by the system.
    */
+
   public calculateChainsFromLedgers(): Chain[] {
     const list = []
     const now = Date.now()
@@ -124,6 +215,8 @@ class Chains {
       this.updateChains(ledger)
     }
 
+    this.auditMainnetLedgers()
+
     return this.chains
   }
 
@@ -138,6 +231,18 @@ class Chains {
     })
 
     for (const chain of this.chains) {
+      if (
+        chain.network_id === 0 &&
+        chain.current !== LAST_SEEN_MAINNET_LEDGER_INDEX
+      ) {
+        log.error(
+          `Invariant Violation: Purging XRPL Mainnet chain ledgers. Sanity Check -- LedgerIndex of the last recorded ledger: ${
+            chain.current
+          }. LAST_SEEN_MAINNET_LEDGER_INDEX: ${
+            LAST_SEEN_MAINNET_LEDGER_INDEX
+          }. These values must be identical to ensure no ledgers are lost.`,
+        )
+      }
       chain.ledgers.clear()
       chain.incomplete = false
       promises.push(saveValidatorChains(chain))
@@ -147,20 +252,120 @@ class Chains {
   }
 
   /**
-   * Returns the next chain id.
+   * Updates Chains as ledgers are parsed.
    *
-   * @returns The chain id.
+   * @param ledger - The Ledger being handled in order to update the chains.
    */
-  private getNextChainID(): string {
-    if (this.index > 10000) {
-      this.index = 0
-    }
+  public updateChains(ledger: Ledger): void {
+    // find the chain whose network_id matches the incoming ledger's network_id
+    const chainWithIdenticalNetID: Chain[] = this.chains.filter(
+      (chain: Chain) => chain.network_id === ledger.network_id,
+    )
 
-    const id = `chain.${this.index}`
-    this.index += 1
-    return id
+    if (chainWithIdenticalNetID.length === 0) {
+      this.addNewChain(ledger)
+    } else if (chainWithIdenticalNetID.length > 1) {
+      log.error(
+        'Invariant Violation: Discovered multiple chains with identical network-id: ',
+        JSON.stringify(chainWithIdenticalNetID),
+      )
+    } else {
+      addLedgerToChain(ledger, chainWithIdenticalNetID[0])
+    }
   }
 
+  /**
+   * Returns all the chains tracked by the Chains singleton instance.
+   *
+   * @returns The chains.
+   */
+  public getChains(): Chain[] {
+    return this.chains
+  }
+
+  /**
+   * Sets the chains. Note: This method is used for testing purposes only.
+   *
+   * @param chains - The specified chains array.
+   */
+  public setChains(chains: Chain[]): void {
+    this.chains = chains
+  }
+
+  /**
+   * Audits the continuity of XRPL Mainnet validated ledgers.
+   * This is a purely debug function, with no functional side-effects.
+   * This method makes use of the this.chains data member to access the XRPL Mainnet ledgers.
+   *
+   */
+  /* eslint-disable max-lines-per-function, max-statements -- method contains useful logs */
+  private auditMainnetLedgers(): void {
+    const START_OF_MAINNET_LEDGER_INDEX = LAST_SEEN_MAINNET_LEDGER_INDEX
+    for (const chain of this.chains) {
+      if (chain.network_id === 0) {
+        log.trace(
+          'Validating the continuity of XRPL Mainnet validated ledgers: ',
+        )
+        log.trace(JSON.stringify(chain))
+        log.trace(
+          `Ledgers stored in the chain: ${JSON.stringify(
+            Array.from(chain.ledgers),
+          )}`,
+        )
+        log.trace(
+          `Validators belonging to the chain: ${JSON.stringify(
+            Array.from(chain.validators),
+          )}`,
+        )
+
+        /* eslint-disable max-depth -- this debug logic is specific to XRPL Mainnet only */
+        // Check if the obtained ledgers are consecutive.
+        // Sort the ledgers to account for out-of-order reciept of validations.
+        // Note: Sorting the ledgers does not affect the agreement computation.
+        const sortedLedgers: LedgerHashIndex[] = Array.from(chain.ledgers).sort(
+          (a: LedgerHashIndex, b: LedgerHashIndex) =>
+            a.ledger_index - b.ledger_index,
+        )
+
+        if (sortedLedgers.length === 0) {
+          log.error(
+            'FATAL: No ledgers recorded over the previous hour on XRPL Mainnet. This should never happen.',
+          )
+          break
+        }
+
+        // Note: Due to the async reception of validations, the previous hourly computation of agreement scores
+        // might have received "tardy" validations.
+        // That should not affect the continuity of ledgers in the VHS.
+        if (LAST_SEEN_MAINNET_LEDGER_INDEX >= sortedLedgers[0].ledger_index) {
+          LAST_SEEN_MAINNET_LEDGER_INDEX = -1
+        }
+
+        for (const ledger of sortedLedgers) {
+          // initialization of this variable occurs exactly once, at the start of the program
+          if (LAST_SEEN_MAINNET_LEDGER_INDEX === -1) {
+            LAST_SEEN_MAINNET_LEDGER_INDEX = ledger.ledger_index
+            continue
+          }
+
+          if (ledger.ledger_index !== LAST_SEEN_MAINNET_LEDGER_INDEX + 1) {
+            log.error(
+              `Ledgers are not consecutive on XRPL Mainnet. Void between indices: ${
+                LAST_SEEN_MAINNET_LEDGER_INDEX
+              } and ${ledger.ledger_index}`,
+            )
+          }
+          LAST_SEEN_MAINNET_LEDGER_INDEX = ledger.ledger_index
+        }
+        /* eslint-enable max-depth */
+      }
+    }
+    log.info(
+      `Over the previous hour, VHS processed ledgers between indices: (${START_OF_MAINNET_LEDGER_INDEX} to ${LAST_SEEN_MAINNET_LEDGER_INDEX} (inclusive)] on XRPL Mainnet.`,
+    )
+  }
+
+  /* eslint-enable max-lines-per-function, max-statements */
   /**
    * Adds a new chain to chains.
    *
@@ -169,10 +374,15 @@ class Chains {
   private addNewChain(ledger: Ledger): void {
     const current = ledger.ledger_index
     const validators = ledger.validations
-    const ledgerSet = new Set([ledger.ledger_hash])
+    const ledgerSet = new Set([
+      {
+        ledger_hash: ledger.ledger_hash,
+        ledger_index: ledger.ledger_index,
+      } as LedgerHashIndex,
+    ])
 
     const chain: Chain = {
-      id: this.getNextChainID(),
+      network_id: ledger.network_id,
       current,
       first: current,
       validators,
@@ -181,66 +391,10 @@ class Chains {
       incomplete: true,
     }
 
-    log.info(`Added new chain, chain.${chain.id}`)
-    this.chains.push(chain)
-  }
-
-  /**
-   * Updates Chains as ledgers are parsed.
-   *
-   * @param ledger - The Ledger being handled in order to update the chains.
-   */
-  private updateChains(ledger: Ledger): void {
-    const next = ledger.ledger_index
-    const validators = ledger.validations
-
-    const chainAtNextIndex: Chain | undefined = this.chains
-      .filter(
-        (chain: Chain) =>
-          next === chain.current + 1 && overlaps(validators, chain.validators),
-      )
-      .sort(sortChainLength)
-      .shift()
-
-    if (chainAtNextIndex !== undefined) {
-      addLedgerToChain(ledger, chainAtNextIndex)
-      return
-    }
-
-    const chainAtThisIndex: Chain | undefined = this.chains
-      .filter(
-        (chain) =>
-          next === chain.current && overlaps(validators, chain.validators),
-      )
-      .sort(sortChainLength)
-      .shift()
-
-    if (chainAtThisIndex !== undefined) {
-      return
-    }
-
-    const chainWithThisValidator: Chain | undefined = this.chains
-      .filter((chain) => overlaps(chain.validators, validators))
-      .shift()
-
-    const chainWithLedger: Chain | undefined = this.chains.find(
-      (chain: Chain) => chain.ledgers.has(ledger.ledger_hash),
+    log.info(
+      `Discovered new chain with network id: ${chain.network_id}. Seeding it with ${JSON.stringify(ledger)}`,
     )
-
-    if (chainWithThisValidator !== undefined) {
-      const skipped = ledger.ledger_index - chainWithThisValidator.current
-      log.warn(`Possibly skipped ${skipped} ledgers`)
-      if (skipped > 1 && skipped < 20) {
-        chainWithThisValidator.incomplete = true
-        addLedgerToChain(ledger, chainWithThisValidator)
-      }
-    }
-
-    if (chainWithThisValidator !== undefined || chainWithLedger !== undefined) {
-      return
-    }
-
-    this.addNewChain(ledger)
+    this.chains.push(chain)
   }
 }
 

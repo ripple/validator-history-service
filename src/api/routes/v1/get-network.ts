@@ -190,12 +190,14 @@ async function getNetworkFromPublicKey(
  * @param url - The URL endpoint of the node.
  * @param unl - The UNL of the node.
  * @param port - The peer port of the node.
+ * @param network_id - The network ID which uniquely identifies the XRPL network.
  * @returns The ID of the new network.
  */
 async function addNode(
   url: string,
   unl: string | null,
   port: number,
+  network_id: number,
 ): Promise<string> {
   const newNetwork = (maxNetwork + 1).toString()
   maxNetwork += 1
@@ -205,6 +207,7 @@ async function addNode(
     entry: url,
     port,
     unls: unl ? [unl] : [],
+    network_id,
   }
   await query('networks').insert({
     ...network,
@@ -248,7 +251,7 @@ export default async function getNetworkOrAdd(
     }
 
     // check if node public key is already recorded
-    const { public_key } = crawl.this_node
+    const { public_key, network_id } = crawl.this_node
     const publicKeyNetwork = await getNetworkFromPublicKey(public_key)
     if (publicKeyNetwork != null) {
       return res.status(200).send({
@@ -257,7 +260,7 @@ export default async function getNetworkOrAdd(
       })
     }
     // add node to networks list
-    const newNetwork = await addNode(entryUrl, node_unl, port)
+    const newNetwork = await addNode(entryUrl, node_unl, port, network_id)
 
     return res.status(200).send({
       result: 'success',
