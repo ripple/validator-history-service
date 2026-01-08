@@ -23,6 +23,13 @@ const db = {
       '120000',
     10,
   ),
+  pool: {
+    min: 0,
+    max: parseInt(
+      getEnvironmentVariable(EnvironmentVariable.dbPoolMax) ?? '20',
+      10,
+    ),
+  },
 }
 
 const maxmind = {

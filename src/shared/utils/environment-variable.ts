@@ -11,6 +11,7 @@ export enum EnvironmentVariable {
   database = 'DB_DATABASE',
   password = 'DB_PASSWORD',
   acquireConnectionTimeout = 'ACQUIRE_CONNECTION_TIMEOUT',
+  dbPoolMax = 'DB_POOL_MAX',
   rippled_rpc_admin_server = 'RIPPLED_RPC_ADMIN',
   port = 'PORT',
   addr = 'ADDR',
