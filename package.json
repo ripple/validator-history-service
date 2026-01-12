@@ -42,7 +42,7 @@
     "@types/node": "^20.17.30",
     "@types/ws": "^8.5.5",
     "typescript-eslint": "^8.39.0",
-    "eslint-plugin-array-func": "^4.0.0",
+    "eslint-plugin-array-func": "^5.1.0",
     "eslint-plugin-import": "^2.32.0",
     "eslint-plugin-jsdoc": "^52.0.4",
     "eslint-plugin-n": "^17.21.3",
