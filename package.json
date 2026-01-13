@@ -32,7 +32,7 @@
   "devDependencies": {
     "@xrplf/eslint-config": "^2.0.0",
     "@xrplf/prettier-config": "^1.9.1",
-    "globals": "^16.3.0",
+    "globals": "^17.0.0",
     "@eslint-community/eslint-plugin-eslint-comments": "^4.5.0",
     "@eslint/js": "^9.32.0",
     "@types/axios": "^0.14.0",
