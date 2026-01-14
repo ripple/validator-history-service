@@ -263,6 +263,7 @@ export async function saveValidator(
   await query('validators')
     .where({ signing_key: validator.signing_key, revoked: null })
     .update({ revoked: false })
+    .catch((err) => log.error('Error Updating Validator', err))
 }
 
 /**
