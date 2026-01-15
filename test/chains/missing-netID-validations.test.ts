@@ -45,19 +45,7 @@ describe('Test the assignment of ledgers into appropriate chains with legacy val
       network_id: number
     }> = chains.calculateChainsFromLedgers()
 
-    // ledgers are recorded for only network_id == 1025
-    expect(constructed).toHaveLength(1)
-    expect(constructed[0].ledgers).toEqual(
-      new Set([
-        { ledger_hash: 'LEDGER1', ledger_index: 1 } as LedgerHashIndex,
-        { ledger_hash: 'LEDGER2', ledger_index: 2 } as LedgerHashIndex,
-        { ledger_hash: 'LEDGER3', ledger_index: 3 } as LedgerHashIndex,
-      ]),
-    )
-
-    expect(constructed[0].validators).toContain('VALIDATOR1')
-    expect(constructed[0].validators).toContain('VALIDATOR2')
-    expect(constructed[0].validators).toContain('VALIDATOR3')
-    expect(constructed[0].network_id).toBe(1)
+    // If validation messages do not have a network_id field, they are ignored.
+    expect(constructed).toHaveLength(0)
   })
 })
