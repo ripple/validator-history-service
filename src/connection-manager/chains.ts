@@ -3,12 +3,7 @@ import { Knex } from 'knex'
 
 import { query } from '../shared/database'
 import networks from '../shared/database/networks'
-import {
-  Ledger,
-  ValidationRaw,
-  Chain,
-  LedgerHashIndex,
-} from '../shared/types'
+import { Ledger, ValidationRaw, Chain, LedgerHashIndex } from '../shared/types'
 import logger from '../shared/utils/logger'
 
 const log = logger({ name: 'chains' })
@@ -47,33 +42,39 @@ function addLedgerToChain(ledger: Ledger, chain: Chain): void {
   )
 }
 
+const networkNameToChainID = new Map<string, number>()
+for (const item of networks) {
+  networkNameToChainID.set(item.id, item.network_id)
+}
+
 /**
- * Saves the chain id for each validator known to be in a given chain. This is determined by the network_id field present in the validations of the constituent validators of the chain.
+ * Saves the chain id for each validator known to be in a given chain.
+ * This is determined by the network_id field present in the validations of the constituent validators of the chain.
  *
  * @param chain - A chain object.
  * @returns Void.
  */
 export async function saveValidatorChains(chain: Chain): Promise<void> {
-  let chainName: string | undefined = undefined
+  let chainName: string | undefined
 
-  for(const [networkName, networkChainID] of networkNameToChainID) {
-    if(networkChainID === chain.network_id) {
+  for (const [networkName, networkChainID] of networkNameToChainID) {
+    if (networkChainID === chain.network_id) {
       chainName = networkName
       break
     }
   }
 
-  if(chainName === undefined) {
-    log.info(`Chain name not found for network id: ${chain.network_id} amongst the well known networks. Using network id as chain name.`)
+  if (chainName === undefined) {
+    log.info(
+      `Chain name not found for network id: ${chain.network_id} amongst the well known networks. Using network id as chain name.`,
+    )
     chainName = chain.network_id.toString()
   }
 
   const promises: Knex.QueryBuilder[] = []
   chain.validators.forEach((signing_key) => {
     promises.push(
-      query('validators')
-        .where({ signing_key })
-        .update({ chain: chainName }),
+      query('validators').where({ signing_key }).update({ chain: chainName }),
     )
   })
   try {
@@ -81,11 +82,6 @@ export async function saveValidatorChains(chain: Chain): Promise<void> {
   } catch (err: unknown) {
     log.error('Error saving validator chains', err)
   }
-}
-
-const networkNameToChainID = new Map<string, number>()
-for (const item of networks) {
-  networkNameToChainID.set(item.id, item.network_id)
 }
 
 /**
@@ -100,7 +96,7 @@ class Chains {
    *
    * @param validation - A raw validation message.
    */
-  /* eslint-disable max-lines-per-function, max-statements, complexity -- method handles modern and legacy rippled validators */
+  /* eslint-disable max-lines-per-function -- method handles modern and legacy rippled validators */
   public async updateLedgers(validation: ValidationRaw): Promise<void> {
     // eslint-disable-next-line max-len -- comment is required to explain the legacy behavior
     // eslint-disable-next-line @typescript-eslint/no-unnecessary-condition -- older rippled binaries do not return a network_id field
@@ -162,7 +158,7 @@ class Chains {
 
     this.ledgersByHash.get(ledger_hash)?.validations.add(signing_key)
   }
-  /* eslint-enable max-lines-per-function, max-statements, complexity */
+  /* eslint-enable max-lines-per-function */
 
   /**
    * Updates and returns all chains. Called once per hour by calculateAgreement.

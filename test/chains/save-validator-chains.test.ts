@@ -2,21 +2,6 @@ import { saveValidatorChains } from '../../src/connection-manager/chains'
 import { destroy, query, setupTables } from '../../src/shared/database'
 import type { Chain, LedgerHashIndex } from '../../src/shared/types'
 
-jest.mock('../../src/shared/utils', () => {
-  // Re-export actual utilities except `getLists`
-  const actual: typeof import('../../src/shared/utils') = jest.requireActual(
-    '../../src/shared/utils',
-  )
-  return {
-    ...(actual as object),
-    getLists: jest.fn(async () => {
-      return {
-        'fake-network': new Set(['VALIDATOR1', 'VALIDATOR2', 'VALIDATOR3']),
-      }
-    }),
-  }
-})
-
 describe('validate the logic of saveValidatorChains', () => {
   beforeAll(async () => {
     await setupTables()
@@ -67,8 +52,8 @@ describe('validate the logic of saveValidatorChains', () => {
       }>
     expect(validators).toHaveLength(3)
 
-    expect(validators[0].chain).toBe('fake-network')
-    expect(validators[1].chain).toBe('fake-network')
-    expect(validators[2].chain).toBe('fake-network')
+    expect(validators[0].chain).toBe('1025')
+    expect(validators[1].chain).toBe('1025')
+    expect(validators[2].chain).toBe('1025')
   })
 })
