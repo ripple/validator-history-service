@@ -22,10 +22,16 @@ app.use((_req, res, next) => {
   next()
 })
 
+// Register all API routes with /v1 prefix.
+// Example: /health becomes /v1/health, /network/validators becomes /v1/network/validators.
 app.use('/v1', routes)
+
+// Serve API documentation and endpoint list at root path (/).
 app.use('/', handleInfo)
 
-app.use('*', (_u: Request, res: Response) => {
+// Catch-all 404 handler for undefined routes (must be registered last).
+// Express 5 requires named wildcards: /*splat matches all paths except root.
+app.all('/*splat', (_req: Request, res: Response) => {
   res.status(404).send({ error: 'route not found' })
 })
 
