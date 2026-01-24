@@ -36,7 +36,7 @@
     "@types/express": "4.17.21",
     "@types/jest": "^26.0.19",
     "@types/nconf": "^0.10.0",
-    "@types/node": "^20.17.30",
+    "@types/node": "^25.0.10",
     "@types/ws": "^8.5.5",
     "@xrplf/eslint-config": "^2.0.0",
     "@xrplf/prettier-config": "^1.9.1",
