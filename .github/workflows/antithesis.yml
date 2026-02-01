@@ -1,0 +1,101 @@
+name: Antithesis Testing
+
+on:
+  push:
+    branches: [main]
+  pull_request:
+    branches: [main]
+  workflow_dispatch:
+    inputs:
+      run_antithesis_test:
+        description: 'Run Antithesis test after build'
+        required: false
+        default: 'false'
+        type: choice
+        options:
+          - 'true'
+          - 'false'
+
+env:
+  REGISTRY: us-central1-docker.pkg.dev
+  REGISTRY_PROJECT: molten-verve-216720
+
+jobs:
+  build-and-push:
+    runs-on: ubuntu-latest
+    # Only run on main branch or manual trigger
+    if: github.ref == 'refs/heads/main' || github.event_name == 'workflow_dispatch'
+    
+    steps:
+      - name: Checkout code
+        uses: actions/checkout@v4
+
+      - name: Set up Docker Buildx
+        uses: docker/setup-buildx-action@v3
+
+      - name: Log in to Antithesis Registry
+        if: github.event_name != 'pull_request'
+        uses: docker/login-action@v3
+        with:
+          registry: ${{ env.REGISTRY }}
+          username: _json_key
+          password: ${{ secrets.ANTITHESIS_REGISTRY_KEY }}
+
+      - name: Extract metadata
+        id: meta
+        run: |
+          # Use git SHA as version tag
+          VERSION_TAG=${GITHUB_SHA::7}
+          echo "version_tag=$VERSION_TAG" >> $GITHUB_OUTPUT
+          echo "Building version: $VERSION_TAG"
+
+      - name: Build and push application image
+        uses: docker/build-push-action@v5
+        with:
+          context: .
+          file: ./Dockerfile
+          push: ${{ github.event_name != 'pull_request' }}
+          tags: |
+            ${{ env.REGISTRY }}/${{ env.REGISTRY_PROJECT }}/${{ secrets.ANTITHESIS_TENANT }}-repository/validator-history-service:${{ steps.meta.outputs.version_tag }}
+            ${{ env.REGISTRY }}/${{ env.REGISTRY_PROJECT }}/${{ secrets.ANTITHESIS_TENANT }}-repository/validator-history-service:latest
+          cache-from: type=gha
+          cache-to: type=gha,mode=max
+
+      - name: Build and push config image
+        uses: docker/build-push-action@v5
+        with:
+          context: .
+          file: ./antithesis/Dockerfile.config
+          push: ${{ github.event_name != 'pull_request' }}
+          tags: |
+            ${{ env.REGISTRY }}/${{ env.REGISTRY_PROJECT }}/${{ secrets.ANTITHESIS_TENANT }}-repository/vhs-config:${{ steps.meta.outputs.version_tag }}
+            ${{ env.REGISTRY }}/${{ env.REGISTRY_PROJECT }}/${{ secrets.ANTITHESIS_TENANT }}-repository/vhs-config:latest
+
+      - name: Trigger Antithesis test
+        if: github.event.inputs.run_antithesis_test == 'true' && github.event_name == 'workflow_dispatch'
+        run: |
+          curl --fail -u "${{ secrets.ANTITHESIS_USER }}:${{ secrets.ANTITHESIS_PASSWORD }}" \
+            -X POST https://${{ secrets.ANTITHESIS_TENANT }}.antithesis.com/api/v1/launch/basic_test \
+            -d "{
+              \"params\": {
+                \"antithesis.description\": \"VHS test from GitHub Actions - ${{ steps.meta.outputs.version_tag }}\",
+                \"antithesis.duration\": \"60\",
+                \"antithesis.config_image\": \"${{ env.REGISTRY }}/${{ env.REGISTRY_PROJECT }}/${{ secrets.ANTITHESIS_TENANT }}-repository/vhs-config:${{ steps.meta.outputs.version_tag }}\",
+                \"antithesis.images\": \"${{ env.REGISTRY }}/${{ env.REGISTRY_PROJECT }}/${{ secrets.ANTITHESIS_TENANT }}-repository/validator-history-service:${{ steps.meta.outputs.version_tag }}\",
+                \"antithesis.report.recipients\": \"${{ secrets.ANTITHESIS_REPORT_EMAIL }}\"
+              }
+            }"
+
+      - name: Summary
+        if: success()
+        run: |
+          echo "## Antithesis Build Summary" >> $GITHUB_STEP_SUMMARY
+          echo "" >> $GITHUB_STEP_SUMMARY
+          echo "✅ Images built and pushed successfully!" >> $GITHUB_STEP_SUMMARY
+          echo "" >> $GITHUB_STEP_SUMMARY
+          echo "**Version:** \`${{ steps.meta.outputs.version_tag }}\`" >> $GITHUB_STEP_SUMMARY
+          echo "" >> $GITHUB_STEP_SUMMARY
+          echo "**Images:**" >> $GITHUB_STEP_SUMMARY
+          echo "- Application: \`${{ env.REGISTRY }}/${{ env.REGISTRY_PROJECT }}/${{ secrets.ANTITHESIS_TENANT }}-repository/validator-history-service:${{ steps.meta.outputs.version_tag }}\`" >> $GITHUB_STEP_SUMMARY
+          echo "- Config: \`${{ env.REGISTRY }}/${{ env.REGISTRY_PROJECT }}/${{ secrets.ANTITHESIS_TENANT }}-repository/vhs-config:${{ steps.meta.outputs.version_tag }}\`" >> $GITHUB_STEP_SUMMARY
+

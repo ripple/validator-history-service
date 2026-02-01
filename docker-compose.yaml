@@ -1,0 +1,119 @@
+version: '3.8'
+
+services:
+  # PostgreSQL database service
+  postgres:
+    image: postgres:17.2
+    container_name: vhs-postgres
+    environment:
+      POSTGRES_USER: ${DB_USER:-vhs_user}
+      POSTGRES_PASSWORD: ${DB_PASSWORD:-vhs_password}
+      POSTGRES_DB: ${DB_DATABASE:-validator_history}
+    ports:
+      - "5432:5432"
+    volumes:
+      - postgres_data:/var/lib/postgresql/data
+    healthcheck:
+      test: ["CMD-SHELL", "pg_isready -U ${DB_USER:-vhs_user}"]
+      interval: 10s
+      timeout: 5s
+      retries: 5
+    networks:
+      - vhs-network
+
+  # Validator History Service - API
+  vhs-api:
+    build:
+      context: .
+      dockerfile: Dockerfile
+    container_name: vhs-api
+    command: ["node", "build/index.js", "--api"]
+    environment:
+      NODE_ENV: ${NODE_ENV:-production}
+      DB_CLIENT: pg
+      DB_HOST: postgres
+      DB_USER: ${DB_USER:-vhs_user}
+      DB_PASSWORD: ${DB_PASSWORD:-vhs_password}
+      DB_DATABASE: ${DB_DATABASE:-validator_history}
+      ACQUIRE_CONNECTION_TIMEOUT: ${ACQUIRE_CONNECTION_TIMEOUT:-60000}
+      RIPPLED_RPC_ADMIN: ${RIPPLED_RPC_ADMIN:-https://xrpl.ws/}
+      PORT: 3000
+      ADDR: 0.0.0.0
+      MAINNET_P2P_ENTRY: ${MAINNET_P2P_ENTRY:-s1.ripple.com}
+      MAINNET_UNL: ${MAINNET_UNL:-vl.ripple.com}
+      MAXMIND_USER: ${MAXMIND_USER:-}
+      MAXMIND_KEY: ${MAXMIND_KEY:-}
+    ports:
+      - "3000:3000"
+    depends_on:
+      postgres:
+        condition: service_healthy
+    networks:
+      - vhs-network
+    restart: unless-stopped
+
+  # Validator History Service - Connection Manager
+  vhs-connections:
+    build:
+      context: .
+      dockerfile: Dockerfile
+    container_name: vhs-connections
+    command: ["node", "build/index.js", "--connections"]
+    environment:
+      NODE_ENV: ${NODE_ENV:-production}
+      DB_CLIENT: pg
+      DB_HOST: postgres
+      DB_USER: ${DB_USER:-vhs_user}
+      DB_PASSWORD: ${DB_PASSWORD:-vhs_password}
+      DB_DATABASE: ${DB_DATABASE:-validator_history}
+      ACQUIRE_CONNECTION_TIMEOUT: ${ACQUIRE_CONNECTION_TIMEOUT:-60000}
+      RIPPLED_RPC_ADMIN: ${RIPPLED_RPC_ADMIN:-https://xrpl.ws/}
+      PORT: 3000
+      ADDR: 0.0.0.0
+      MAINNET_P2P_ENTRY: ${MAINNET_P2P_ENTRY:-s1.ripple.com}
+      MAINNET_UNL: ${MAINNET_UNL:-vl.ripple.com}
+      MAXMIND_USER: ${MAXMIND_USER:-}
+      MAXMIND_KEY: ${MAXMIND_KEY:-}
+    depends_on:
+      postgres:
+        condition: service_healthy
+    networks:
+      - vhs-network
+    restart: unless-stopped
+
+  # Validator History Service - Crawler
+  vhs-crawler:
+    build:
+      context: .
+      dockerfile: Dockerfile
+    container_name: vhs-crawler
+    command: ["node", "build/index.js", "--crawler"]
+    environment:
+      NODE_ENV: ${NODE_ENV:-production}
+      DB_CLIENT: pg
+      DB_HOST: postgres
+      DB_USER: ${DB_USER:-vhs_user}
+      DB_PASSWORD: ${DB_PASSWORD:-vhs_password}
+      DB_DATABASE: ${DB_DATABASE:-validator_history}
+      ACQUIRE_CONNECTION_TIMEOUT: ${ACQUIRE_CONNECTION_TIMEOUT:-60000}
+      RIPPLED_RPC_ADMIN: ${RIPPLED_RPC_ADMIN:-https://xrpl.ws/}
+      PORT: 3000
+      ADDR: 0.0.0.0
+      MAINNET_P2P_ENTRY: ${MAINNET_P2P_ENTRY:-s1.ripple.com}
+      MAINNET_UNL: ${MAINNET_UNL:-vl.ripple.com}
+      MAXMIND_USER: ${MAXMIND_USER:-}
+      MAXMIND_KEY: ${MAXMIND_KEY:-}
+    depends_on:
+      postgres:
+        condition: service_healthy
+    networks:
+      - vhs-network
+    restart: unless-stopped
+
+networks:
+  vhs-network:
+    driver: bridge
+
+volumes:
+  postgres_data:
+
