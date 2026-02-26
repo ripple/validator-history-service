@@ -138,7 +138,15 @@ export async function fetchRpcManifest(
     const response = await axios(params)
     // TODO: Add type for manifest response.
     // eslint-disable-next-line @typescript-eslint/no-unsafe-assignment, @typescript-eslint/no-unsafe-member-access -- see TODO.
-    const manifestB64: string = response.data.result?.manifest
+    interface ManifestMethodResponse {
+      result: {
+        details: any
+        manifest: string
+        requested: string
+        status: string
+      }
+    }
+    const manifestB64: string = (response.data as unknown as ManifestMethodResponse).result?.manifest
     if (manifestB64) {
       const manifestHex = Buffer.from(manifestB64, 'base64')
         .toString('hex')
