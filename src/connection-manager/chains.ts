@@ -56,15 +56,23 @@ for (const item of networks) {
  */
 export async function saveValidatorChains(chain: Chain): Promise<void> {
   let chainName: string | undefined
+  let matchingNetworkIDChain: string[] = []
 
-  for (const [networkName, networkChainID] of networkNameToChainID) {
-    if (networkChainID === chain.network_id) {
-      chainName = networkName
-      break
-    }
+  // detect if there is >1 overlap of the NetworkID amongst the XRPL networks
+  // this indicates an error in the VHS chain-assignment logic. If the Chains-data is corrupted, do not overwrite the validators table with the incorrect data
+  for(const [networkName, networkChainID] of networkNameToChainID) {
+    if (networkChainID === chain.network_id)
+      matchingNetworkIDChain.push(networkName)
   }
 
-  if (chainName === undefined) {
+  if (matchingNetworkIDChain.length > 1) {
+    log.error('ERROR: Multiple XRPL chains have identical NetworkID values. This indicates a fatal error in the chain assignment logic of the VHS.')
+    log.error("Current Chain NetworkID: ", chain.network_id)
+    log.error("Conflicting chains with identical NetworkIDs: ", matchingNetworkIDChain)
+    return
+  } else if (matchingNetworkIDChain.length === 1) {
+    chainName = matchingNetworkIDChain[0]
+  } else if (matchingNetworkIDChain.length === 0) {
     log.info(
       `Chain name not found for network id: ${chain.network_id} amongst the well known networks. Using network id as chain name.`,
     )
@@ -90,6 +98,9 @@ export async function saveValidatorChains(chain: Chain): Promise<void> {
 class Chains {
   private readonly ledgersByHash: Map<string, Ledger> = new Map()
   private chains: Chain[] = []
+
+  // this map is used to keep track of potentially incorrect network_id specified by validators in a network. The network_id configured by the majority of hte validators is considered to be the true value. The network_id values are finalized before the ledgers are organized into appropriate chains
+  private ledgerNetworkIDCount = new Map<string, Map<number, number>>()
 
   /**
    * Updates chains as validations come in.
@@ -152,13 +163,56 @@ class Chains {
         ledger_index,
         validations: new Set(),
         first_seen: Date.now(),
-        network_id: validation.network_id,
+        network_id: undefined,
       })
+
+      this.ledgerNetworkIDCount.set(ledger_hash, new Map())
+    } else {
+      // check if the network_id values match between the existing ledger_hash and the incoming validation
+      if (ledger.network_id !== validation.network_id) {
+        log.error(
+          `Mismatch in network_id for ledger_hash ${ledger_hash}: existing ledger has network_id ${ledger.network_id}, but incoming validation from ${signing_key} reports network_id ${validation.network_id}.`,
+        )
+      }
     }
 
     this.ledgersByHash.get(ledger_hash)?.validations.add(signing_key)
+    const countMap = this.ledgerNetworkIDCount.get(ledger_hash)!
+
+    const currentCount = countMap.get(validation.network_id) ?? 0
+    countMap.set(validation.network_id, currentCount + 1)
+
   }
   /* eslint-enable max-lines-per-function */
+
+  public finalizeLedgerNetworkID(): void {
+    for (const [ledgerHash, ledger] of this.ledgersByHash) {
+      const networkIDCounts = this.ledgerNetworkIDCount.get(ledgerHash)
+      if (!networkIDCounts) {
+        continue
+      }
+
+      let maxCount = 0
+      let winningNetworkID = ledger.network_id
+      for (const [networkID, count] of networkIDCounts) {
+        if (count > maxCount) {
+          maxCount = count
+          winningNetworkID = networkID
+        }
+      }
+
+      if (ledger.network_id !== winningNetworkID) {
+        log.info(
+          `Finalizing network_id for ledger ${ledgerHash}: overriding ${ledger.network_id} with majority-voted ${winningNetworkID} (${maxCount} votes)`,
+        )
+        ledger.network_id = winningNetworkID
+      }
+    }
+
+    // after the finalization of networkID values, this map is no longer required.
+    // this variable is cleared here to avoid memory leaks in the VHS app
+    this.ledgerNetworkIDCount.clear()
+  }
 
   /**
    * Updates and returns all chains. Called once per hour by calculateAgreement.
@@ -169,6 +223,8 @@ class Chains {
   public calculateChainsFromLedgers(): Chain[] {
     const list = []
     const now = Date.now()
+
+    this.finalizeLedgerNetworkID()
 
     for (const [ledger_hash, ledger] of this.ledgersByHash) {
       const tenSecondsOld = now - ledger.first_seen > 10 * 1000
@@ -245,6 +301,8 @@ class Chains {
     } else {
       addLedgerToChain(ledger, chainWithIdenticalNetID[0])
     }
+
+    this.auditChainValidators()
   }
 
   /**
@@ -254,6 +312,30 @@ class Chains {
    */
   public getChains(): Chain[] {
     return this.chains
+  }
+
+  private auditChainValidators(): void {
+    // Check if there is any overlap between any two pair of XRPL validator-sets.
+    for (let i = 0; i < this.chains.length; i++) {
+      for (let j = i + 1; j < this.chains.length; j++) {
+        const chainA = this.chains[i]
+        const chainB = this.chains[j]
+
+        const overlap: string[] = []
+        for (const validator of chainA.validators) {
+          if (chainB.validators.has(validator)) {
+            overlap.push(validator)
+          }
+        }
+
+        if (overlap.length > 0) {
+          log.error(
+            `Invariant Violation: ${overlap.length} validator(s) found in both chain ${chainA.network_id} and chain ${chainB.network_id}: ${overlap.join(', ')}`,
+          )
+          throw new Error(`Invariant Violation: ${overlap.length} validator(s) found in both chain ${chainA.network_id} and chain ${chainB.network_id}: ${overlap.join(', ')}`)
+        }
+      }
+    }
   }
 
   /**
@@ -355,7 +437,7 @@ class Chains {
     ])
 
     const chain: Chain = {
-      network_id: ledger.network_id,
+      network_id: ledger.network_id!,
       current,
       first: current,
       validators,

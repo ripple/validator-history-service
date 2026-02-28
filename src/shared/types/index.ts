@@ -19,7 +19,7 @@ interface Ledger {
   ledger_index: number
   validations: Set<string>
   first_seen: number
-  network_id: number
+  network_id: number | undefined
 }
 
 interface StreamLedger {
