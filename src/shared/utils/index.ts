@@ -1,5 +1,5 @@
 import axios, { AxiosRequestConfig } from 'axios'
-import { unixTimeToRippleTime } from 'xrpl'
+import { unixTimeToRippleTime, ManifestResponse } from 'xrpl'
 import { normalizeManifest } from 'xrpl-validator-domains'
 
 import { getNetworks, query } from '../database'
@@ -136,17 +136,8 @@ export async function fetchRpcManifest(
 
   try {
     const response = await axios(params)
-    // TODO: Add type for manifest response.
-    // eslint-disable-next-line @typescript-eslint/no-unsafe-assignment, @typescript-eslint/no-unsafe-member-access -- see TODO.
-    interface ManifestMethodResponse {
-      result: {
-        details: any
-        manifest: string
-        requested: string
-        status: string
-      }
-    }
-    const manifestB64: string = (response.data as unknown as ManifestMethodResponse).result?.manifest
+    const manifestB64: string | undefined = (response.data as ManifestResponse)
+      .result.manifest
     if (manifestB64) {
       const manifestHex = Buffer.from(manifestB64, 'base64')
         .toString('hex')
