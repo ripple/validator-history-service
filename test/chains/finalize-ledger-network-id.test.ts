@@ -67,8 +67,6 @@ describe('finalizeLedgerNetworkID', () => {
       await chains.updateLedgers(v)
     }
 
-    chains.finalizeLedgerNetworkID()
-
     const time = Date.now() + 11000
     Date.now = (): number => time
 
@@ -117,8 +115,6 @@ describe('finalizeLedgerNetworkID', () => {
       await chains.updateLedgers(v)
     }
 
-    chains.finalizeLedgerNetworkID()
-
     const time = Date.now() + 11000
     Date.now = (): number => time
 
@@ -126,8 +122,9 @@ describe('finalizeLedgerNetworkID', () => {
     expect(constructed).toHaveLength(1)
     expect(constructed[0].network_id).toBe(0)
     expect(constructed[0].validators).toEqual(
-      new Set(['VAL1', 'VAL2', 'VAL3', 'VAL_BAD']),
+      new Set(['VAL1', 'VAL2', 'VAL3']),
     )
+    expect(constructed[0].validators).not.toContain('VAL_BAD')
     expect(constructed[0].ledgers).toEqual(
       new Set([{ ledger_hash: 'HASH_B', ledger_index: 10 } as LedgerHashIndex]),
     )
@@ -169,8 +166,6 @@ describe('finalizeLedgerNetworkID', () => {
     for (const v of validations) {
       await chains.updateLedgers(v)
     }
-
-    chains.finalizeLedgerNetworkID()
 
     const time = Date.now() + 11000
     Date.now = (): number => time
@@ -216,6 +211,18 @@ describe('finalizeLedgerNetworkID', () => {
         ledger_hash: 'HASH_TIE',
         ledger_index: '50',
         validation_public_key: 'VAL2',
+        network_id: 0,
+      }),
+      makeValidation({
+        ledger_hash: 'HASH_TIE',
+        ledger_index: '50',
+        validation_public_key: 'VAL1_BAD',
+        network_id: 1,
+      }),
+      makeValidation({
+        ledger_hash: 'HASH_TIE',
+        ledger_index: '50',
+        validation_public_key: 'VAL2_BAD',
         network_id: 1,
       }),
     ]
@@ -223,8 +230,6 @@ describe('finalizeLedgerNetworkID', () => {
     for (const v of validations) {
       await chains.updateLedgers(v)
     }
-
-    chains.finalizeLedgerNetworkID()
 
     const time = Date.now() + 11000
     Date.now = (): number => time
@@ -234,6 +239,8 @@ describe('finalizeLedgerNetworkID', () => {
     // With equal votes, the first network_id inserted into the Map wins
     expect(constructed[0].network_id).toBe(0)
     expect(constructed[0].validators).toEqual(new Set(['VAL1', 'VAL2']))
+    expect(constructed[0].validators).not.toContain('VAL1_BAD')
+    expect(constructed[0].validators).not.toContain('VAL2_BAD')
     expect(constructed[0].ledgers).toEqual(
       new Set([
         { ledger_hash: 'HASH_TIE', ledger_index: 50 } as LedgerHashIndex,

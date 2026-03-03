@@ -106,8 +106,8 @@ class Chains {
   private readonly ledgersByHash: Map<string, Ledger> = new Map()
   private chains: Chain[] = []
 
-  // this map is used to keep track of potentially incorrect network_id specified by validators in a network. The network_id configured by the majority of hte validators is considered to be the true value. The network_id values are finalized before the ledgers are organized into appropriate chains
-  private readonly ledgerNetworkIDCount = new Map<string, Map<number, number>>()
+  // This map stores the ledger_hash -> network_id -> set of validation_public_keys association data. It has been observed that some validators have misconfigured the network_id values. This map helps determine the correct network_id through majority vote
+  private readonly mapNetworkIDValidations = new Map<string, Map<number, Set<string>>>()
 
   /**
    * Updates chains as validations come in.
@@ -173,51 +173,61 @@ class Chains {
         network_id: undefined,
       })
 
-      this.ledgerNetworkIDCount.set(ledger_hash, new Map())
-    } else {
-      // check if the network_id values match between the existing ledger_hash and the incoming validation
-      if (ledger.network_id !== validation.network_id) {
-        log.error(
-          `Mismatch in network_id for ledger_hash ${ledger_hash}: existing ledger has network_id ${ledger.network_id}, but incoming validation from ${signing_key} reports network_id ${validation.network_id}.`,
-        )
-      }
+      this.mapNetworkIDValidations.set(ledger_hash, new Map())
     }
 
     this.ledgersByHash.get(ledger_hash)?.validations.add(signing_key)
-    const countMap = this.ledgerNetworkIDCount.get(ledger_hash)!
 
-    const currentCount = countMap.get(validation.network_id) ?? 0
-    countMap.set(validation.network_id, currentCount + 1)
+    // If this network_id was observed for the first time, initialize with an empty set of validation_public_keys
+
+    if (!this.mapNetworkIDValidations.get(ledger_hash)!.has(validation.network_id)) {
+      this.mapNetworkIDValidations.get(ledger_hash)!.set(validation.network_id, new Set())
+    }
+
+    this.mapNetworkIDValidations.get(ledger_hash)!.get(validation.network_id)!.add(signing_key)
   }
   /* eslint-enable max-lines-per-function */
 
-  public finalizeLedgerNetworkID(): void {
+  public finalizeLedgerValidations(): void {
     for (const [ledgerHash, ledger] of this.ledgersByHash) {
-      const networkIDCounts = this.ledgerNetworkIDCount.get(ledgerHash)
-      if (!networkIDCounts) {
+      const _allValidationsMap = this.mapNetworkIDValidations.get(ledgerHash)
+      if (!_allValidationsMap) {
+        log.error(
+          `Unable to obtain the validations that signed this ledger-hash: `, ledgerHash,
+        )
         continue
       }
 
       let maxCount = 0
       let winningNetworkID = ledger.network_id
-      for (const [networkID, count] of networkIDCounts) {
-        if (count > maxCount) {
-          maxCount = count
+      for (const [networkID, validations] of _allValidationsMap) {
+        if (validations.size > maxCount) {
+          maxCount = validations.size
           winningNetworkID = networkID
         }
       }
+      ledger.network_id = winningNetworkID
 
-      if (ledger.network_id !== winningNetworkID) {
+      if (_allValidationsMap.size > 1) {
         log.info(
           `Finalizing network_id for ledger ${ledgerHash}: overriding ${ledger.network_id} with majority-voted ${winningNetworkID} (${maxCount} votes)`,
         )
-        ledger.network_id = winningNetworkID
+        log.info(`Finalizing the validations associated with ledger ${ledgerHash} to be: ${Array.from(_allValidationsMap.get(winningNetworkID!)!).join(', ')}. This ledger is associated with ${winningNetworkID}. The following validation-signing-keys are discarded due to incorrectly configured network_id values: \n`)
+
+        for (const [networkID, validations] of _allValidationsMap) {
+          if (networkID !== winningNetworkID) {
+            log.info(`\tDiscarding the following validations due to incorrectly configured network_id (${networkID}) values: ${Array.from(validations).join(', ')}`)
+          }
+        }
       }
+
+      // update the validations to only contain the correctly configured network_id
+      ledger.validations = _allValidationsMap.get(winningNetworkID!)!
     }
 
     // after the finalization of networkID values, this map is no longer required.
     // this variable is cleared here to avoid memory leaks in the VHS app
-    this.ledgerNetworkIDCount.clear()
+    this.mapNetworkIDValidations.clear()
   }
 
   /**
@@ -230,7 +240,7 @@ class Chains {
     const list = []
     const now = Date.now()
 
-    this.finalizeLedgerNetworkID()
+    this.finalizeLedgerValidations()
 
     for (const [ledger_hash, ledger] of this.ledgersByHash) {
       const tenSecondsOld = now - ledger.first_seen > 10 * 1000
