@@ -136,8 +136,9 @@ export async function fetchRpcManifest(
 
   try {
     const response = await axios(params)
-    const manifestB64: string | undefined = (response.data as ManifestResponse)
-      .result.manifest
+    const manifestB64: string | undefined = (
+      response.data as unknown as ManifestResponse
+    ).result.manifest
     if (manifestB64) {
       const manifestHex = Buffer.from(manifestB64, 'base64')
         .toString('hex')
