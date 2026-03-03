@@ -92,6 +92,14 @@ export async function handleWsMessageSubscribeTypes(
 ): Promise<void> {
   if (data.type === 'validationReceived') {
     const validationData = data as ValidationRaw
+    // network_id is essential information for organizing validation-messages. We do not want to exhaust the VHSs processing power over validation-messages which do not have this field.
+    if (validationData.network_id === undefined) {
+      log.info(
+        `Validation ${JSON.stringify(validationData)} has no network id. Ignoring this validation and closing this WebSocket connection ${ws.url}.`,
+      )
+      ws.terminate()
+      return
+    }
     if (ledger_hashes.includes(validationData.ledger_hash)) {
       validationData.networks = networks
     }

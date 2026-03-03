@@ -82,7 +82,7 @@ describe('finalizeLedgerNetworkID', () => {
     expect(constructed[0].incomplete).toBe(true)
   })
 
-  test('majority wins: misconfigured minority does not corrupt network_id', async () => {
+  test('majority wins: misconfigured minority validators does not corrupt network_id', async () => {
     const validations = [
       makeValidation({
         ledger_hash: 'HASH_B',
@@ -133,7 +133,7 @@ describe('finalizeLedgerNetworkID', () => {
     expect(constructed[0].incomplete).toBe(true)
   })
 
-  test('multiple ledgers finalized independently', async () => {
+  test('multiple ledgers from different networks finalized independently', async () => {
     const validations = [
       // Ledger on mainnet
       makeValidation({
@@ -199,6 +199,7 @@ describe('finalizeLedgerNetworkID', () => {
     expect(testnetChain!.incomplete).toBe(true)
   })
 
+  // Note: This case is expected to occur very rarely. It indicates that a substantial proportion (50%) of the validators have chosen to report conflicting network_id values for the same ledger-hash+ledger_index pair.
   test('tie-breaking: first network_id with highest count wins', async () => {
     const validations = [
       makeValidation({

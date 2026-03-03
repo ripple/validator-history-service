@@ -178,13 +178,19 @@ class Chains {
 
     this.ledgersByHash.get(ledger_hash)?.validations.add(signing_key)
 
-    // If this network_id was observed for the first time, initialize with an empty set of validation_public_keys
-
-    if (!this.mapNetworkIDValidations.get(ledger_hash)!.has(validation.network_id)) {
-      this.mapNetworkIDValidations.get(ledger_hash)!.set(validation.network_id, new Set())
+    // Ensure the map entry exists (it may have been cleared by finalizeLedgerValidations)
+    if (!this.mapNetworkIDValidations.has(ledger_hash)) {
+      this.mapNetworkIDValidations.set(ledger_hash, new Map())
     }
 
-    this.mapNetworkIDValidations.get(ledger_hash)!.get(validation.network_id)!.add(signing_key)
+    const networkIDMap = this.mapNetworkIDValidations.get(ledger_hash)!
+
+    // If this network_id was observed for the first time, initialize with an empty set of validation_public_keys
+    if (!networkIDMap.has(validation.network_id)) {
+      networkIDMap.set(validation.network_id, new Set())
+    }
+
+    networkIDMap.get(validation.network_id)!.add(signing_key)
   }
   /* eslint-enable max-lines-per-function */
 
@@ -209,14 +215,11 @@ class Chains {
       ledger.network_id = winningNetworkID
 
       if (_allValidationsMap.size > 1) {
-        log.info(
-          `Finalizing network_id for ledger ${ledgerHash}: overriding ${ledger.network_id} with majority-voted ${winningNetworkID} (${maxCount} votes)`,
-        )
-        log.info(`Finalizing the validations associated with ledger ${ledgerHash} to be: ${Array.from(_allValidationsMap.get(winningNetworkID!)!).join(', ')}. This ledger is associated with ${winningNetworkID}. The following validation-signing-keys are discarded due to incorrectly configured network_id values: \n`)
+        log.info(`Finalizing the validations associated with ledger ${ledgerHash} to be: ${Array.from(_allValidationsMap.get(winningNetworkID!)!).join(', ')}. This ledger is associated with NetworkID: ${winningNetworkID}.\n`)
 
         for (const [networkID, validations] of _allValidationsMap) {
           if (networkID !== winningNetworkID) {
-            log.info(`\tDiscarding the following validations due to incorrectly configured network_id (${networkID}) values: ${Array.from(validations).join(', ')}`)
+            log.info(`\tDiscarding the following validations due to incorrectly configured network_id: ${networkID}. Discarded validation_signing_keys: ${Array.from(validations).join(', ')}`)
           }
         }
       }
