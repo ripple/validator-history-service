@@ -56,21 +56,28 @@ for (const item of networks) {
  */
 export async function saveValidatorChains(chain: Chain): Promise<void> {
   let chainName: string | undefined
-  let matchingNetworkIDChain: string[] = []
+  const matchingNetworkIDChain: string[] = []
 
   // detect if there is >1 overlap of the NetworkID amongst the XRPL networks
   // this indicates an error in the VHS chain-assignment logic. If the Chains-data is corrupted, do not overwrite the validators table with the incorrect data
-  for(const [networkName, networkChainID] of networkNameToChainID) {
-    if (networkChainID === chain.network_id)
+  for (const [networkName, networkChainID] of networkNameToChainID) {
+    if (networkChainID === chain.network_id) {
       matchingNetworkIDChain.push(networkName)
+    }
   }
 
   if (matchingNetworkIDChain.length > 1) {
-    log.error('ERROR: Multiple XRPL chains have identical NetworkID values. This indicates a fatal error in the chain assignment logic of the VHS.')
-    log.error("Current Chain NetworkID: ", chain.network_id)
-    log.error("Conflicting chains with identical NetworkIDs: ", matchingNetworkIDChain)
+    log.error(
+      'ERROR: Multiple XRPL chains have identical NetworkID values. This indicates a fatal error in the chain assignment logic of the VHS.',
+    )
+    log.error('Current Chain NetworkID: ', chain.network_id)
+    log.error(
+      'Conflicting chains with identical NetworkIDs: ',
+      matchingNetworkIDChain,
+    )
     return
-  } else if (matchingNetworkIDChain.length === 1) {
+  }
+  if (matchingNetworkIDChain.length === 1) {
     chainName = matchingNetworkIDChain[0]
   } else if (matchingNetworkIDChain.length === 0) {
     log.info(
@@ -100,7 +107,7 @@ class Chains {
   private chains: Chain[] = []
 
   // this map is used to keep track of potentially incorrect network_id specified by validators in a network. The network_id configured by the majority of hte validators is considered to be the true value. The network_id values are finalized before the ledgers are organized into appropriate chains
-  private ledgerNetworkIDCount = new Map<string, Map<number, number>>()
+  private readonly ledgerNetworkIDCount = new Map<string, Map<number, number>>()
 
   /**
    * Updates chains as validations come in.
@@ -181,7 +188,6 @@ class Chains {
 
     const currentCount = countMap.get(validation.network_id) ?? 0
     countMap.set(validation.network_id, currentCount + 1)
-
   }
   /* eslint-enable max-lines-per-function */
 
@@ -332,7 +338,9 @@ class Chains {
           log.error(
             `Invariant Violation: ${overlap.length} validator(s) found in both chain ${chainA.network_id} and chain ${chainB.network_id}: ${overlap.join(', ')}`,
           )
-          throw new Error(`Invariant Violation: ${overlap.length} validator(s) found in both chain ${chainA.network_id} and chain ${chainB.network_id}: ${overlap.join(', ')}`)
+          throw new Error(
+            `Invariant Violation: ${overlap.length} validator(s) found in both chain ${chainA.network_id} and chain ${chainB.network_id}: ${overlap.join(', ')}`,
+          )
         }
       }
     }
