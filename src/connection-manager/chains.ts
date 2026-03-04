@@ -118,12 +118,12 @@ class Chains {
   // ── static methods ──
 
   /**
-   * Determines the winning network_id from a map of (network_id, validators) via majority vote.
+   * Determines the winning network_id from a map of (network_id, validation_signing_keys) via majority vote.
    *
    * @param validationsMap - Map of network_id to set of validator signing keys.
-   * @returns The network_id with the most validators, or undefined if the map is empty.
+   * @returns The network_id with the most validation_signing_keys, or undefined if the map is empty.
    */
-  private static resolveWinningNetworkID(
+  private static resolveNetworkIDForLedger(
     validationsMap: Map<number, Set<string>>,
   ): number | undefined {
     let maxCount = 0
@@ -144,7 +144,7 @@ class Chains {
    * @param winningNetworkID - The network_id that won the majority vote.
    * @param validationsMap - Map of network_id to set of validator signing keys.
    */
-  private static logFinalizationDetails(
+  private static logLedgerValidationReceived(
     ledgerHash: string,
     winningNetworkID: number,
     validationsMap: Map<number, Set<string>>,
@@ -201,7 +201,6 @@ class Chains {
    * @param validation - A raw validation message.
    */
   public async updateLedgers(validation: ValidationRaw): Promise<void> {
-    // eslint-disable-next-line @typescript-eslint/no-unnecessary-condition -- older rippled binaries lack network_id field
     if (validation.network_id === undefined) {
       log.info(
         `Validation ${JSON.stringify(validation)} has no network id. Ignoring this validation.`,
@@ -225,7 +224,8 @@ class Chains {
         ledger_index,
         validations: new Set(),
         first_seen: Date.now(),
-        network_id: undefined,
+        // -1 is a placeholder value. The network_id for this ledger will be finalized in the finalizeLedgerValidations method.
+        network_id: -1,
       })
     }
 
@@ -241,33 +241,31 @@ class Chains {
     for (const [ledgerHash, ledger] of this.ledgersByHash) {
       const validationsMap = this.mapNetworkIDValidations.get(ledgerHash)
       if (!validationsMap) {
-        log.error(
-          `Unable to obtain the validations that signed this ledger-hash: `,
-          ledgerHash,
+        throw new Error(
+          `Chains: Unable to obtain the validations that signed this ledger-hash: ${ledgerHash}`,
         )
-        continue
       }
 
-      const winningNetworkID =
-        Chains.resolveWinningNetworkID(validationsMap) ?? ledger.network_id
+      // If the VHS recieved conflicting network_id values for the same ledger-hash,
+      // the network_id for the ledger will be determined by majority vote.
+      const winningNetworkID = Chains.resolveNetworkIDForLedger(validationsMap)
+
+      if (winningNetworkID === undefined) {
+        throw new Error(
+          `Chains: Unable to determine correct NetworkID for Ledger: ${ledgerHash}.`,
+        )
+      }
+
       ledger.network_id = winningNetworkID
-
-      if (winningNetworkID !== undefined && validationsMap.size > 1) {
-        Chains.logFinalizationDetails(
-          ledgerHash,
-          winningNetworkID,
-          validationsMap,
-        )
-      }
-
-      if (winningNetworkID !== undefined) {
-        ledger.validations =
-          validationsMap.get(winningNetworkID) ?? ledger.validations
-      }
+      // eslint-disable-next-line @typescript-eslint/no-non-null-assertion -- null case is handled by the throw above
+      ledger.validations = validationsMap.get(winningNetworkID)!
+      Chains.logLedgerValidationReceived(
+        ledgerHash,
+        winningNetworkID,
+        validationsMap,
+      )
     }
 
-    // after the finalization of networkID values, this map is no longer required.
-    // this variable is cleared here to avoid memory leaks in the VHS app
     this.mapNetworkIDValidations.clear()
   }
 
@@ -358,7 +356,7 @@ class Chains {
       addLedgerToChain(ledger, chainWithIdenticalNetID[0])
     }
 
-    this.auditChainValidators()
+    this.auditChainValidatorsOverlap()
   }
 
   /**
@@ -425,7 +423,7 @@ class Chains {
     networkIDMap.get(network_id)!.add(signing_key)
   }
 
-  private auditChainValidators(): void {
+  private auditChainValidatorsOverlap(): void {
     // Check if there is any overlap between any two pair of XRPL validator-sets.
     for (let i = 0; i < this.chains.length; i++) {
       for (let j = i + 1; j < this.chains.length; j++) {
@@ -524,7 +522,7 @@ class Chains {
     ])
 
     const chain: Chain = {
-      network_id: ledger.network_id ?? -1,
+      network_id: ledger.network_id,
       current,
       first: current,
       validators,

@@ -93,11 +93,9 @@ export async function handleWsMessageSubscribeTypes(
 ): Promise<void> {
   if (data.type === 'validationReceived') {
     const validationData = data as ValidationRaw
-    // network_id is essential information for organizing validation-messages into XRPL networks.
-    // eslint-disable-next-line @typescript-eslint/no-unnecessary-condition -- older rippled binaries may omit network_id
     if (validationData.network_id === undefined) {
       log.info(
-        `Validation ${JSON.stringify(validationData)} has no network id. Ignoring this validation and closing this WebSocket connection ${ws.url}.`,
+        `Validation ${JSON.stringify(validationData)} has no network id. Lack of network_id causes ambiguity in the XRPL Network Assignment. Closing this WebSocket connection ${ws.url}.`,
       )
       ws.terminate()
       return

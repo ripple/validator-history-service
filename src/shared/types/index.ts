@@ -19,7 +19,7 @@ interface Ledger {
   ledger_index: number
   validations: Set<string>
   first_seen: number
-  network_id: number | undefined
+  network_id: number
 }
 
 interface StreamLedger {
@@ -111,7 +111,7 @@ interface ValidationRaw {
   reserve_base?: number
   reserve_inc?: number
   ledger_fee?: FeeVote
-  network_id: number
+  network_id?: number
 
   // The validation_public_key is the same as the signing_key in StreamManifest
 }
