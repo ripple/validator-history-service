@@ -75,7 +75,8 @@ async function fetchNetworkAmendments(
     const featuresAll = featureAllResponse.result.features
 
     for (const id of Object.keys(featuresAll)) {
-      addAmendmentToCache(id, featuresAll[id].name)
+      const feature = featuresAll[id]
+      addAmendmentToCache(id, feature.name, feature.supported)
     }
 
     // Some amendments in voting are not available in feature all request.
@@ -90,7 +91,15 @@ async function fetchNetworkAmendments(
       // eslint-disable-next-line max-depth -- The depth is only 2, try catch should not count.
       if ('result' in featureOneResponse) {
         const feature = featureOneResponse.result[amendment_id]
-        addAmendmentToCache(amendment_id, feature.name)
+        addAmendmentToCache(amendment_id, feature.name, feature.supported)
+      } else {
+        // ErrorResponse means the amendment is not supported/unknown
+        // Mark it as deprecated with a placeholder name
+        addAmendmentToCache(
+          amendment_id,
+          `Unknown-${amendment_id.slice(0, 8)}`,
+          false,
+        )
       }
     }
 
@@ -111,11 +120,17 @@ async function fetchNetworkAmendments(
  *
  * @param id - The id of the amendment to add.
  * @param name - The name of the amendment to add.
+ * @param supported - Whether the amendment is supported by rippled (from feature RPC).
  */
-function addAmendmentToCache(id: string, name: string): void {
+function addAmendmentToCache(
+  id: string,
+  name: string,
+  supported: boolean,
+): void {
   amendmentIDs.set(id, {
     name,
-    deprecated: RETIRED_AMENDMENTS.includes(name),
+    // Mark as deprecated if it's in RETIRED_AMENDMENTS list OR if not supported
+    deprecated: RETIRED_AMENDMENTS.includes(name) || !supported,
   })
   votingAmendmentsToTrack.delete(id)
 }
