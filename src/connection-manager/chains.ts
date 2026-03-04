@@ -59,7 +59,8 @@ export async function saveValidatorChains(chain: Chain): Promise<void> {
   const matchingNetworkIDChain: string[] = []
 
   // detect if there is >1 overlap of the NetworkID amongst the XRPL networks
-  // this indicates an error in the VHS chain-assignment logic. If the Chains-data is corrupted, do not overwrite the validators table with the incorrect data
+  // this indicates an error in the VHS chain-assignment logic. If the Chains-data is corrupted,
+  // do not overwrite the validators table with the incorrect data
   for (const [networkName, networkChainID] of networkNameToChainID) {
     if (networkChainID === chain.network_id) {
       matchingNetworkIDChain.push(networkName)
@@ -106,55 +107,111 @@ class Chains {
   private readonly ledgersByHash: Map<string, Ledger> = new Map()
   private chains: Chain[] = []
 
-  // This map stores the ledger_hash -> network_id -> set of validation_public_keys association data. It has been observed that some validators have misconfigured the network_id values. This map helps determine the correct network_id through majority vote
-  private readonly mapNetworkIDValidations = new Map<string, Map<number, Set<string>>>()
+  // This map stores the ledger_hash -> network_id -> set of validation_public_keys association data.
+  // It has been observed that some validators have misconfigured the network_id values.
+  // This map helps determine the correct network_id through majority vote
+  private readonly mapNetworkIDValidations = new Map<
+    string,
+    Map<number, Set<string>>
+  >()
+
+  // ── static methods ──
+
+  /**
+   * Determines the winning network_id from a map of (network_id, validators) via majority vote.
+   *
+   * @param validationsMap - Map of network_id to set of validator signing keys.
+   * @returns The network_id with the most validators, or undefined if the map is empty.
+   */
+  private static resolveWinningNetworkID(
+    validationsMap: Map<number, Set<string>>,
+  ): number | undefined {
+    let maxCount = 0
+    let winner: number | undefined
+    for (const [networkID, validations] of validationsMap) {
+      if (validations.size > maxCount) {
+        maxCount = validations.size
+        winner = networkID
+      }
+    }
+    return winner
+  }
+
+  /**
+   * Logs which validations were kept and which were discarded for a ledger.
+   *
+   * @param ledgerHash - The ledger hash being finalized.
+   * @param winningNetworkID - The network_id that won the majority vote.
+   * @param validationsMap - Map of network_id to set of validator signing keys.
+   */
+  private static logFinalizationDetails(
+    ledgerHash: string,
+    winningNetworkID: number,
+    validationsMap: Map<number, Set<string>>,
+  ): void {
+    const winningValidations = validationsMap.get(winningNetworkID)
+    const winningKeys = winningValidations
+      ? Array.from(winningValidations).join(', ')
+      : '(none)'
+    log.info(
+      `Finalizing validations for ledger ${ledgerHash}: kept ${winningKeys}. NetworkID: ${winningNetworkID}.`,
+    )
+
+    for (const [networkID, validations] of validationsMap) {
+      if (networkID !== winningNetworkID) {
+        log.info(
+          `\tDiscarding validations with incorrect network_id ${networkID}: ${Array.from(validations).join(', ')}`,
+        )
+      }
+    }
+  }
+
+  /**
+   * Checks whether two chains share any validators and throws if they do.
+   *
+   * @param chainA - First chain to compare.
+   * @param chainB - Second chain to compare.
+   * @throws Error if any validators appear in both chains.
+   */
+  private static assertNoValidatorOverlap(chainA: Chain, chainB: Chain): void {
+    const overlap = Array.from(chainA.validators).filter(
+      (validatorSigningKey) => chainB.validators.has(validatorSigningKey),
+    )
+    if (overlap.length > 0) {
+      const msg = `Invariant Violation: ${overlap.length} validator(s) found in both chain ${chainA.network_id} and chain ${chainB.network_id}: ${overlap.join(', ')}`
+      log.error(msg)
+      throw new Error(msg)
+    }
+  }
+
+  // ── public methods ──
+
+  /**
+   * Sets the chains. Note: This method is used for testing purposes only.
+   *
+   * @param chains - The specified chains array.
+   */
+  public setChains(chains: Chain[]): void {
+    this.chains = chains
+  }
 
   /**
    * Updates chains as validations come in.
    *
    * @param validation - A raw validation message.
    */
-  /* eslint-disable max-lines-per-function -- method handles modern and legacy rippled validators */
   public async updateLedgers(validation: ValidationRaw): Promise<void> {
-    // eslint-disable-next-line max-len -- comment is required to explain the legacy behavior
-    // eslint-disable-next-line @typescript-eslint/no-unnecessary-condition -- older rippled binaries do not return a network_id field
+    // eslint-disable-next-line @typescript-eslint/no-unnecessary-condition -- older rippled binaries lack network_id field
     if (validation.network_id === undefined) {
       log.info(
         `Validation ${JSON.stringify(validation)} has no network id. Ignoring this validation.`,
       )
       return
     }
-    let XRPL_MAINNET_CURRENT_LEDGER_INDEX: number | undefined
 
-    const XRPL_MAINNET_CHAIN = this.chains.filter(
-      (chain) => chain.network_id === 0,
-    )
-    if (XRPL_MAINNET_CHAIN.length > 1) {
-      throw new Error(
-        `Non-unique XRPL Mainnet chain (network_id == 0) found. This should never happen. These are the conflicting chains: ${JSON.stringify(
-          XRPL_MAINNET_CHAIN,
-        )}`,
-      )
-    }
-
-    if (XRPL_MAINNET_CHAIN.length === 0) {
-      log.info(
-        'No XRPL Mainnet chain (network_id == 0) found. Discarding the check for recent ledgers on XRPL Mainnet.',
-      )
-    } else {
-      XRPL_MAINNET_CURRENT_LEDGER_INDEX = XRPL_MAINNET_CHAIN[0].current
-    }
-
-    // Discarding validations which are older than the last 100 ledgers on XRPL Mainnet (older than 380 seconds)
-    if (
-      validation.network_id === 0 &&
-      XRPL_MAINNET_CURRENT_LEDGER_INDEX !== undefined &&
-      Number(validation.ledger_index) < XRPL_MAINNET_CURRENT_LEDGER_INDEX - 100
-    ) {
+    if (this.isStaleMainnetValidation(validation)) {
       log.trace(
-        `XRPL Mainnet Validation is really old. Ignoring this validation: ${JSON.stringify(
-          validation,
-        )}`,
+        `XRPL Mainnet Validation is really old. Ignoring this validation: ${JSON.stringify(validation)}`,
       )
       return
     }
@@ -162,9 +219,7 @@ class Chains {
     const { ledger_hash, validation_public_key: signing_key } = validation
     const ledger_index = Number(validation.ledger_index)
 
-    const ledger: Ledger | undefined = this.ledgersByHash.get(ledger_hash)
-
-    if (ledger === undefined) {
+    if (!this.ledgersByHash.has(ledger_hash)) {
       this.ledgersByHash.set(ledger_hash, {
         ledger_hash,
         ledger_index,
@@ -172,60 +227,43 @@ class Chains {
         first_seen: Date.now(),
         network_id: undefined,
       })
-
-      this.mapNetworkIDValidations.set(ledger_hash, new Map())
     }
 
     this.ledgersByHash.get(ledger_hash)?.validations.add(signing_key)
-
-    // Ensure the map entry exists (it may have been cleared by finalizeLedgerValidations)
-    if (!this.mapNetworkIDValidations.has(ledger_hash)) {
-      this.mapNetworkIDValidations.set(ledger_hash, new Map())
-    }
-
-    const networkIDMap = this.mapNetworkIDValidations.get(ledger_hash)!
-
-    // If this network_id was observed for the first time, initialize with an empty set of validation_public_keys
-    if (!networkIDMap.has(validation.network_id)) {
-      networkIDMap.set(validation.network_id, new Set())
-    }
-
-    networkIDMap.get(validation.network_id)!.add(signing_key)
+    this.recordValidationNetworkID(
+      ledger_hash,
+      validation.network_id,
+      signing_key,
+    )
   }
-  /* eslint-enable max-lines-per-function */
 
   public finalizeLedgerValidations(): void {
     for (const [ledgerHash, ledger] of this.ledgersByHash) {
-      const _allValidationsMap = this.mapNetworkIDValidations.get(ledgerHash)
-      if (!_allValidationsMap) {
+      const validationsMap = this.mapNetworkIDValidations.get(ledgerHash)
+      if (!validationsMap) {
         log.error(
-          `Unable to obtain the validations that signed this ledger-hash: `, ledgerHash,
+          `Unable to obtain the validations that signed this ledger-hash: `,
+          ledgerHash,
         )
         continue
       }
 
-      let maxCount = 0
-      let winningNetworkID = ledger.network_id
-      for (const [networkID, validations] of _allValidationsMap) {
-        if (validations.size > maxCount) {
-          maxCount = validations.size
-          winningNetworkID = networkID
-        }
-      }
+      const winningNetworkID =
+        Chains.resolveWinningNetworkID(validationsMap) ?? ledger.network_id
       ledger.network_id = winningNetworkID
 
-      if (_allValidationsMap.size > 1) {
-        log.info(`Finalizing the validations associated with ledger ${ledgerHash} to be: ${Array.from(_allValidationsMap.get(winningNetworkID!)!).join(', ')}. This ledger is associated with NetworkID: ${winningNetworkID}.\n`)
-
-        for (const [networkID, validations] of _allValidationsMap) {
-          if (networkID !== winningNetworkID) {
-            log.info(`\tDiscarding the following validations due to incorrectly configured network_id: ${networkID}. Discarded validation_signing_keys: ${Array.from(validations).join(', ')}`)
-          }
-        }
+      if (winningNetworkID !== undefined && validationsMap.size > 1) {
+        Chains.logFinalizationDetails(
+          ledgerHash,
+          winningNetworkID,
+          validationsMap,
+        )
       }
 
-      // update the validations to only contain the correctly configured network_id
-      ledger.validations = _allValidationsMap.get(winningNetworkID!)!
+      if (winningNetworkID !== undefined) {
+        ledger.validations =
+          validationsMap.get(winningNetworkID) ?? ledger.validations
+      }
     }
 
     // after the finalization of networkID values, this map is no longer required.
@@ -238,7 +276,6 @@ class Chains {
    *
    * @returns List of chains being monitored by the system.
    */
-
   public calculateChainsFromLedgers(): Chain[] {
     const list = []
     const now = Date.now()
@@ -333,39 +370,68 @@ class Chains {
     return this.chains
   }
 
+  // ── private methods ──
+
+  /**
+   * Returns whether the validation should be discarded as a stale XRPL Mainnet validation.
+   *
+   * @param validation - A raw validation message.
+   * @returns True if the validation is stale and should be ignored.
+   * @throws Error if more than one XRPL Mainnet chain exists.
+   */
+  private isStaleMainnetValidation(validation: ValidationRaw): boolean {
+    const mainnetChains = this.chains.filter((chain) => chain.network_id === 0)
+    if (mainnetChains.length > 1) {
+      throw new Error(
+        `Non-unique XRPL Mainnet chain (network_id == 0) found. Conflicting chains: ${JSON.stringify(mainnetChains)}`,
+      )
+    }
+
+    if (mainnetChains.length === 0) {
+      return false
+    }
+
+    const currentIndex = mainnetChains[0].current
+    return (
+      validation.network_id === 0 &&
+      Number(validation.ledger_index) < currentIndex - 100
+    )
+  }
+
+  /**
+   * Records the signing_key in the network_id validation map for the given ledger hash.
+   *
+   * @param ledger_hash - The ledger hash.
+   * @param network_id - The network ID from the validation.
+   * @param signing_key - The validator's signing key.
+   */
+  private recordValidationNetworkID(
+    ledger_hash: string,
+    network_id: number,
+    signing_key: string,
+  ): void {
+    if (!this.mapNetworkIDValidations.has(ledger_hash)) {
+      this.mapNetworkIDValidations.set(ledger_hash, new Map())
+    }
+
+    // eslint-disable-next-line @typescript-eslint/no-non-null-assertion -- guaranteed by the `has` check + `set` above
+    const networkIDMap = this.mapNetworkIDValidations.get(ledger_hash)!
+
+    if (!networkIDMap.has(network_id)) {
+      networkIDMap.set(network_id, new Set())
+    }
+
+    // eslint-disable-next-line @typescript-eslint/no-non-null-assertion -- guaranteed by the `has` check + `set` above
+    networkIDMap.get(network_id)!.add(signing_key)
+  }
+
   private auditChainValidators(): void {
     // Check if there is any overlap between any two pair of XRPL validator-sets.
     for (let i = 0; i < this.chains.length; i++) {
       for (let j = i + 1; j < this.chains.length; j++) {
-        const chainA = this.chains[i]
-        const chainB = this.chains[j]
-
-        const overlap: string[] = []
-        for (const validator of chainA.validators) {
-          if (chainB.validators.has(validator)) {
-            overlap.push(validator)
-          }
-        }
-
-        if (overlap.length > 0) {
-          log.error(
-            `Invariant Violation: ${overlap.length} validator(s) found in both chain ${chainA.network_id} and chain ${chainB.network_id}: ${overlap.join(', ')}`,
-          )
-          throw new Error(
-            `Invariant Violation: ${overlap.length} validator(s) found in both chain ${chainA.network_id} and chain ${chainB.network_id}: ${overlap.join(', ')}`,
-          )
-        }
+        Chains.assertNoValidatorOverlap(this.chains[i], this.chains[j])
       }
     }
-  }
-
-  /**
-   * Sets the chains. Note: This method is used for testing purposes only.
-   *
-   * @param chains - The specified chains array.
-   */
-  public setChains(chains: Chain[]): void {
-    this.chains = chains
   }
 
   /**
@@ -458,7 +524,7 @@ class Chains {
     ])
 
     const chain: Chain = {
-      network_id: ledger.network_id!,
+      network_id: ledger.network_id ?? -1,
       current,
       first: current,
       validators,

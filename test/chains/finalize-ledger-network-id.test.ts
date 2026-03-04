@@ -63,8 +63,8 @@ describe('finalizeLedgerNetworkID', () => {
       }),
     ]
 
-    for (const v of validations) {
-      await chains.updateLedgers(v)
+    for (const validation of validations) {
+      await chains.updateLedgers(validation)
     }
 
     const time = Date.now() + 11000
@@ -111,8 +111,8 @@ describe('finalizeLedgerNetworkID', () => {
       }),
     ]
 
-    for (const v of validations) {
-      await chains.updateLedgers(v)
+    for (const validation of validations) {
+      await chains.updateLedgers(validation)
     }
 
     const time = Date.now() + 11000
@@ -121,9 +121,7 @@ describe('finalizeLedgerNetworkID', () => {
     const constructed = chains.calculateChainsFromLedgers()
     expect(constructed).toHaveLength(1)
     expect(constructed[0].network_id).toBe(0)
-    expect(constructed[0].validators).toEqual(
-      new Set(['VAL1', 'VAL2', 'VAL3']),
-    )
+    expect(constructed[0].validators).toEqual(new Set(['VAL1', 'VAL2', 'VAL3']))
     expect(constructed[0].validators).not.toContain('VAL_BAD')
     expect(constructed[0].ledgers).toEqual(
       new Set([{ ledger_hash: 'HASH_B', ledger_index: 10 } as LedgerHashIndex]),
@@ -163,8 +161,8 @@ describe('finalizeLedgerNetworkID', () => {
       }),
     ]
 
-    for (const v of validations) {
-      await chains.updateLedgers(v)
+    for (const validation of validations) {
+      await chains.updateLedgers(validation)
     }
 
     const time = Date.now() + 11000
@@ -173,8 +171,8 @@ describe('finalizeLedgerNetworkID', () => {
     const constructed = chains.calculateChainsFromLedgers()
     expect(constructed).toHaveLength(2)
 
-    const mainnetChain = constructed.find((c) => c.network_id === 0)
-    const testnetChain = constructed.find((c) => c.network_id === 1)
+    const mainnetChain = constructed.find((chain) => chain.network_id === 0)
+    const testnetChain = constructed.find((chain) => chain.network_id === 1)
 
     expect(mainnetChain).toBeDefined()
     expect(mainnetChain!.validators).toEqual(new Set(['MVAL1', 'MVAL2']))
@@ -199,7 +197,8 @@ describe('finalizeLedgerNetworkID', () => {
     expect(testnetChain!.incomplete).toBe(true)
   })
 
-  // Note: This case is expected to occur very rarely. It indicates that a substantial proportion (50%) of the validators have chosen to report conflicting network_id values for the same ledger-hash+ledger_index pair.
+  // Note: This case is expected to occur very rarely. It indicates that a substantial proportion (50%) of the
+  // validators have chosen to report conflicting network_id values for the same ledger-hash+ledger_index pair.
   test('tie-breaking: first network_id with highest count wins', async () => {
     const validations = [
       makeValidation({
@@ -228,8 +227,8 @@ describe('finalizeLedgerNetworkID', () => {
       }),
     ]
 
-    for (const v of validations) {
-      await chains.updateLedgers(v)
+    for (const validation of validations) {
+      await chains.updateLedgers(validation)
     }
 
     const time = Date.now() + 11000

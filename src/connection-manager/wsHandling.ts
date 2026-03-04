@@ -68,6 +68,7 @@ function isFlagLedgerPlusOne(ledger_index: number): boolean {
   return false
 }
 
+/* eslint-disable max-statements, max-lines-per-function -- this method handles complexity of all incoming messages */
 /**
  * Handles a WebSocket message received from a subscribe request.
  *
@@ -92,7 +93,8 @@ export async function handleWsMessageSubscribeTypes(
 ): Promise<void> {
   if (data.type === 'validationReceived') {
     const validationData = data as ValidationRaw
-    // network_id is essential information for organizing validation-messages. We do not want to exhaust the VHSs processing power over validation-messages which do not have this field.
+    // network_id is essential information for organizing validation-messages into XRPL networks.
+    // eslint-disable-next-line @typescript-eslint/no-unnecessary-condition -- older rippled binaries may omit network_id
     if (validationData.network_id === undefined) {
       log.info(
         `Validation ${JSON.stringify(validationData)} has no network id. Ignoring this validation and closing this WebSocket connection ${ws.url}.`,
@@ -137,6 +139,7 @@ export async function handleWsMessageSubscribeTypes(
     )
   }
 }
+/* eslint-enable max-statements, max-lines-per-function */
 
 /**
  * Checks and handles the EnableAmendment ledger for a given network.
