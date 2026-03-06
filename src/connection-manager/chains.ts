@@ -179,7 +179,6 @@ class Chains {
     )
     if (overlap.length > 0) {
       const msg = `Invariant Violation: ${overlap.length} validator(s) found in both chain ${chainA.network_id} and chain ${chainB.network_id}: ${overlap.join(', ')}`
-      log.error(msg)
       throw new Error(msg)
     }
   }
@@ -239,6 +238,9 @@ class Chains {
 
   public finalizeLedgerValidations(): void {
     for (const [ledgerHash, ledger] of this.ledgersByHash) {
+      if (Date.now() - ledger.first_seen <= 10 * 1000 || ledger.validations.size <= 1) {
+        continue
+      }
       const validationsMap = this.mapNetworkIDValidations.get(ledgerHash)
       if (!validationsMap) {
         throw new Error(
@@ -265,8 +267,6 @@ class Chains {
         validationsMap,
       )
     }
-
-    this.mapNetworkIDValidations.clear()
   }
 
   /**
@@ -289,6 +289,7 @@ class Chains {
 
       if (tenSecondsOld) {
         this.ledgersByHash.delete(ledger_hash)
+        this.mapNetworkIDValidations.delete(ledger_hash)
       }
     }
 
