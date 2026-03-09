@@ -115,26 +115,67 @@ class Chains {
     Map<number, Set<string>>
   >()
 
+  // Reverse lookup from validator signing_key to its authoritative network_id, derived from UNL data.
+  // UNL validators are the source of truth for network classification.
+  private unlBySigningKey: Map<string, number> = new Map()
+
   // ── static methods ──
 
   /**
-   * Determines the winning network_id from a map of (network_id, validation_signing_keys) via majority vote.
+   * Determines the winning network_id for a ledger using UNL membership.
+   * Only UNL validators are considered trustworthy for network classification.
    *
+   * @param ledgerValidations - The set of all signing keys that validated this ledger.
    * @param validationsMap - Map of network_id to set of validator signing keys.
-   * @returns The network_id with the most validation_signing_keys, or undefined if the map is empty.
+   * @param unlBySigningKey - Reverse lookup from signing_key to authoritative network_id.
+   * @returns The winning network_id and the set of validations to keep, or undefined if the ledger should be discarded.
    */
-  private static resolveNetworkIDForLedger(
+  private static resolveNetworkIDForLedgerByUNL(
+    ledgerValidations: Set<string>,
     validationsMap: Map<number, Set<string>>,
-  ): number | undefined {
-    let maxCount = 0
-    let winner: number | undefined
-    for (const [networkID, validations] of validationsMap) {
-      if (validations.size > maxCount) {
-        maxCount = validations.size
-        winner = networkID
+    unlBySigningKey: Map<string, number>,
+  ): { networkId: number; validations: Set<string> } | undefined {
+    // Count UNL validators per network_id based on their UNL membership
+    const unlCountByNetwork = new Map<number, number>()
+    for (const signingKey of ledgerValidations) {
+      const unlNetworkId = unlBySigningKey.get(signingKey)
+      if (unlNetworkId !== undefined) {
+        unlCountByNetwork.set(
+          unlNetworkId,
+          (unlCountByNetwork.get(unlNetworkId) ?? 0) + 1,
+        )
       }
     }
-    return winner
+
+    // No UNL validators signed this ledger — discard it
+    if (unlCountByNetwork.size === 0) {
+      return undefined
+    }
+
+    // UNL validators from multiple networks signed this ledger — discard it
+    if (unlCountByNetwork.size > 1) {
+      log.warn(
+        `Discarding ledger: UNL validators from ${unlCountByNetwork.size} different networks signed it. Networks: ${Array.from(unlCountByNetwork.keys()).join(', ')}`,
+      )
+      return undefined
+    }
+
+    // Exactly one network's UNL validators signed this ledger
+    // eslint-disable-next-line @typescript-eslint/no-non-null-assertion -- guaranteed by size === 1
+    const winningNetworkId = unlCountByNetwork.keys().next().value!
+
+    // Keep UNL validators, plus non-UNL validators that reported the correct network_id
+    const kept = new Set<string>()
+    const correctNetworkValidations = validationsMap.get(winningNetworkId)
+    if (correctNetworkValidations) {
+      for (const key of correctNetworkValidations) {
+        kept.add(key)
+      }
+    }
+
+    // Note: If the UNL validators reported an incorrect network_id, their agreement scores will be penalized by the system.
+
+    return { networkId: winningNetworkId, validations: kept }
   }
 
   /**
@@ -195,6 +236,21 @@ class Chains {
   }
 
   /**
+   * Sets the UNL data used for network classification.
+   * Builds a reverse lookup from signing_key to network_id.
+   *
+   * @param unlsByNetworkId - Map of network_id to set of UNL validator signing keys.
+   */
+  public setUNLs(unlsByNetworkId: Map<number, Set<string>>): void {
+    this.unlBySigningKey = new Map()
+    for (const [networkId, signingKeys] of unlsByNetworkId) {
+      for (const key of signingKeys) {
+        this.unlBySigningKey.set(key, networkId)
+      }
+    }
+  }
+
+  /**
    * Updates chains as validations come in.
    *
    * @param validation - A raw validation message.
@@ -248,24 +304,38 @@ class Chains {
         )
       }
 
-      // If the VHS recieved conflicting network_id values for the same ledger-hash,
-      // the network_id for the ledger will be determined by majority vote.
-      const winningNetworkID = Chains.resolveNetworkIDForLedger(validationsMap)
-
-      if (winningNetworkID === undefined) {
-        throw new Error(
-          `Chains: Unable to determine correct NetworkID for Ledger: ${ledgerHash}.`,
+      // Use UNL-based resolution if UNL data is available
+      if (this.unlBySigningKey.size > 0) {
+        const result = Chains.resolveNetworkIDForLedgerByUNL(
+          ledger.validations,
+          validationsMap,
+          this.unlBySigningKey,
         )
+
+        if (result === undefined) {
+          log.info(
+            `Discarding ledger ${ledgerHash}: no UNL validators signed it or UNL validators from multiple networks signed it.`,
+          )
+          // Mark with -1 so calculateChainsFromLedgers skips it
+          ledger.network_id = -1
+          continue
+        }
+
+        ledger.network_id = result.networkId
+        ledger.validations = result.validations
+        Chains.logLedgerValidationReceived(
+          ledgerHash,
+          result.networkId,
+          validationsMap,
+        )
+        continue
       }
 
-      ledger.network_id = winningNetworkID
-      // eslint-disable-next-line @typescript-eslint/no-non-null-assertion -- null case is handled by the throw above
-      ledger.validations = validationsMap.get(winningNetworkID)!
-      Chains.logLedgerValidationReceived(
-        ledgerHash,
-        winningNetworkID,
-        validationsMap,
+      // Fallback: no UNL data at all — discard the ledger since we cannot reliably classify it
+      log.info(
+        `Discarding ledger ${ledgerHash}: no UNL data available for network classification.`,
       )
+      ledger.network_id = -1
     }
   }
 
@@ -283,7 +353,7 @@ class Chains {
     for (const [ledger_hash, ledger] of this.ledgersByHash) {
       const tenSecondsOld = now - ledger.first_seen > 10 * 1000
 
-      if (ledger.validations.size > 1 && tenSecondsOld) {
+      if (ledger.validations.size > 1 && tenSecondsOld && ledger.network_id !== -1) {
         list.push(ledger)
       }
 

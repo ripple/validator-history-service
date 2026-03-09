@@ -34,6 +34,11 @@ describe('Turn of the Day Agreement', () => {
   })
 
   test('validate contents of daily_agreement table at turn of the day', async () => {
+    chains.setUNLs(
+      new Map([
+        [1026, new Set(['VALIDATOR4', 'VALIDATOR5'])],
+      ]),
+    )
     const sampleValidation = {
       type: 'validationReceived',
       // the below four fields differ for each validation

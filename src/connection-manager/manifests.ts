@@ -20,6 +20,7 @@ import {
 import { fetchValidatorList, fetchRpcManifest, getLists } from '../shared/utils'
 import logger from '../shared/utils/logger'
 
+import chains from './chains'
 import hard_dunl from './fixtures/unl-hard.json'
 
 const log = logger({ name: 'manifests' })
@@ -174,6 +175,19 @@ async function updateValidatorDomainsFromManifests(): Promise<void> {
 export async function updateUnls(): Promise<void> {
   try {
     const lists = await getLists()
+
+    // Build network_id -> signing_keys map and update chains for UNL-based ledger classification
+    const networks = await getNetworks()
+    const networkIdByName = new Map(networks.map((n) => [n.id, n.network_id]))
+    const unlsByNetworkId = new Map<number, Set<string>>()
+    for (const [name, signingKeys] of Object.entries(lists)) {
+      const networkId = networkIdByName.get(name)
+      if (networkId !== undefined) {
+        unlsByNetworkId.set(networkId, signingKeys)
+      }
+    }
+    chains.setUNLs(unlsByNetworkId)
+
     log.info('Updating validator unls...')
     for (const [name, list] of Object.entries(lists)) {
       // Get latest signing keys from manifests table

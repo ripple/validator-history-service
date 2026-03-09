@@ -71,6 +71,9 @@ describe('XRPL Mainnet continuity check - missing ledgers', () => {
 
       // clear the previous state of the chains module
       await chains.purgeChains()
+      chains.setUNLs(
+        new Map([[0, new Set(['VAL_A', 'VAL_B'])]]),
+      )
       // out-of-order ledgers will be sorted by ledger_index
       await chains.updateLedgers(makeValidationMessage('H3', L3, 'VAL_A'))
       await chains.updateLedgers(makeValidationMessage('H3', L3, 'VAL_B'))

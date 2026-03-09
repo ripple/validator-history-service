@@ -7,6 +7,7 @@ import {
   updateUnls,
   purgeOldValidators,
 } from '../../src/connection-manager/manifests'
+import chains from '../../src/connection-manager/chains'
 import {
   destroy,
   query,
@@ -285,5 +286,40 @@ describe('manifest ingest', () => {
     expect(validators[0].signing_key).toBe(
       'n9RecentValidator11111111111111111111111111111111111111111',
     )
+  })
+
+  test('updateUnls calls chains.setUNLs with correct network_id to signing_keys mapping', async () => {
+    const setUNLsSpy = jest.spyOn(chains, 'setUNLs')
+
+    // Only mainnet UNL responds; other networks fail (nock won't match)
+    nock(`http://${VALIDATOR_URL}`).get('/').reply(200, unl1)
+
+    await query('validators').insert({
+      master_key: 'nHBtDzdRDykxiuv7uSMPTcGexNm879RUUz5GW4h1qgjbtyvWZ1LE',
+      signing_key: 'n9LCf7NtwcyXVc5fYB6UVByRoQZqJDhrMUoKnr3GQB6mFqpcmMzg',
+    })
+    await query('manifests').insert({
+      master_key: 'nHBtDzdRDykxiuv7uSMPTcGexNm879RUUz5GW4h1qgjbtyvWZ1LE',
+      signing_key: 'n9LCf7NtwcyXVc5fYB6UVByRoQZqJDhrMUoKnr3GQB6mFqpcmMzg',
+    })
+
+    await updateUnls()
+
+    expect(setUNLsSpy).toHaveBeenCalledTimes(1)
+
+    const unlsArg = setUNLsSpy.mock.calls[0][0]
+    // Mainnet (network_id 0) should contain the signing key from unl1
+    expect(unlsArg.get(0)).toBeDefined()
+    expect(unlsArg.get(0)!.has('n9LCf7NtwcyXVc5fYB6UVByRoQZqJDhrMUoKnr3GQB6mFqpcmMzg')).toBe(true)
+
+    // Networks whose UNL fetch failed should have empty sets
+    for (const [networkId, signingKeys] of unlsArg) {
+      if (networkId !== 0) {
+        // Other networks may resolve but should not contain the mainnet signing key
+        expect(signingKeys.has('n9LCf7NtwcyXVc5fYB6UVByRoQZqJDhrMUoKnr3GQB6mFqpcmMzg')).toBe(false)
+      }
+    }
+
+    setUNLsSpy.mockRestore()
   })
 })

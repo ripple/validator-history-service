@@ -1,4 +1,5 @@
 import agreement from '../../src/connection-manager/agreement'
+import chains from '../../src/connection-manager/chains'
 import { destroy, query, setupTables } from '../../src/shared/database'
 import {
   DailyAgreement,
@@ -28,6 +29,11 @@ describe('Compute Total Ledgers Per Hour', () => {
   })
 
   test('compute the total ledgers processed every hour', async () => {
+    chains.setUNLs(
+      new Map([
+        [1028, new Set(['VALIDATOR1', 'VALIDATOR2'])],
+      ]),
+    )
     const sampleValidation = {
       type: 'validationReceived',
       // the below four fields differ for each validation
