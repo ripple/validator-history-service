@@ -22,9 +22,7 @@ describe('Creates chains', () => {
 
   test('Perfect validation scores', async () => {
     chains.setUNLs(
-      new Map([
-        [1025, new Set(['VALIDATOR1', 'VALIDATOR2', 'VALIDATOR3'])],
-      ]),
+      new Map([[1025, new Set(['VALIDATOR1', 'VALIDATOR2', 'VALIDATOR3'])]]),
     )
     for (const validation of validations) {
       chains.updateLedgers(validation)

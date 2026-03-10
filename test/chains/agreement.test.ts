@@ -33,9 +33,7 @@ describe('Agreement', () => {
 
   test('Correctly computes hourly + daily agreement', async () => {
     chains.setUNLs(
-      new Map([
-        [1025, new Set(['VALIDATOR1', 'VALIDATOR2', 'VALIDATOR3'])],
-      ]),
+      new Map([[1025, new Set(['VALIDATOR1', 'VALIDATOR2', 'VALIDATOR3'])]]),
     )
     for (const validation of validations) {
       await agreement.handleValidation(validation)

@@ -90,8 +90,8 @@ describe('UNL-based network_id resolution', () => {
       }),
     ]
 
-    for (const v of validations) {
-      await chains.updateLedgers(v)
+    for (const val of validations) {
+      await chains.updateLedgers(val)
     }
 
     const constructed = advanceTimeAndCalculate()
@@ -158,8 +158,8 @@ describe('UNL-based network_id resolution', () => {
       }),
     ]
 
-    for (const v of validations) {
-      await chains.updateLedgers(v)
+    for (const val of validations) {
+      await chains.updateLedgers(val)
     }
 
     const constructed = advanceTimeAndCalculate()
@@ -210,8 +210,8 @@ describe('UNL-based network_id resolution', () => {
       }),
     ]
 
-    for (const v of validations) {
-      await chains.updateLedgers(v)
+    for (const val of validations) {
+      await chains.updateLedgers(val)
     }
 
     const constructed = advanceTimeAndCalculate()
@@ -246,8 +246,8 @@ describe('UNL-based network_id resolution', () => {
       }),
     ]
 
-    for (const v of validations) {
-      await chains.updateLedgers(v)
+    for (const val of validations) {
+      await chains.updateLedgers(val)
     }
 
     const constructed = advanceTimeAndCalculate()
@@ -255,11 +255,7 @@ describe('UNL-based network_id resolution', () => {
   })
 
   test('ledger with only non-UNL validators is discarded', async () => {
-    chains.setUNLs(
-      new Map([
-        [0, new Set(['UNL_VAL_NOT_ON_THIS_LEDGER'])],
-      ]),
-    )
+    chains.setUNLs(new Map([[0, new Set(['UNL_VAL_NOT_ON_THIS_LEDGER'])]]))
 
     const validations = [
       makeValidation({
@@ -282,8 +278,8 @@ describe('UNL-based network_id resolution', () => {
       }),
     ]
 
-    for (const v of validations) {
-      await chains.updateLedgers(v)
+    for (const val of validations) {
+      await chains.updateLedgers(val)
     }
 
     const constructed = advanceTimeAndCalculate()
@@ -340,15 +336,15 @@ describe('UNL-based network_id resolution', () => {
       }),
     ]
 
-    for (const v of validations) {
-      await chains.updateLedgers(v)
+    for (const val of validations) {
+      await chains.updateLedgers(val)
     }
 
     const constructed = advanceTimeAndCalculate()
     expect(constructed).toHaveLength(2)
 
-    const mainnetChain = constructed.find((c) => c.network_id === 0)
-    const testnetChain = constructed.find((c) => c.network_id === 1)
+    const mainnetChain = constructed.find((ch) => ch.network_id === 0)
+    const testnetChain = constructed.find((ch) => ch.network_id === 1)
 
     expect(mainnetChain).toBeDefined()
     expect(mainnetChain!.validators).toEqual(new Set(['UNL_M1', 'UNL_M2']))
@@ -394,8 +390,8 @@ describe('UNL-based network_id resolution', () => {
       }),
     ]
 
-    for (const v of validations) {
-      await chains.updateLedgers(v)
+    for (const val of validations) {
+      await chains.updateLedgers(val)
     }
 
     const constructed = advanceTimeAndCalculate()

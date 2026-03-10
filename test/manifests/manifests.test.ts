@@ -1,5 +1,6 @@
 import nock from 'nock'
 
+import chains from '../../src/connection-manager/chains'
 import {
   handleManifest,
   updateManifestsFromRippled,
@@ -7,7 +8,6 @@ import {
   updateUnls,
   purgeOldValidators,
 } from '../../src/connection-manager/manifests'
-import chains from '../../src/connection-manager/chains'
 import {
   destroy,
   query,
@@ -310,14 +310,20 @@ describe('manifest ingest', () => {
     const unlsArg = setUNLsSpy.mock.calls[0][0]
     // Mainnet (network_id 0) should contain the signing key from unl1
     expect(unlsArg.get(0)).toBeDefined()
-    expect(unlsArg.get(0)!.has('n9LCf7NtwcyXVc5fYB6UVByRoQZqJDhrMUoKnr3GQB6mFqpcmMzg')).toBe(true)
+    expect(
+      unlsArg
+        .get(0)!
+        .has('n9LCf7NtwcyXVc5fYB6UVByRoQZqJDhrMUoKnr3GQB6mFqpcmMzg'),
+    ).toBe(true)
 
-    // Networks whose UNL fetch failed should have empty sets
-    for (const [networkId, signingKeys] of unlsArg) {
-      if (networkId !== 0) {
-        // Other networks may resolve but should not contain the mainnet signing key
-        expect(signingKeys.has('n9LCf7NtwcyXVc5fYB6UVByRoQZqJDhrMUoKnr3GQB6mFqpcmMzg')).toBe(false)
-      }
+    // Networks whose UNL fetch failed should not contain the mainnet signing key
+    const nonMainnetEntries = Array.from(unlsArg.entries()).filter(
+      ([networkId]) => networkId !== 0,
+    )
+    for (const [, signingKeys] of nonMainnetEntries) {
+      expect(
+        signingKeys.has('n9LCf7NtwcyXVc5fYB6UVByRoQZqJDhrMUoKnr3GQB6mFqpcmMzg'),
+      ).toBe(false)
     }
 
     setUNLsSpy.mockRestore()

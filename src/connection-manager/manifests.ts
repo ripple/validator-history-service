@@ -179,14 +179,13 @@ export async function updateUnls(): Promise<void> {
     // Build network_id -> signing_keys map and update chains for UNL-based ledger classification
     const networks = await getNetworks()
     const networkIdByName = new Map(networks.map((n) => [n.id, n.network_id]))
-    const unlsByNetworkId = new Map<number, Set<string>>()
-    for (const [name, signingKeys] of Object.entries(lists)) {
-      const networkId = networkIdByName.get(name)
-      if (networkId !== undefined) {
-        unlsByNetworkId.set(networkId, signingKeys)
-      }
-    }
-    chains.setUNLs(unlsByNetworkId)
+    const unlEntries = Object.entries(lists)
+      .map(
+        ([name, signingKeys]) =>
+          [networkIdByName.get(name), signingKeys] as const,
+      )
+      .filter((entry): entry is [number, Set<string>] => entry[0] !== undefined)
+    chains.setUNLs(new Map(unlEntries))
 
     log.info('Updating validator unls...')
     for (const [name, list] of Object.entries(lists)) {

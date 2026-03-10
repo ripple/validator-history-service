@@ -149,6 +149,9 @@ class Chains {
 
     // No UNL validators signed this ledger — discard it
     if (unlCountByNetwork.size === 0) {
+      log.warn(
+        `resolveNetworkIDForLedgerByUNL: Discarding ledger: No UNL validators signed it. Received validations: ${Array.from(ledgerValidations).join(', ')}. UNL validator-signing-keys: ${Array.from(unlBySigningKey.keys()).join(', ')}`,
+      )
       return undefined
     }
 
@@ -160,9 +163,8 @@ class Chains {
       return undefined
     }
 
-    // Exactly one network's UNL validators signed this ledger
-    // eslint-disable-next-line @typescript-eslint/no-non-null-assertion -- guaranteed by size === 1
-    const winningNetworkId = unlCountByNetwork.keys().next().value!
+    // Exactly one network's UNL validators signed this ledger — guaranteed by size === 1
+    const [winningNetworkId] = unlCountByNetwork.keys()
 
     // Keep UNL validators, plus non-UNL validators that reported the correct network_id
     const kept = new Set<string>()
@@ -294,7 +296,10 @@ class Chains {
 
   public finalizeLedgerValidations(): void {
     for (const [ledgerHash, ledger] of this.ledgersByHash) {
-      if (Date.now() - ledger.first_seen <= 10 * 1000 || ledger.validations.size <= 1) {
+      if (
+        Date.now() - ledger.first_seen <= 10 * 1000 ||
+        ledger.validations.size <= 1
+      ) {
         continue
       }
       const validationsMap = this.mapNetworkIDValidations.get(ledgerHash)
@@ -304,38 +309,38 @@ class Chains {
         )
       }
 
-      // Use UNL-based resolution if UNL data is available
-      if (this.unlBySigningKey.size > 0) {
-        const result = Chains.resolveNetworkIDForLedgerByUNL(
-          ledger.validations,
-          validationsMap,
-          this.unlBySigningKey,
+      // Fallback: no UNL data at all — discard the ledger since we cannot reliably classify it
+      if (this.unlBySigningKey.size === 0) {
+        log.info(
+          `Discarding ledger ${ledgerHash}: no UNL data available for network classification.`,
         )
-
-        if (result === undefined) {
-          log.info(
-            `Discarding ledger ${ledgerHash}: no UNL validators signed it or UNL validators from multiple networks signed it.`,
-          )
-          // Mark with -1 so calculateChainsFromLedgers skips it
-          ledger.network_id = -1
-          continue
-        }
-
-        ledger.network_id = result.networkId
-        ledger.validations = result.validations
-        Chains.logLedgerValidationReceived(
-          ledgerHash,
-          result.networkId,
-          validationsMap,
-        )
+        ledger.network_id = -1
         continue
       }
 
-      // Fallback: no UNL data at all — discard the ledger since we cannot reliably classify it
-      log.info(
-        `Discarding ledger ${ledgerHash}: no UNL data available for network classification.`,
+      // Use UNL-based resolution
+      const result = Chains.resolveNetworkIDForLedgerByUNL(
+        ledger.validations,
+        validationsMap,
+        this.unlBySigningKey,
       )
-      ledger.network_id = -1
+
+      if (result === undefined) {
+        log.info(
+          `Discarding ledger ${ledgerHash}: no UNL validators signed it or UNL validators from multiple networks signed it.`,
+        )
+        // Mark with -1 so calculateChainsFromLedgers skips it
+        ledger.network_id = -1
+        continue
+      }
+
+      ledger.network_id = result.networkId
+      ledger.validations = result.validations
+      Chains.logLedgerValidationReceived(
+        ledgerHash,
+        result.networkId,
+        validationsMap,
+      )
     }
   }
 
@@ -353,7 +358,11 @@ class Chains {
     for (const [ledger_hash, ledger] of this.ledgersByHash) {
       const tenSecondsOld = now - ledger.first_seen > 10 * 1000
 
-      if (ledger.validations.size > 1 && tenSecondsOld && ledger.network_id !== -1) {
+      if (
+        ledger.validations.size > 1 &&
+        tenSecondsOld &&
+        ledger.network_id !== -1
+      ) {
         list.push(ledger)
       }
 

@@ -29,11 +29,7 @@ describe('Compute Total Ledgers Per Hour', () => {
   })
 
   test('compute the total ledgers processed every hour', async () => {
-    chains.setUNLs(
-      new Map([
-        [1028, new Set(['VALIDATOR1', 'VALIDATOR2'])],
-      ]),
-    )
+    chains.setUNLs(new Map([[1028, new Set(['VALIDATOR1', 'VALIDATOR2'])]]))
     const sampleValidation = {
       type: 'validationReceived',
       // the below four fields differ for each validation
