@@ -278,8 +278,7 @@ async function getVotingAmendments(id: string): Promise<AmendmentInVoting[]> {
 
   const res: AmendmentInVoting[] = []
   for (const [key, value] of Object.entries(votingAmendments)) {
-    // Filter out amendments that are already enabled or deprecated/unsupported
-    if (!cacheEnabled.get(id)?.has(key) && !value.deprecated) {
+    if (!cacheEnabled.get(id)?.has(key)) {
       res.push({
         id: key,
         name: value.name,

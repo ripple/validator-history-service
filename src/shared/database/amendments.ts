@@ -1,5 +1,5 @@
 import axios from 'axios'
-import { Client, ErrorResponse } from 'xrpl'
+import { Client } from 'xrpl'
 import {
   FeatureAllResponse,
   FeatureOneResponse,
@@ -35,8 +35,9 @@ const RETIRED_AMENDMENTS = [
   'fix1528',
 ]
 
+// Note: s2 seems to be outdated. Use p2p instead.
 export const NETWORKS_HOSTS = new Map([
-  ['main', 'ws://s2.ripple.com:51233'],
+  ['main', 'ws://p2p.livenet.ripple.com:51233'],
   ['test', 'wss://s.altnet.rippletest.net:51233'],
   ['dev', 'wss://s.devnet.rippletest.net:51233'],
 ])
@@ -49,6 +50,43 @@ export const NETWORKS_HOSTS = new Map([
 async function fetchAmendmentsList(): Promise<void> {
   for (const [network, url] of NETWORKS_HOSTS) {
     await fetchNetworkAmendments(network, url)
+  }
+}
+
+/**
+ * Fetch a single voting amendment info from the feature RPC.
+ * If the RPC returns a badFeature error on mainnet, mark the amendment as deprecated.
+ *
+ * @param client - The xrpl Client instance.
+ * @param amendmentId - The amendment ID to fetch.
+ * @param network - The network name.
+ */
+async function fetchSingleVotingAmendment(
+  client: Client,
+  amendmentId: string,
+  network: string,
+): Promise<void> {
+  try {
+    const featureOneResponse: FeatureOneResponse = await client.request({
+      command: 'feature',
+      feature: amendmentId,
+    })
+    const feature = featureOneResponse.result[amendmentId]
+    addAmendmentToCache(amendmentId, feature.name, feature.supported)
+  } catch {
+    // xrpl.js throws an exception for badFeature errors
+    // On mainnet, this means the amendment is not supported/unknown - mark as deprecated
+    if (network === 'main') {
+      const existingInfo = (await query('amendments_info')
+        .select('name')
+        .where('id', amendmentId)
+        .first()) as { name: string } | undefined
+      const name = existingInfo?.name ?? 'Unknown'
+      addAmendmentToCache(amendmentId, name, false)
+      log.info(
+        `Amendment ${amendmentId} (${name}) marked as deprecated due to badFeature error`,
+      )
+    }
   }
 }
 
@@ -82,25 +120,7 @@ async function fetchNetworkAmendments(
     // Some amendments in voting are not available in feature all request.
     // This loop tries to fetch them in feature one.
     for (const amendment_id of votingAmendmentsToTrack) {
-      const featureOneResponse: FeatureOneResponse | ErrorResponse =
-        await client.request({
-          command: 'feature',
-          feature: amendment_id,
-        })
-
-      // eslint-disable-next-line max-depth -- The depth is only 2, try catch should not count.
-      if ('result' in featureOneResponse) {
-        const feature = featureOneResponse.result[amendment_id]
-        addAmendmentToCache(amendment_id, feature.name, feature.supported)
-      } else {
-        // ErrorResponse means the amendment is not supported/unknown
-        // Mark it as deprecated with a placeholder name
-        addAmendmentToCache(
-          amendment_id,
-          `Unknown-${amendment_id.slice(0, 8)}`,
-          false,
-        )
-      }
+      await fetchSingleVotingAmendment(client, amendment_id, network)
     }
 
     await client.disconnect()
