@@ -68,7 +68,6 @@ function isFlagLedgerPlusOne(ledger_index: number): boolean {
   return false
 }
 
-/* eslint-disable max-statements, max-lines-per-function -- this method handles complexity of all incoming messages */
 /**
  * Handles a WebSocket message received from a subscribe request.
  *
@@ -93,13 +92,6 @@ export async function handleWsMessageSubscribeTypes(
 ): Promise<void> {
   if (data.type === 'validationReceived') {
     const validationData = data as ValidationRaw
-    if (validationData.network_id === undefined) {
-      log.info(
-        `Validation ${JSON.stringify(validationData)} has no network id. Lack of network_id causes ambiguity in the XRPL Network Assignment. Closing this WebSocket connection ${ws.url}.`,
-      )
-      ws.terminate()
-      return
-    }
     if (ledger_hashes.includes(validationData.ledger_hash)) {
       validationData.networks = networks
     }
@@ -137,7 +129,6 @@ export async function handleWsMessageSubscribeTypes(
     )
   }
 }
-/* eslint-enable max-statements, max-lines-per-function */
 
 /**
  * Checks and handles the EnableAmendment ledger for a given network.

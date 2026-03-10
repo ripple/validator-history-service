@@ -12,7 +12,7 @@ function makeValidation(
     ledger_hash: string
     ledger_index: string
     validation_public_key: string
-    network_id: number
+    network_id: number | undefined
   },
 ): ValidationRaw {
   return {
@@ -166,8 +166,8 @@ describe('UNL-based network_id resolution', () => {
     expect(constructed).toHaveLength(1)
     expect(constructed[0].network_id).toBe(0)
     expect(constructed[0].validators).toContain('UNL_VAL1')
-    // Despite being a UNL validator, the UNL_VAL2 did not send the correct validation
-    expect(constructed[0].validators).not.toContain('UNL_VAL2')
+    expect(constructed[0].validators).toContain('UNL_VAL2')
+
     expect(constructed[0].validators).not.toContain('NON_UNL_1')
     expect(constructed[0].validators).not.toContain('NON_UNL_2')
     expect(constructed[0].validators).not.toContain('NON_UNL_3')
@@ -207,6 +207,53 @@ describe('UNL-based network_id resolution', () => {
         ledger_index: '300',
         validation_public_key: 'NON_UNL_2',
         network_id: 0,
+      }),
+    ]
+
+    for (const val of validations) {
+      await chains.updateLedgers(val)
+    }
+
+    const constructed = advanceTimeAndCalculate()
+    expect(constructed).toHaveLength(1)
+    expect(constructed[0].network_id).toBe(0)
+    expect(constructed[0].validators).toEqual(
+      new Set(['UNL_VAL1', 'UNL_VAL2', 'NON_UNL_1', 'NON_UNL_2']),
+    )
+  })
+
+  test('UNL and non-UNL validators lack network_id information -- must be classified as per UNL validator membership', async () => {
+    chains.setUNLs(
+      new Map([
+        [0, new Set(['UNL_VAL1', 'UNL_VAL2'])],
+        [1, new Set(['UNL_TVAL1'])],
+      ]),
+    )
+
+    const validations = [
+      makeValidation({
+        ledger_hash: 'HASH_NO_NETID',
+        ledger_index: '350',
+        validation_public_key: 'UNL_VAL1',
+        network_id: undefined,
+      }),
+      makeValidation({
+        ledger_hash: 'HASH_NO_NETID',
+        ledger_index: '350',
+        validation_public_key: 'UNL_VAL2',
+        network_id: undefined,
+      }),
+      makeValidation({
+        ledger_hash: 'HASH_NO_NETID',
+        ledger_index: '350',
+        validation_public_key: 'NON_UNL_1',
+        network_id: undefined,
+      }),
+      makeValidation({
+        ledger_hash: 'HASH_NO_NETID',
+        ledger_index: '350',
+        validation_public_key: 'NON_UNL_2',
+        network_id: undefined,
       }),
     ]
 

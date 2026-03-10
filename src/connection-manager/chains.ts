@@ -175,9 +175,35 @@ class Chains {
       }
     }
 
-    // Note: If the UNL validators reported an incorrect network_id, their agreement scores will be penalized by the system.
-
+    // Also keep validators that didn't report any network_id
+    Chains.addUnmappedValidators(kept, ledgerValidations, validationsMap)
     return { networkId: winningNetworkId, validations: kept }
+  }
+
+  /**
+   * Adds validators that don't appear in any validationsMap entry (i.e., they
+   * never reported a network_id) into the kept set.
+   *
+   * @param kept - The set of validator keys to keep (mutated in place).
+   * @param ledgerValidations - All signing keys that validated this ledger.
+   * @param validationsMap - Map of network_id to set of validator signing keys.
+   */
+  private static addUnmappedValidators(
+    kept: Set<string>,
+    ledgerValidations: Set<string>,
+    validationsMap: Map<number, Set<string>>,
+  ): void {
+    const allMappedValidators = new Set<string>()
+    for (const vals of validationsMap.values()) {
+      for (const key of vals) {
+        allMappedValidators.add(key)
+      }
+    }
+    for (const key of ledgerValidations) {
+      if (!allMappedValidators.has(key)) {
+        kept.add(key)
+      }
+    }
   }
 
   /**
@@ -258,13 +284,6 @@ class Chains {
    * @param validation - A raw validation message.
    */
   public async updateLedgers(validation: ValidationRaw): Promise<void> {
-    if (validation.network_id === undefined) {
-      log.info(
-        `Validation ${JSON.stringify(validation)} has no network id. Ignoring this validation.`,
-      )
-      return
-    }
-
     if (this.isStaleMainnetValidation(validation)) {
       log.trace(
         `XRPL Mainnet Validation is really old. Ignoring this validation: ${JSON.stringify(validation)}`,
@@ -287,11 +306,13 @@ class Chains {
     }
 
     this.ledgersByHash.get(ledger_hash)?.validations.add(signing_key)
-    this.recordValidationNetworkID(
-      ledger_hash,
-      validation.network_id,
-      signing_key,
-    )
+    if (validation.network_id !== undefined) {
+      this.recordValidationNetworkID(
+        ledger_hash,
+        validation.network_id,
+        signing_key,
+      )
+    }
   }
 
   public finalizeLedgerValidations(): void {
@@ -302,12 +323,8 @@ class Chains {
       ) {
         continue
       }
-      const validationsMap = this.mapNetworkIDValidations.get(ledgerHash)
-      if (!validationsMap) {
-        throw new Error(
-          `Chains: Unable to obtain the validations that signed this ledger-hash: ${ledgerHash}`,
-        )
-      }
+      const validationsMap =
+        this.mapNetworkIDValidations.get(ledgerHash) ?? new Map()
 
       // Fallback: no UNL data at all — discard the ledger since we cannot reliably classify it
       if (this.unlBySigningKey.size === 0) {
