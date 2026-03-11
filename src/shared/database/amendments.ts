@@ -79,8 +79,7 @@ async function fetchSingleVotingAmendment(
       await ensureAmendmentStatusExists(amendmentId, network)
     }
   } catch {
-    // xrpl.js throws an exception for badFeature errors
-    // This means the amendment is not supported/unknown - mark as deprecated
+    // badFeature error means the amendment is not supported/unknown - mark as deprecated.
     const existingInfo = (await query('amendments_info')
       .select('name')
       .where('id', amendmentId)
