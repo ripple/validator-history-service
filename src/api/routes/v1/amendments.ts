@@ -151,7 +151,7 @@ async function getEnabledAmendments(
       'amendments_info.deprecated',
     )
     .where('amendments_status.networks', id)
-    .whereNull('amendments_status.eta')) as EnabledAmendmentInfo[]
+    .whereNotNull('amendments_status.tx_hash')) as EnabledAmendmentInfo[]
 
   enabled.sort(sortByVersion)
 
