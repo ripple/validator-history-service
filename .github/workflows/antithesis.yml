@@ -19,6 +19,7 @@ on:
 env:
   REGISTRY: us-central1-docker.pkg.dev
   REGISTRY_PROJECT: molten-verve-216720
+  REGISTRY_REPOSITORY: rippled-repository  # Match rippled-antithesis workflow
 
 jobs:
   build-and-push:
@@ -56,8 +57,8 @@ jobs:
           file: ./Dockerfile
           push: ${{ github.event_name != 'pull_request' }}
           tags: |
-            ${{ env.REGISTRY }}/${{ env.REGISTRY_PROJECT }}/${{ secrets.ANTITHESIS_TENANT }}-repository/validator-history-service:${{ steps.meta.outputs.version_tag }}
-            ${{ env.REGISTRY }}/${{ env.REGISTRY_PROJECT }}/${{ secrets.ANTITHESIS_TENANT }}-repository/validator-history-service:latest
+            ${{ env.REGISTRY }}/${{ env.REGISTRY_PROJECT }}/${{ env.REGISTRY_REPOSITORY }}/validator-history-service:${{ steps.meta.outputs.version_tag }}
+            ${{ env.REGISTRY }}/${{ env.REGISTRY_PROJECT }}/${{ env.REGISTRY_REPOSITORY }}/validator-history-service:latest
           cache-from: type=gha
           cache-to: type=gha,mode=max
 
@@ -68,20 +69,22 @@ jobs:
           file: ./antithesis/Dockerfile.config
           push: ${{ github.event_name != 'pull_request' }}
           tags: |
-            ${{ env.REGISTRY }}/${{ env.REGISTRY_PROJECT }}/${{ secrets.ANTITHESIS_TENANT }}-repository/vhs-config:${{ steps.meta.outputs.version_tag }}
-            ${{ env.REGISTRY }}/${{ env.REGISTRY_PROJECT }}/${{ secrets.ANTITHESIS_TENANT }}-repository/vhs-config:latest
+            ${{ env.REGISTRY }}/${{ env.REGISTRY_PROJECT }}/${{ env.REGISTRY_REPOSITORY }}/vhs-config:${{ steps.meta.outputs.version_tag }}
+            ${{ env.REGISTRY }}/${{ env.REGISTRY_PROJECT }}/${{ env.REGISTRY_REPOSITORY }}/vhs-config:latest
 
       - name: Trigger Antithesis test
         if: github.event.inputs.run_antithesis_test == 'true' && github.event_name == 'workflow_dispatch'
+        env:
+          ANTITHESIS_URL: https://ripple.antithesis.com/api/v1/launch/basic_test
         run: |
           curl --fail -u "${{ secrets.ANTITHESIS_USER }}:${{ secrets.ANTITHESIS_PASSWORD }}" \
-            -X POST https://${{ secrets.ANTITHESIS_TENANT }}.antithesis.com/api/v1/launch/basic_test \
+            -X POST ${ANTITHESIS_URL} \
             -d "{
               \"params\": {
                 \"antithesis.description\": \"VHS test from GitHub Actions - ${{ steps.meta.outputs.version_tag }}\",
                 \"antithesis.duration\": \"60\",
-                \"antithesis.config_image\": \"${{ env.REGISTRY }}/${{ env.REGISTRY_PROJECT }}/${{ secrets.ANTITHESIS_TENANT }}-repository/vhs-config:${{ steps.meta.outputs.version_tag }}\",
-                \"antithesis.images\": \"${{ env.REGISTRY }}/${{ env.REGISTRY_PROJECT }}/${{ secrets.ANTITHESIS_TENANT }}-repository/validator-history-service:${{ steps.meta.outputs.version_tag }}\",
+                \"antithesis.config_image\": \"${{ env.REGISTRY }}/${{ env.REGISTRY_PROJECT }}/${{ env.REGISTRY_REPOSITORY }}/vhs-config:${{ steps.meta.outputs.version_tag }}\",
+                \"antithesis.images\": \"${{ env.REGISTRY }}/${{ env.REGISTRY_PROJECT }}/${{ env.REGISTRY_REPOSITORY }}/validator-history-service:${{ steps.meta.outputs.version_tag }}\",
                 \"antithesis.report.recipients\": \"${{ secrets.ANTITHESIS_REPORT_EMAIL }}\"
               }
             }"
@@ -96,6 +99,6 @@ jobs:
           echo "**Version:** \`${{ steps.meta.outputs.version_tag }}\`" >> $GITHUB_STEP_SUMMARY
           echo "" >> $GITHUB_STEP_SUMMARY
           echo "**Images:**" >> $GITHUB_STEP_SUMMARY
-          echo "- Application: \`${{ env.REGISTRY }}/${{ env.REGISTRY_PROJECT }}/${{ secrets.ANTITHESIS_TENANT }}-repository/validator-history-service:${{ steps.meta.outputs.version_tag }}\`" >> $GITHUB_STEP_SUMMARY
-          echo "- Config: \`${{ env.REGISTRY }}/${{ env.REGISTRY_PROJECT }}/${{ secrets.ANTITHESIS_TENANT }}-repository/vhs-config:${{ steps.meta.outputs.version_tag }}\`" >> $GITHUB_STEP_SUMMARY
+          echo "- Application: \`${{ env.REGISTRY }}/${{ env.REGISTRY_PROJECT }}/${{ env.REGISTRY_REPOSITORY }}/validator-history-service:${{ steps.meta.outputs.version_tag }}\`" >> $GITHUB_STEP_SUMMARY
+          echo "- Config: \`${{ env.REGISTRY }}/${{ env.REGISTRY_PROJECT }}/${{ env.REGISTRY_REPOSITORY }}/vhs-config:${{ steps.meta.outputs.version_tag }}\`" >> $GITHUB_STEP_SUMMARY
 

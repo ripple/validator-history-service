@@ -36,6 +36,7 @@ jest.config.js
 .env
 .env.local
 .env.*.local
+.env.docker
 
 # CI/CD
 .github
@@ -57,4 +58,3 @@ logs
 # Temporary files
 tmp
 temp
-

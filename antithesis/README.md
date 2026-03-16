@@ -32,9 +32,8 @@ docker build -t validator-history-service:latest .
 ### 2. Test with Docker Compose
 
 ```bash
-# Create a .env file with required variables
-cp .env.example .env
-# Edit .env with your configuration
+# Create a .env file from Docker template
+cp .env.docker .env
 
 # Start the services
 docker-compose up
@@ -135,16 +134,39 @@ The test template (`test_template.sh`) performs the following:
 
 ## Environment Variables
 
-The following environment variables can be configured in the docker-compose.yaml:
+Environment variables are configured in the `.env` file. Docker Compose automatically loads this file.
+
+### Required Variables
 
 - `DB_USER` - PostgreSQL username (default: vhs_user)
 - `DB_PASSWORD` - PostgreSQL password (default: vhs_password)
 - `DB_DATABASE` - PostgreSQL database name (default: validator_history)
-- `RIPPLED_RPC_ADMIN` - Rippled RPC admin endpoint
-- `MAINNET_P2P_ENTRY` - Mainnet P2P entry point
-- `MAINNET_UNL` - Mainnet UNL domain
-- `MAXMIND_USER` - MaxMind GeoIP user (optional)
-- `MAXMIND_KEY` - MaxMind GeoIP key (optional)
+- `RIPPLED_RPC_ADMIN` - Rippled RPC admin endpoint (e.g., https://xrpl.ws/)
+- `MAINNET_P2P_ENTRY` - Mainnet P2P entry point (e.g., s1.ripple.com)
+- `MAINNET_UNL` - Mainnet UNL domain (default: vl.ripple.com)
+
+### Optional Variables
+
+- `MAXMIND_USER` - MaxMind GeoIP user (for geolocation features)
+- `MAXMIND_KEY` - MaxMind GeoIP key (for geolocation features)
+- `NODE_ENV` - Node environment (default: production)
+- `ACQUIRE_CONNECTION_TIMEOUT` - Database connection timeout in ms (default: 60000)
+
+### Docker Compose Overrides
+
+The following variables are automatically overridden in docker-compose.yaml for containerized environments:
+
+- `DB_HOST` - Set to `postgres` (the service name)
+- `RIPPLED_RPC_ADMIN` - Set to `http://rippled:5005` (local rippled instance)
+- `PORT` - Set to `3000`
+- `ADDR` - Set to `0.0.0.0`
+
+**Note:** The Docker Compose setup includes a local rippled instance, eliminating the need for external XRPL network dependencies. This makes the setup self-contained and ideal for Antithesis testing.
+
+### Environment File Templates
+
+- `.env.docker` - Pre-configured for Docker Compose with sensible defaults
+- `.env.example` - General template with detailed comments
 
 ## Architecture
 
@@ -185,4 +207,3 @@ docker-compose exec vhs-api netstat -tlnp
 - [Antithesis Documentation](https://antithesis.com/docs)
 - [Docker Compose Documentation](https://docs.docker.com/compose/)
 - [Validator History Service Repository](https://github.com/ripple/validator-history-service)
-
