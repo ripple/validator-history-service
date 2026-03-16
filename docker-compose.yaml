@@ -49,9 +49,19 @@ services:
       - path: .env
         required: false
     environment:
-      # Override specific values for containerized environment
+      # Database
+      DB_CLIENT: pg
       DB_HOST: postgres
+      DB_USER: ${DB_USER:-vhs_user}
+      DB_PASSWORD: ${DB_PASSWORD:-vhs_password}
+      DB_DATABASE: ${DB_DATABASE:-validator_history}
+      ACQUIRE_CONNECTION_TIMEOUT: ${ACQUIRE_CONNECTION_TIMEOUT:-60000}
+      # Network
       RIPPLED_RPC_ADMIN: http://rippled:5005
+      MAINNET_P2P_ENTRY: ${MAINNET_P2P_ENTRY:-s1.ripple.com}
+      MAINNET_UNL: ${MAINNET_UNL:-vl.ripple.com}
+      # Server
+      NODE_ENV: ${NODE_ENV:-production}
       PORT: 3000
       ADDR: 0.0.0.0
     ports:
@@ -74,9 +84,19 @@ services:
       - path: .env
         required: false
     environment:
-      # Override specific values for containerized environment
+      # Database
+      DB_CLIENT: pg
       DB_HOST: postgres
+      DB_USER: ${DB_USER:-vhs_user}
+      DB_PASSWORD: ${DB_PASSWORD:-vhs_password}
+      DB_DATABASE: ${DB_DATABASE:-validator_history}
+      ACQUIRE_CONNECTION_TIMEOUT: ${ACQUIRE_CONNECTION_TIMEOUT:-60000}
+      # Network
       RIPPLED_RPC_ADMIN: http://rippled:5005
+      MAINNET_P2P_ENTRY: ${MAINNET_P2P_ENTRY:-s1.ripple.com}
+      MAINNET_UNL: ${MAINNET_UNL:-vl.ripple.com}
+      # Server
+      NODE_ENV: ${NODE_ENV:-production}
       PORT: 3000
       ADDR: 0.0.0.0
     depends_on:
@@ -97,9 +117,19 @@ services:
       - path: .env
         required: false
     environment:
-      # Override specific values for containerized environment
+      # Database
+      DB_CLIENT: pg
       DB_HOST: postgres
+      DB_USER: ${DB_USER:-vhs_user}
+      DB_PASSWORD: ${DB_PASSWORD:-vhs_password}
+      DB_DATABASE: ${DB_DATABASE:-validator_history}
+      ACQUIRE_CONNECTION_TIMEOUT: ${ACQUIRE_CONNECTION_TIMEOUT:-60000}
+      # Network
       RIPPLED_RPC_ADMIN: http://rippled:5005
+      MAINNET_P2P_ENTRY: ${MAINNET_P2P_ENTRY:-s1.ripple.com}
+      MAINNET_UNL: ${MAINNET_UNL:-vl.ripple.com}
+      # Server
+      NODE_ENV: ${NODE_ENV:-production}
       PORT: 3000
       ADDR: 0.0.0.0
     depends_on:
