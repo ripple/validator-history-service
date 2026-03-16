@@ -48,7 +48,8 @@ services:
     container_name: vhs-api
     command: ["node", "build/index.js", "--api"]
     env_file:
-      - .env
+      - path: .env
+        required: false
     environment:
       # Override specific values for containerized environment
       DB_HOST: postgres
@@ -72,7 +73,8 @@ services:
     container_name: vhs-connections
     command: ["node", "build/index.js", "--connections"]
     env_file:
-      - .env
+      - path: .env
+        required: false
     environment:
       # Override specific values for containerized environment
       DB_HOST: postgres
@@ -94,7 +96,8 @@ services:
     container_name: vhs-crawler
     command: ["node", "build/index.js", "--crawler"]
     env_file:
-      - .env
+      - path: .env
+        required: false
     environment:
       # Override specific values for containerized environment
       DB_HOST: postgres
