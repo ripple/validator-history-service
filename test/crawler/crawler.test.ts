@@ -13,7 +13,6 @@ async function crawl(ip: string): Promise<void> {
     id: 'main',
     entry: ip,
     unls: ['vl.fake.example.com'],
-    network_id: 0,
   })
 }
 
@@ -28,10 +27,6 @@ describe('Runs test crawl', () => {
 
   beforeEach(async () => {
     await query('connection_health').delete('*')
-    await query('crawls').delete('*')
-  })
-
-  afterEach(async () => {
     await query('crawls').delete('*')
   })
 
@@ -51,7 +46,6 @@ describe('Runs test crawl', () => {
       'ip',
       'port',
       'public_key',
-      'network_id',
     ])
 
     expect(results).toContainEqual(network1.result[0])
@@ -87,7 +81,6 @@ describe('Runs test crawl', () => {
       'ip',
       'port',
       'public_key',
-      'network_id',
     ])
 
     // Ensure DB has registered standard nodes with IP addresses
@@ -101,7 +94,6 @@ describe('Runs test crawl', () => {
       'ip',
       'port',
       'public_key',
-      'network_id',
     ])
 
     // Ensure DB has registered new nodes with a null ip/port
