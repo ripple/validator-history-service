@@ -1,7 +1,10 @@
 import nock from 'nock'
 
 import { destroy, query, setupTables } from '../../src/shared/database'
-import { fetchAmendmentInfo } from '../../src/shared/database/amendments'
+import {
+  clearAmendmentCaches,
+  fetchAmendmentInfo,
+} from '../../src/shared/database/amendments'
 import { AmendmentInfo, AmendmentStatus } from '../../src/shared/types'
 
 import featureResponses from './fixtures/feature_responses.json'
@@ -43,6 +46,7 @@ describe('Amendments Fetch Functions', () => {
     await query('amendments_info').delete('*')
     await query('amendments_status').delete('*')
     await query('ballot').delete('*')
+    clearAmendmentCaches()
     jest.clearAllMocks()
     nock.cleanAll()
   })
@@ -260,6 +264,17 @@ describe('Amendments Fetch Functions', () => {
         '*',
       )) as AmendmentInfo[]
       expect(savedAmendments.length).toBeGreaterThan(0)
+
+      // Sample an amendment and verify it has id, name, deprecated but no rippled_version
+      const sampleAmendment = savedAmendments.find(
+        (am) => am.name === 'ExpandedSignerList',
+      )
+      expect(sampleAmendment).toBeDefined()
+      expect(sampleAmendment?.id).toBeDefined()
+      expect(sampleAmendment?.name).toBe('ExpandedSignerList')
+      expect(sampleAmendment?.deprecated).toBe(false)
+      // Database returns null for undefined values
+      expect(sampleAmendment?.rippled_version).toBeNull()
     })
 
     test('should handle network connection failure gracefully', async () => {
@@ -301,7 +316,7 @@ describe('Amendments Fetch Functions', () => {
       const networks = Array.from(
         new Set(statusRecords.map((st) => st.networks)),
       )
-      expect(networks.length).toBeGreaterThanOrEqual(1)
+      expect(networks.length).toEqual(3)
     })
 
     test('should not overwrite existing eta/date in amendments_status', async () => {

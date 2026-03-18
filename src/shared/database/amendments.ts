@@ -310,3 +310,12 @@ export async function fetchAmendmentInfo(): Promise<void> {
   })
   log.info('Finish fetching amendments info from data sources...')
 }
+
+/**
+ * Clear all in-memory caches. For testing purposes only.
+ */
+export function clearAmendmentCaches(): void {
+  amendmentIDs.clear()
+  votingAmendmentsToTrack.clear()
+  rippledVersions.clear()
+}
