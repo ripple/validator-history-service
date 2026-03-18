@@ -1,16 +1,12 @@
 import { Manifest, StreamManifest } from 'xrpl-validator-domains'
 
-export interface LedgerHashIndex {
-  ledger_hash: string
-  ledger_index: number
-}
 interface Chain {
-  network_id: number
+  id: string
   current: number
   first: number
   validators: Set<string>
   updated: number
-  ledgers: Set<LedgerHashIndex>
+  ledgers: Set<string>
   incomplete: boolean
 }
 
@@ -19,7 +15,6 @@ interface Ledger {
   ledger_index: number
   validations: Set<string>
   first_seen: number
-  network_id: number
 }
 
 interface StreamLedger {
@@ -63,7 +58,6 @@ interface Node {
   server_state?: string
   io_latency_ms?: string
   load_factor_server?: string
-  network_id: number
 }
 
 interface Location {
@@ -93,7 +87,6 @@ interface Crawl {
 }
 
 // This is the raw validation message format you can expect to see from the validations stream
-// Please refer to this documentation section for more context: https://xrpl.org/docs/references/http-websocket-apis/public-api-methods/subscription-methods/subscribe#validations-stream
 interface ValidationRaw {
   flags: number
   full: boolean
@@ -111,7 +104,6 @@ interface ValidationRaw {
   reserve_base?: number
   reserve_inc?: number
   ledger_fee?: FeeVote
-  network_id: number
 
   // The validation_public_key is the same as the signing_key in StreamManifest
 }
@@ -168,7 +160,6 @@ interface DatabaseNetwork {
   entry: string
   port?: number
   unls: string
-  network_id: number
 }
 
 // This is the shape returned by vl.ripple.com

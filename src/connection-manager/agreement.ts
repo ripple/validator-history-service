@@ -1,4 +1,3 @@
-/* eslint-disable max-lines -- This file contains useful logging statements and complex logic. */
 import {
   getAgreementScores,
   saveHourlyAgreement,
@@ -19,7 +18,6 @@ import {
   ValidatorKeys,
   Ballot,
   Chain,
-  LedgerHashIndex,
 } from '../shared/types'
 import { getLists, overlaps } from '../shared/utils'
 import logger from '../shared/utils/logger'
@@ -100,48 +98,18 @@ async function updateAgreementScores(
 async function updateDailyAgreement(
   validator_keys: ValidatorKeys,
 ): Promise<void> {
-  interface DailyAgreementDate {
-    start: Date
-    end: Date
-  }
-  const datesForDailyAgreementComputation: DailyAgreementDate[] = []
-  const todayStart = new Date()
-  todayStart.setHours(0, 0, 0, 0)
-  const todayEnd = new Date()
-  todayEnd.setHours(23, 59, 59, 999)
+  const start = new Date()
+  start.setHours(0, 0, 0, 0)
+  const end = new Date()
+  end.setHours(23, 59, 59, 999)
 
-  datesForDailyAgreementComputation.push({ start: todayStart, end: todayEnd })
+  const agreement = await getAgreementScores(validator_keys, start, end)
 
-  // if this method is invoked over the last hour of a given day, save the agreement scores for the previous day.
-  // Without this additional logic, the agreement scores for the last hour (over VHSs' 24 hour time period) will not be saved.
-  // Background Context: VHS retroactively measures agreement scores for the validations received over the previous hour.
-  if (new Date().getHours() === 0) {
-    const yesterdayStart = new Date()
-    yesterdayStart.setDate(yesterdayStart.getDate() - 1)
-    yesterdayStart.setHours(0, 0, 0, 0)
-
-    const yesterdayEnd = new Date()
-    yesterdayEnd.setHours(23, 59, 59, 999)
-
-    datesForDailyAgreementComputation.push({
-      start: yesterdayStart,
-      end: yesterdayEnd,
-    })
-    // Note: saveDailyAgreement method is idempotent. There is no harm in invoking it for today and previous day.
-  }
-
-  for (const date of datesForDailyAgreementComputation) {
-    const agreement = await getAgreementScores(
-      validator_keys,
-      date.start,
-      date.end,
-    )
-    await saveDailyAgreement({
-      main_key: validator_keys.master_key ?? validator_keys.signing_key,
-      day: date.start,
-      agreement,
-    })
-  }
+  await saveDailyAgreement({
+    main_key: validator_keys.master_key ?? validator_keys.signing_key,
+    day: start,
+    agreement,
+  })
 }
 
 /**
@@ -161,7 +129,7 @@ function isPreceedingFlagLedger(ledger_index: string): boolean {
  * @returns String.
  */
 async function getNetworkNameFromChainId(chain: Chain): Promise<string> {
-  let networkID: number | string = chain.network_id
+  let id = chain.id
   const lists = await getLists().catch((err) => {
     log.error('Error getting validator lists', err)
     return undefined
@@ -170,12 +138,12 @@ async function getNetworkNameFromChainId(chain: Chain): Promise<string> {
   if (lists != null) {
     Object.entries(lists).forEach(([network, set]) => {
       if (overlaps(chain.validators, set)) {
-        networkID = network
+        id = network
       }
     })
   }
 
-  return networkID.toString()
+  return id
 }
 
 /**
@@ -214,7 +182,7 @@ class Agreement {
       const networkName = await getNetworkNameFromChainId(chain)
 
       log.info(
-        `Agreement: ${chain.network_id}:${networkName}:${Array.from(
+        `Agreement: ${chain.id}:${networkName}:${Array.from(
           chain.validators,
         ).join(',')}`,
       )
@@ -286,7 +254,7 @@ class Agreement {
         validator.server_version = serverVersion
       }
 
-      await chains.updateLedgers(validation)
+      chains.updateLedgers(validation)
       await saveValidator(validator)
     }
   }
@@ -300,7 +268,7 @@ class Agreement {
    */
   private async calculateValidatorAgreement(
     signing_key: string,
-    ledger_hashes: Set<LedgerHashIndex>,
+    ledger_hashes: Set<string>,
     incomplete: boolean,
   ): Promise<void> {
     const master_key = await signingToMaster(signing_key)
@@ -321,29 +289,18 @@ class Agreement {
    *
    * @param validator_keys - Signing keys of validations for one validator.
    * @param validations - Set of ledger_hashes validated by signing_key.
-   * @param ledgerHashIndexMap - Set of pairs of (ledger_hash, ledger_index) ledgers validated by the network.
+   * @param ledgers - Set of ledger_hashes validated by network.
    * @param incomplete - Is this agreement score incomplete.
    * @returns Void.
    */
   private async calculateHourlyAgreement(
     validator_keys: ValidatorKeys,
     validations: Map<string, number>,
-    ledgerHashIndexMap: Set<LedgerHashIndex>,
+    ledgers: Set<string>,
     incomplete: boolean,
   ): Promise<void> {
-    // obtain ledger_hashes validated by the network, strip out the ledger_index info for agreement calculation purposes
-    const ledgers = new Set<string>()
-    for (const value of ledgerHashIndexMap) {
-      ledgers.add(value.ledger_hash)
-    }
     const missed = setDifference(ledgers, validations)
     const validated = setIntersection(ledgers, validations)
-
-    log.trace(
-      `Tracking information from validator with Master-Key: ${validator_keys.master_key ?? ''}, Signing-Key: ${validator_keys.signing_key}`,
-    )
-    log.trace(`Missed ledgers: ${JSON.stringify(Array.from(missed))}`)
-    log.trace(`Validated ledgers: ${JSON.stringify(Array.from(validated))}`)
 
     const agreement: AgreementScore = {
       validated: validated.size,
@@ -355,9 +312,6 @@ class Agreement {
       start: this.reported_at,
       agreement,
     })
-    log.info(
-      `Saving hourly agreement for validator with Master-Key: ${validator_keys.master_key ?? ''}, Signing-Key: ${validator_keys.signing_key} indexed by time: ${this.reported_at.toISOString()}; Current time: ${new Date().toISOString()}; Agreement: ${JSON.stringify(agreement)}`,
-    )
 
     await update1HourValidatorAgreement(validator_keys, agreement)
     await updateAgreementScores(validator_keys)
@@ -407,4 +361,3 @@ function getAgreementInstance(): Agreement {
 }
 
 export default getAgreementInstance()
-/* eslint-enable max-lines */
