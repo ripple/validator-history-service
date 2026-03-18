@@ -8,8 +8,7 @@
     "signature": "30440220342DFBFBA1ACF758805A1CD5FF0C4E39F0A2800D0400F430A22BEBDB2B9E327A02204776C0E90942FB9CACDB763535AFAADBA1506E94CD92A605296153D8362D01E3",
     "signing_time": 669928656,
     "type": "validationReceived",
-    "validation_public_key": "VALIDATOR1",
-    "network_id": 1025
+    "validation_public_key": "VALIDATOR1"
   },
   {
     "flags": 2147483649,
@@ -20,8 +19,7 @@
     "signature": "30440220342DFBFBA1ACF758805A1CD5FF0C4E39F0A2800D0400F430A22BEBDB2B9E327A02204776C0E90942FB9CACDB763535AFAADBA1506E94CD92A605296153D8362D01E3",
     "signing_time": 669928656,
     "type": "validationReceived",
-    "validation_public_key": "VALIDATOR2",
-    "network_id": 1025
+    "validation_public_key": "VALIDATOR2"
   },
   {
     "flags": 2147483649,
@@ -32,8 +30,7 @@
     "signature": "30440220342DFBFBA1ACF758805A1CD5FF0C4E39F0A2800D0400F430A22BEBDB2B9E327A02204776C0E90942FB9CACDB763535AFAADBA1506E94CD92A605296153D8362D01E3",
     "signing_time": 669928656,
     "type": "validationReceived",
-    "validation_public_key": "VALIDATOR3",
-    "network_id": 1025
+    "validation_public_key": "VALIDATOR3"
   },
   {
     "flags": 2147483649,
@@ -44,8 +41,7 @@
     "signature": "30440220342DFBFBA1ACF758805A1CD5FF0C4E39F0A2800D0400F430A22BEBDB2B9E327A02204776C0E90942FB9CACDB763535AFAADBA1506E94CD92A605296153D8362D01E3",
     "signing_time": 669928656,
     "type": "validationReceived",
-    "validation_public_key": "VALIDATOR1",
-    "network_id": 1025
+    "validation_public_key": "VALIDATOR1"
   },
   {
     "flags": 2147483649,
@@ -56,8 +52,7 @@
     "signature": "30440220342DFBFBA1ACF758805A1CD5FF0C4E39F0A2800D0400F430A22BEBDB2B9E327A02204776C0E90942FB9CACDB763535AFAADBA1506E94CD92A605296153D8362D01E3",
     "signing_time": 669928656,
     "type": "validationReceived",
-    "validation_public_key": "VALIDATOR2",
-    "network_id": 1025
+    "validation_public_key": "VALIDATOR2"
   },
   {
     "flags": 2147483649,
@@ -68,8 +63,7 @@
     "signature": "30440220342DFBFBA1ACF758805A1CD5FF0C4E39F0A2800D0400F430A22BEBDB2B9E327A02204776C0E90942FB9CACDB763535AFAADBA1506E94CD92A605296153D8362D01E3",
     "signing_time": 669928656,
     "type": "validationReceived",
-    "validation_public_key": "VALIDATOR3",
-    "network_id": 1025
+    "validation_public_key": "VALIDATOR3"
   },
   {
     "flags": 2147483649,
@@ -80,8 +74,7 @@
     "signature": "30440220342DFBFBA1ACF758805A1CD5FF0C4E39F0A2800D0400F430A22BEBDB2B9E327A02204776C0E90942FB9CACDB763535AFAADBA1506E94CD92A605296153D8362D01E3",
     "signing_time": 669928656,
     "type": "validationReceived",
-    "validation_public_key": "VALIDATOR1",
-    "network_id": 1025
+    "validation_public_key": "VALIDATOR1"
   },
   {
     "flags": 2147483649,
@@ -92,8 +85,7 @@
     "signature": "30440220342DFBFBA1ACF758805A1CD5FF0C4E39F0A2800D0400F430A22BEBDB2B9E327A02204776C0E90942FB9CACDB763535AFAADBA1506E94CD92A605296153D8362D01E3",
     "signing_time": 669928656,
     "type": "validationReceived",
-    "validation_public_key": "VALIDATOR2",
-    "network_id": 1025
+    "validation_public_key": "VALIDATOR2"
   },
   {
     "flags": 2147483649,
@@ -104,7 +96,6 @@
     "signature": "30440220342DFBFBA1ACF758805A1CD5FF0C4E39F0A2800D0400F430A22BEBDB2B9E327A02204776C0E90942FB9CACDB763535AFAADBA1506E94CD92A605296153D8362D01E3",
     "signing_time": 669928656,
     "type": "validationReceived",
-    "validation_public_key": "VALIDATOR3",
-    "network_id": 1025
+    "validation_public_key": "VALIDATOR3"
   }
 ]
