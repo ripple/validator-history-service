@@ -1,0 +1,57 @@
+{
+  "featureAllResponse": {
+    "result": {
+      "features": {
+        "42426C4D4F1009EE67080A9B7965B44656D7714D104A72F9B4369F97ABF044EE": {
+          "enabled": true,
+          "name": "Escrow",
+          "supported": true
+        },
+        "532651B4FD58DF8922A49BA101AB3E996E5BFBF95A913B3E392504863E63B164": {
+          "enabled": false,
+          "name": "ExpandedSignerList",
+          "supported": true
+        },
+        "86E83A7D2ECE3AD5FA87AB2195AE015C950469ABF0B72EAACED318F74886AE90": {
+          "enabled": false,
+          "name": "NFTokenMintOffer",
+          "supported": true
+        }
+      },
+      "status": "success"
+    }
+  },
+  "featureOneResponse": {
+    "result": {
+      "532651B4FD58DF8922A49BA101AB3E996E5BFBF95A913B3E392504863E63B164": {
+        "enabled": false,
+        "name": "ExpandedSignerList",
+        "supported": true
+      }
+    }
+  },
+  "featureOneResponseDeprecated": {
+    "result": {
+      "894646DD5284E97DECFE6674A6D6152686791C4A95F8C132CCA9BAF9E5812FB6": {
+        "enabled": false,
+        "name": "Batch",
+        "supported": false
+      }
+    }
+  },
+  "xrpscanAmendments": [
+    {
+      "name": "Escrow",
+      "introduced": "1.0.0"
+    },
+    {
+      "name": "ExpandedSignerList",
+      "introduced": "1.9.0"
+    },
+    {
+      "name": "NFTokenMintOffer",
+      "introduced": "1.10.0"
+    }
+  ]
+}
+

@@ -151,7 +151,7 @@ async function getEnabledAmendments(
       'amendments_info.deprecated',
     )
     .where('amendments_status.networks', id)
-    .whereNull('amendments_status.eta')) as EnabledAmendmentInfo[]
+    .whereNotNull('amendments_status.tx_hash')) as EnabledAmendmentInfo[]
 
   enabled.sort(sortByVersion)
 
@@ -212,7 +212,7 @@ async function calculateConsensus(
   const dbUNL = (await query('validators')
     .count('signing_key AS count')
     .whereNotNull('unl')
-    .andWhere('chain', network_id)) as Array<{ count: number }>
+    .andWhere('networks', network_id)) as Array<{ count: number }>
 
   const totalUnl: number = dbUNL[0].count
 
@@ -245,10 +245,10 @@ async function getVotingAmendments(id: string): Promise<AmendmentInVoting[]> {
     )
     .where('validators.networks', id)) as BallotAmendmentDb[]
 
-  const incomingAmendments = (await query('amendments_status')
+  // Get all supported amendments on this network that are not yet enabled (date IS NULL)
+  const supportedAmendments = (await query('amendments_status')
     .select('*')
     .where('networks', id)
-    .whereNotNull('eta')
     .whereNull('date')) as AmendmentStatus[]
 
   const votingAmendments: AmendmentInVotingMap = {}
@@ -257,8 +257,9 @@ async function getVotingAmendments(id: string): Promise<AmendmentInVoting[]> {
     parseAmendmentVote(val, votingAmendments)
   })
 
-  for (const amendment of incomingAmendments) {
-    if (amendment.amendment_id in votingAmendments) {
+  // Add ETA for amendments that have reached majority
+  for (const amendment of supportedAmendments) {
+    if (amendment.amendment_id in votingAmendments && amendment.eta) {
       votingAmendments[amendment.amendment_id].eta = amendment.eta
     }
   }
@@ -267,6 +268,7 @@ async function getVotingAmendments(id: string): Promise<AmendmentInVoting[]> {
     await cacheAmendmentsInfo()
   }
 
+  // Enrich amendments that have votes with info from cache
   for (const amendment of cacheInfo.amendments) {
     if (amendment.id in votingAmendments) {
       votingAmendments[amendment.id].name = amendment.name
@@ -275,6 +277,9 @@ async function getVotingAmendments(id: string): Promise<AmendmentInVoting[]> {
       await calculateConsensus(votingAmendments, amendment.id, id)
     }
   }
+
+  // Add supported amendments with zero votes (from amendments_status but not in ballot)
+  await addZeroVoteAmendments(votingAmendments, supportedAmendments, id)
 
   const res: AmendmentInVoting[] = []
   for (const [key, value] of Object.entries(votingAmendments)) {
@@ -298,6 +303,44 @@ async function getVotingAmendments(id: string): Promise<AmendmentInVoting[]> {
   res.sort(sortByVersion)
 
   return res
+}
+
+/**
+ * Add amendments that are supported on the network but have zero votes.
+ *
+ * @param votingMap - The map of voting amendments to add to.
+ * @param supportedAmendments - The list of supported amendments from amendments_status.
+ * @param networkId - The network ID.
+ */
+async function addZeroVoteAmendments(
+  votingMap: AmendmentInVotingMap,
+  supportedAmendments: AmendmentStatus[],
+  networkId: string,
+): Promise<void> {
+  for (const status of supportedAmendments) {
+    const amendmentId = status.amendment_id
+    if (amendmentId in votingMap) {
+      continue
+    }
+    const amendmentInfo = cacheInfo.amendments.find(
+      (info) => info.id === amendmentId,
+    )
+    if (!amendmentInfo || amendmentInfo.deprecated) {
+      continue
+    }
+    // Add to voting map with zero votes
+    votingMap[amendmentId] = {
+      name: amendmentInfo.name,
+      rippled_version: amendmentInfo.rippled_version ?? '',
+      threshold: '',
+      consensus: '',
+      validators: [],
+      deprecated: false,
+      eta: status.eta ?? undefined,
+    }
+
+    await calculateConsensus(votingMap, amendmentId, networkId)
+  }
 }
 
 /**
