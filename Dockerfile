@@ -25,7 +25,7 @@ RUN npm run build
 FROM node:20-alpine
 
 # Install dumb-init for proper signal handling
-RUN apk add --no-cache dumb-init
+RUN apk add --no-cache dumb-init bash
 
 # Create app directory
 WORKDIR /app
