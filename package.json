@@ -69,9 +69,9 @@
     "knex": "2.5.1",
     "moment": "2.30.1",
     "nconf": "^0.13.0",
-    "pg": "8.16.3",
+    "pg": "8.20.0",
     "ripple-address-codec": "^5.0.0",
-    "ws": "^8.13.0",
+    "ws": "^8.20.0",
     "xrpl": "^4.4.1",
     "xrpl-validator-domains": "0.1.0"
   },
