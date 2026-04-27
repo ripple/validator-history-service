@@ -54,7 +54,7 @@ describe('Runs test crawl', () => {
   })
 
   test('successfully updates an existing ip and port to null', async () => {
-    // Manually set endpoints to standard 3 node network
+    // Phase 1: standard 3 node network
     Object.keys(network1.peers).forEach((peer: string) => {
       nock(`https://${peer}:51235`)
         .get('/crawl')
@@ -63,8 +63,21 @@ describe('Runs test crawl', () => {
           (network1.peers as Record<string, Record<string, unknown>>)[peer],
         )
     })
+    await crawl('1.1.1.1')
 
-    // Manually set same node endpoints to new network with a null ip/port
+    const initResults: Node[] = await query('crawls').select([
+      'ip',
+      'port',
+      'public_key',
+    ])
+
+    expect(initResults).toContainEqual(network1.result[0])
+    expect(initResults).toContainEqual(network1.result[1])
+    expect(initResults).toContainEqual(network1.result[2])
+
+    // Phase 2: same peers now respond with null ip/port. Clean prior mocks
+    // so the second crawl can't accidentally match a leftover network1 mock.
+    nock.cleanAll()
     Object.keys(nullNodeNetwork.peers).forEach((peer: string) => {
       nock(`https://${peer}:51235`)
         .get('/crawl')
@@ -77,26 +90,12 @@ describe('Runs test crawl', () => {
     })
     await crawl('1.1.1.1')
 
-    const initResults: Node[] = await query('crawls').select([
-      'ip',
-      'port',
-      'public_key',
-    ])
-
-    // Ensure DB has registered standard nodes with IP addresses
-    expect(initResults).toContainEqual(network1.result[0])
-    expect(initResults).toContainEqual(network1.result[1])
-    expect(initResults).toContainEqual(network1.result[2])
-
-    await crawl('1.1.1.1')
-
     const modifiedResults: Node[] = await query('crawls').select([
       'ip',
       'port',
       'public_key',
     ])
 
-    // Ensure DB has registered new nodes with a null ip/port
     expect(modifiedResults).toContainEqual(nullNodeNetwork.result[0])
     expect(modifiedResults).toContainEqual(nullNodeNetwork.result[1])
     expect(modifiedResults).toContainEqual(nullNodeNetwork.result[2])
