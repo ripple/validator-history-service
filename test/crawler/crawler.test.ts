@@ -18,16 +18,29 @@ async function crawl(ip: string): Promise<void> {
 
 describe('Runs test crawl', () => {
   beforeAll(async () => {
+    nock.disableNetConnect()
     await setupTables()
   })
 
   afterAll(async () => {
+    nock.cleanAll()
+    nock.enableNetConnect()
     await destroy()
   })
 
   beforeEach(async () => {
     await query('connection_health').delete('*')
     await query('crawls').delete('*')
+  })
+
+  afterEach(() => {
+    if (!nock.isDone()) {
+      const pending = nock.pendingMocks()
+      nock.cleanAll()
+      throw new Error(
+        `Pending nock mocks at end of test: ${pending.join(', ')}`,
+      )
+    }
   })
 
   test('successfully crawls 3 node network', async () => {
@@ -75,10 +88,12 @@ describe('Runs test crawl', () => {
     expect(initResults).toContainEqual(network1.result[1])
     expect(initResults).toContainEqual(network1.result[2])
 
-    // Phase 2: same peers now respond with null ip/port. Clean prior mocks
-    // so the second crawl can't accidentally match a leftover network1 mock.
+    // Phase 2: re-mock the peers the crawler will dial. The entry
+    // (1.1.1.1) is always hit; 1.1.1.23 is hit because it's reported
+    // in the entry response with a real ip/port. 1.1.1.13 is reported
+    // with null ip and is skipped by the crawler, so no mock for it.
     nock.cleanAll()
-    Object.keys(nullNodeNetwork.peers).forEach((peer: string) => {
+    ;['1.1.1.1', '1.1.1.23'].forEach((peer) => {
       nock(`https://${peer}:51235`)
         .get('/crawl')
         .reply(
@@ -102,9 +117,13 @@ describe('Runs test crawl', () => {
   })
 
   test('successfully crawls cyclic node network', async () => {
-    // Sets up mocking at endpoints specified in network2
+    // Sets up mocking at endpoints specified in network2. The graph is
+    // cyclic (2.2.2.2 -> 2.2.2.23 -> 3.3.3.3 -> 2.2.2.2), so the crawler
+    // may dial each peer more than once before the cycle is detected.
+    // Use .persist() so each mock can satisfy repeat hits.
     Object.keys(network2.peers).forEach((peer: string) => {
       nock(`https://${peer}:51235`)
+        .persist()
         .get('/crawl')
         .reply(
           200,
@@ -122,6 +141,10 @@ describe('Runs test crawl', () => {
     expect(results).toContainEqual(network2.result[0])
     expect(results).toContainEqual(network2.result[1])
     expect(results).toContainEqual(network2.result[2])
+
+    // Persisted mocks above never auto-clear; reset them so the
+    // afterEach pendingMocks guard sees a clean slate.
+    nock.cleanAll()
   })
 
   test('handles rejection', async () => {
