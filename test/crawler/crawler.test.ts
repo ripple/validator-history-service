@@ -90,8 +90,9 @@ describe('Runs test crawl', () => {
 
     // Phase 2: re-mock the peers the crawler will dial. The entry
     // (1.1.1.1) is always hit; 1.1.1.23 is hit because it's reported
-    // in the entry response with a real ip/port. 1.1.1.13 is reported
-    // with null ip and is skipped by the crawler, so no mock for it.
+    // in the entry response with a real ip/port. 1.1.1.13 is unreachable
+    // in this network topology/starting-node config and is skipped by the
+    // crawler, so no mock for it.
     nock.cleanAll()
     ;['1.1.1.1', '1.1.1.23'].forEach((peer) => {
       nock(`https://${peer}:51235`)
