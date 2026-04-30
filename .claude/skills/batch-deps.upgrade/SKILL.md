@@ -12,7 +12,7 @@ Run: gh pr list --repo ripple/validator-history-service --label dependencies --s
 
 Parse each PR to extract package names and versions. Dependabot PRs come in two formats:
 - **Single-package PRs**: title is `Bump <pkg> from <old> to <new>` — parse from title
-- **Grouped PRs** (e.g. #3266, #3051, #3013): title is `bump <pkg1> and <pkg2>` with no versions — parse from PR body, which contains a structured list of package updates with version ranges
+- **Grouped PRs** (e.g. #461, #426, #410): title is `Bump <pkg1> and <pkg2>` with no versions — parse from PR body, which contains a structured list of package updates with version ranges
 
 If any PR can't be parsed from either title or body, flag it for manual review. Build a table of all proposed upgrades. Report the table to the user before proceeding.
 
@@ -37,12 +37,7 @@ Run the full test suite in order:
 1. npm run build && npm run lint
 2. npm test
 
-If any step fails, **attempt to fix the breaking change with code modifications before rolling back**. Common patterns:
-
-- **BigNumber.js major bumps**: v10+ throws on invalid input instead of returning NaN. Wrap `new BigNumber(val)` calls in try-catch where the code previously checked for NaN.
-- **ESM-only packages** (e.g., https-proxy-agent): Add transform entries and `transformIgnorePatterns` exclusions in `jest.config.base.js` so Jest can parse ESM imports.
-- **Type compatibility** (e.g., @scure/base 2.0 changing Uint8Array generics): Widen variable type annotations (e.g., `let buf: Uint8Array = ...` instead of `let buf = ...`).
-- **Hoisting breakage** (e.g., webpack-merge): If a transitive dep's major version is shadowed by a different transitive dep's older version, add the correct version as an explicit dependency.
+If any step fails, **attempt to fix the breaking change with code modifications before rolling back**. Typical fixes include adjusting call sites for new error/return-type behavior, updating Jest config (`jest.config.js`) to handle ESM-only deps via `transformIgnorePatterns`, widening type annotations when a package tightens generics, or pinning an explicit version when a transitive dep's hoisted resolution causes breakage.
 
 Only roll back and mark as Skipped if:
 - The fix requires a large-scale migration (e.g., TypeScript moduleResolution changes across the entire monorepo)
