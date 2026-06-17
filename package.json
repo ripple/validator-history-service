@@ -75,6 +75,11 @@
     "xrpl": "^4.4.1",
     "xrpl-validator-domains": "0.1.0"
   },
+  "overrides": {
+    "xrpl-validator-domains": {
+      "axios": "$axios"
+    }
+  },
   "prettier": "@xrplf/prettier-config",
   "directories": {
     "test": "test"
