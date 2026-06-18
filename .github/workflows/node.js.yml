@@ -57,3 +57,24 @@ jobs:
           RIPPLED_RPC_ADMIN: 'https://xrpl.ws/'
           # (Placeholder) Mainnet entry point for crawler (without https://).
           MAINNET_P2P_ENTRY: 'test.example.com'
+
+  security-audit:
+    name: Security audit (production deps)
+    runs-on: ubuntu-latest
+
+    steps:
+      - uses: actions/checkout@v4
+      - name: Use Node.js LTS
+        uses: actions/setup-node@v4
+        with:
+          # Tracks the current Node.js LTS (Node 24 at time of writing)
+          node-version: lts/*
+      # npm audit resolves the dependency graph straight from package-lock.json,
+      # so no `npm ci` / node_modules install is needed here.
+      # --registry pins the advisory source to the public npm registry (the
+      # canonical GitHub Advisory DB);
+      - name: Fail on high/critical production vulnerabilities
+        run: npm audit --omit=dev --audit-level=high --registry https://registry.npmjs.org/
+      - name: Full audit (informational — never fails the build)
+        if: always()
+        run: npm audit --registry https://registry.npmjs.org/ || true
