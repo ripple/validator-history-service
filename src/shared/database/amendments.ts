@@ -28,6 +28,7 @@ const rippledVersions = new Map<string, string>()
 let classification: AmendmentClassification = {
   retired: new Set(),
   obsolete: new Set(),
+  all: new Set(),
 }
 
 // Note: s2 seems to be outdated. Use p2p instead.
@@ -173,10 +174,16 @@ async function insertSupportedAmendmentsStatus(
  * @param name - The name of the amendment to add.
  */
 function addAmendmentToCache(id: string, name: string): void {
+  const retired = classification.retired.has(name)
   amendmentIDs.set(id, {
     name,
-    retired: classification.retired.has(name),
-    obsolete: classification.obsolete.has(name),
+    retired,
+    // An amendment is obsolete if rippled marks it VoteBehavior::Obsolete, or if
+    // it is no longer registered in features.macro at all (a superseded/removed
+    // amendment that some older network nodes may still report as supported).
+    obsolete:
+      !retired &&
+      (classification.obsolete.has(name) || !classification.all.has(name)),
   })
   votingAmendmentsToTrack.delete(id)
 }
@@ -323,5 +330,5 @@ export function clearAmendmentCaches(): void {
   amendmentIDs.clear()
   votingAmendmentsToTrack.clear()
   rippledVersions.clear()
-  classification = { retired: new Set(), obsolete: new Set() }
+  classification = { retired: new Set(), obsolete: new Set(), all: new Set() }
 }

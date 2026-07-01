@@ -34,10 +34,14 @@ const flushPromises = async (): Promise<void> =>
   })
 
 // A minimal features.macro used to drive the retired/obsolete classification.
-// Escrow is retired, fix1201 is retired, SomeObsoleteFeature is obsolete.
+// Escrow and fix1201 are retired; SomeObsoleteFeature is obsolete. The other
+// active entries are amendments referenced by the tests so they are recognized
+// as registered (any amendment absent from this file is treated as obsolete).
 const FEATURES_MACRO = `
 // Add new amendments to the top of this list.
 XRPL_FEATURE(ExpandedSignerList,     Supported::Yes, VoteBehavior::DefaultNo)
+XRPL_FEATURE(NFTokenMintOffer,       Supported::Yes, VoteBehavior::DefaultNo)
+XRPL_FEATURE(NewVotingAmendment,     Supported::Yes, VoteBehavior::DefaultNo)
 XRPL_FEATURE(SomeObsoleteFeature,    Supported::Yes, VoteBehavior::Obsolete)
 
 XRPL_RETIRE_FIX(1201)
@@ -133,29 +137,29 @@ describe('Amendments Fetch Functions', () => {
       expect(escrow?.obsolete).toBe(false)
     })
 
-    test('should not mark unsupported amendments as retired or obsolete', async () => {
+    test('should mark amendments absent from features.macro as obsolete', async () => {
       // Mock XRPScan API
       nock('https://api.xrpscan.com')
         .get('/api/v1/amendments')
         .reply(200, featureResponses.xrpscanAmendments)
 
-      // Return response with an unsupported amendment. `supported: false` means
-      // this node's rippled doesn't recognize the amendment - it is NOT a
-      // retirement/obsolescence signal, so no flags should be set.
-      const responseWithUnsupported = {
+      // An amendment that is not registered in features.macro (e.g. superseded
+      // and removed) should be classified obsolete, even if a node still reports
+      // it as supported.
+      const responseWithUnknown = {
         result: {
           features: {
             ...featureResponses.featureAllResponse.result.features,
-            UNSUPPORTED123: {
+            UNKNOWN123: {
               enabled: false,
-              name: 'UnsupportedAmendment',
-              supported: false,
+              name: 'AmendmentNotInMacro',
+              supported: true,
             },
           },
           status: 'success',
         },
       }
-      mockRequest.mockResolvedValue(responseWithUnsupported)
+      mockRequest.mockResolvedValue(responseWithUnknown)
 
       await fetchAmendmentInfo()
       await flushPromises()
@@ -164,12 +168,12 @@ describe('Amendments Fetch Functions', () => {
         '*',
       )) as AmendmentInfo[]
 
-      const unsupported = savedAmendments.find(
-        (am) => am.name === 'UnsupportedAmendment',
+      const unknown = savedAmendments.find(
+        (am) => am.name === 'AmendmentNotInMacro',
       )
-      expect(unsupported).toBeDefined()
-      expect(unsupported?.retired).toBe(false)
-      expect(unsupported?.obsolete).toBe(false)
+      expect(unknown).toBeDefined()
+      expect(unknown?.retired).toBe(false)
+      expect(unknown?.obsolete).toBe(true)
     })
 
     test('should mark obsolete amendments from features.macro', async () => {
@@ -288,7 +292,7 @@ describe('Amendments Fetch Functions', () => {
       expect(newAmendment?.obsolete).toBe(false)
     })
 
-    test('should handle badFeature error without marking retired/obsolete', async () => {
+    test('should mark a badFeature amendment absent from features.macro as obsolete', async () => {
       // Insert voting data with an amendment that will return badFeature
       await query('ballot').insert({
         signing_key: 'nHBtBkHGfL4NpB54H1AwBaaSJkSJLUSPvnUNAcuNpuffYB51VjH6',
@@ -332,7 +336,8 @@ describe('Amendments Fetch Functions', () => {
       )
       expect(unknown).toBeDefined()
       expect(unknown?.retired).toBe(false)
-      expect(unknown?.obsolete).toBe(false)
+      // UnknownAmendment is not registered in features.macro, so it is obsolete.
+      expect(unknown?.obsolete).toBe(true)
     })
 
     test('should handle XRPScan API failure gracefully', async () => {

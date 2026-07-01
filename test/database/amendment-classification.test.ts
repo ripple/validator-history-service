@@ -44,4 +44,24 @@ XRPL_RETIRE_FEATURE(Real)
     expect(retired.has('Commented')).toBe(false)
     expect(obsolete.has('Example')).toBe(false)
   })
+
+  test('collects every registered amendment name in `all`', () => {
+    const macro = `
+XRPL_FEATURE(ActiveFeature,     Supported::Yes, VoteBehavior::DefaultNo)
+XRPL_FIX    (ActiveFix,         Supported::Yes, VoteBehavior::DefaultNo)
+XRPL_FEATURE(ObsoleteFeature,   Supported::Yes, VoteBehavior::Obsolete)
+XRPL_RETIRE_FEATURE(RetiredFeature)
+XRPL_RETIRE_FIX(1201)
+`
+    const { all } = parseFeaturesMacro(macro)
+
+    expect(all.has('ActiveFeature')).toBe(true)
+    expect(all.has('fixActiveFix')).toBe(true)
+    expect(all.has('ObsoleteFeature')).toBe(true)
+    expect(all.has('RetiredFeature')).toBe(true)
+    expect(all.has('fix1201')).toBe(true)
+    // Amendments never mentioned in the file are absent from `all`, so callers
+    // can treat them as obsolete/removed.
+    expect(all.has('SomethingRemoved')).toBe(false)
+  })
 })

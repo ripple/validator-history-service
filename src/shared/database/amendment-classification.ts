@@ -23,6 +23,9 @@ const RIPPLED_LATEST_RELEASE_URL =
 export interface AmendmentClassification {
   retired: Set<string>
   obsolete: Set<string>
+  // Every amendment name registered in features.macro (active + retired). Used
+  // to treat amendments the current rippled no longer registers as obsolete.
+  all: Set<string>
 }
 
 /**
@@ -69,21 +72,18 @@ const FEATURE_RE = /^XRPL_FEATURE\s*\(\s*(?<name>[^),\s]+)/u
 const FIX_RE = /^XRPL_FIX\s*\(\s*(?<name>[^),\s]+)/u
 
 /**
- * Extract the obsolete amendment name from a macro line, or null when the line
- * is not an obsolete feature/fix. `XRPL_FIX` names are prefixed with `fix`.
+ * Extract a retired amendment name from a macro line, or null. `XRPL_RETIRE_FIX`
+ * names are prefixed with `fix`.
  *
  * @param line - A single trimmed line of features.macro.
- * @returns The obsolete amendment name, or null.
+ * @returns The retired amendment name, or null.
  */
-function parseObsolete(line: string): string | null {
-  if (!line.includes('VoteBehavior::Obsolete')) {
-    return null
-  }
-  const feature = FEATURE_RE.exec(line)
+function matchRetired(line: string): string | null {
+  const feature = RETIRE_FEATURE_RE.exec(line)
   if (feature?.groups) {
     return feature.groups.name
   }
-  const fix = FIX_RE.exec(line)
+  const fix = RETIRE_FIX_RE.exec(line)
   if (fix?.groups) {
     return `fix${fix.groups.name}`
   }
@@ -91,19 +91,40 @@ function parseObsolete(line: string): string | null {
 }
 
 /**
+ * Extract an active (non-retired) amendment from a macro line, or null.
+ * `XRPL_FIX` names are prefixed with `fix`.
+ *
+ * @param line - A single trimmed line of features.macro.
+ * @returns The amendment name and whether it is obsolete, or null.
+ */
+function matchActive(line: string): { name: string; obsolete: boolean } | null {
+  const isObsolete = line.includes('VoteBehavior::Obsolete')
+  const feature = FEATURE_RE.exec(line)
+  if (feature?.groups) {
+    return { name: feature.groups.name, obsolete: isObsolete }
+  }
+  const fix = FIX_RE.exec(line)
+  if (fix?.groups) {
+    return { name: `fix${fix.groups.name}`, obsolete: isObsolete }
+  }
+  return null
+}
+
+/**
  * Parse the rippled features.macro file into the sets of retired and obsolete
- * amendment names.
+ * amendment names, plus the set of every registered amendment name.
  *
  * `XRPL_FIX` / `XRPL_RETIRE_FIX` amendment names are prefixed with `fix` in
  * rippled (e.g. `XRPL_RETIRE_FIX(1201)` becomes `fix1201`), matching the names
  * returned by the feature RPC.
  *
  * @param macro - The raw contents of features.macro.
- * @returns The retired and obsolete amendment names.
+ * @returns The retired, obsolete, and all-registered amendment names.
  */
 export function parseFeaturesMacro(macro: string): AmendmentClassification {
   const retired = new Set<string>()
   const obsolete = new Set<string>()
+  const all = new Set<string>()
 
   for (const rawLine of macro.split('\n')) {
     const line = rawLine.trim()
@@ -111,25 +132,24 @@ export function parseFeaturesMacro(macro: string): AmendmentClassification {
       continue
     }
 
-    const retireFeature = RETIRE_FEATURE_RE.exec(line)
-    if (retireFeature?.groups) {
-      retired.add(retireFeature.groups.name)
+    const retiredName = matchRetired(line)
+    if (retiredName !== null) {
+      retired.add(retiredName)
+      all.add(retiredName)
       continue
     }
 
-    const retireFix = RETIRE_FIX_RE.exec(line)
-    if (retireFix?.groups) {
-      retired.add(`fix${retireFix.groups.name}`)
+    const active = matchActive(line)
+    if (active === null) {
       continue
     }
-
-    const obsoleteName = parseObsolete(line)
-    if (obsoleteName !== null) {
-      obsolete.add(obsoleteName)
+    all.add(active.name)
+    if (active.obsolete) {
+      obsolete.add(active.name)
     }
   }
 
-  return { retired, obsolete }
+  return { retired, obsolete, all }
 }
 
 /**
