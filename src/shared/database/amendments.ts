@@ -8,32 +8,27 @@ import {
 import { AmendmentInfo } from '../types'
 import logger from '../utils/logger'
 
+import {
+  AmendmentClassification,
+  fetchAmendmentClassification,
+} from './amendment-classification'
 import { query } from './utils'
 
 const log = logger({ name: 'amendments' })
 
-const amendmentIDs = new Map<string, { name: string; deprecated: boolean }>()
+const amendmentIDs = new Map<
+  string,
+  { name: string; retired: boolean; obsolete: boolean }
+>()
 const votingAmendmentsToTrack = new Set<string>()
 const rippledVersions = new Map<string, string>()
-// TODO: Use feature RPC instead when this issue is fixed and released:
-// https://github.com/XRPLF/rippled/issues/4730
-const RETIRED_AMENDMENTS = [
-  'MultiSign',
-  'TrustSetAuth',
-  'FeeEscalation',
-  'PayChan',
-  'CryptoConditions',
-  'TickSize',
-  'fix1368',
-  'Escrow',
-  'fix1373',
-  'EnforceInvariants',
-  'SortedDirectories',
-  'fix1201',
-  'fix1512',
-  'fix1523',
-  'fix1528',
-]
+// Retired / obsolete classification is sourced from rippled's features.macro
+// (see ./amendment-classification). This is refreshed at the start of every
+// fetchAmendmentInfo run.
+let classification: AmendmentClassification = {
+  retired: new Set(),
+  obsolete: new Set(),
+}
 
 // Note: s2 seems to be outdated. Use p2p instead.
 export const NETWORKS_HOSTS = new Map([
@@ -43,7 +38,7 @@ export const NETWORKS_HOSTS = new Map([
 ])
 
 /**
- * Fetch amendments information including id, name, and deprecated status.
+ * Fetch amendments information including id, name, and retired/obsolete status.
  *
  * @returns Void.
  */
@@ -55,7 +50,8 @@ async function fetchAmendmentsList(): Promise<void> {
 
 /**
  * Fetch a single voting amendment info from the feature RPC.
- * If the RPC returns a badFeature error, mark the amendment as deprecated.
+ * If the RPC returns a badFeature error, the amendment is recorded by name only
+ * (its retired/obsolete flags come from the features.macro classification).
  * If the amendment is supported but not enabled, add it to amendments_status.
  *
  * @param client - The xrpl Client instance.
@@ -73,27 +69,31 @@ async function fetchSingleVotingAmendment(
       feature: amendmentId,
     })
     const feature = featureOneResponse.result[amendmentId]
-    addAmendmentToCache(amendmentId, feature.name, feature.supported)
+    addAmendmentToCache(amendmentId, feature.name)
     // If supported and not yet enabled, add to amendments_status
     if (feature.supported && !feature.enabled) {
       await ensureAmendmentStatusExists(amendmentId, network)
     }
   } catch {
-    // badFeature error means the amendment is not supported/unknown - mark as deprecated.
+    // A badFeature error means this node's rippled binary doesn't recognize the
+    // amendment (usually a newer amendment than the node's version). This is a
+    // node-version artifact, not a retirement/obsolescence signal, so we only
+    // record the amendment by name and let the features.macro classification
+    // decide its retired/obsolete flags.
     const existingInfo = (await query('amendments_info')
       .select('name')
       .where('id', amendmentId)
       .first()) as { name: string } | undefined
     const name = existingInfo?.name ?? 'Unknown'
-    addAmendmentToCache(amendmentId, name, false)
+    addAmendmentToCache(amendmentId, name)
     log.info(
-      `Amendment ${amendmentId} (${name}) marked as deprecated on ${network} due to badFeature error`,
+      `Amendment ${amendmentId} (${name}) not recognized on ${network} (badFeature error)`,
     )
   }
 }
 
 /**
- * Fetch amendments information including id, name, and deprecated status of a network.
+ * Fetch amendments information including id, name, and retired/obsolete status of a network.
  *
  * @param network - The network being retrieved.
  * @param url - The Faucet URL of the network.
@@ -113,12 +113,12 @@ async function fetchNetworkAmendments(
     })
 
     const featuresAll = featureAllResponse.result.features
-    // Track supported (non-enabled, non-deprecated) amendments for this network
+    // Track supported (non-enabled) amendments for this network
     const supportedAmendments: string[] = []
 
     for (const id of Object.keys(featuresAll)) {
       const feature = featuresAll[id]
-      addAmendmentToCache(id, feature.name, feature.supported)
+      addAmendmentToCache(id, feature.name)
     }
 
     // Collect supported but not enabled amendments for amendments_status
@@ -167,20 +167,16 @@ async function insertSupportedAmendmentsStatus(
 
 /**
  * Add an amendment to amendmentIds cache and remove it from the votingAmendmentToTrack cache.
+ * The retired / obsolete flags are sourced from rippled's features.macro.
  *
  * @param id - The id of the amendment to add.
  * @param name - The name of the amendment to add.
- * @param supported - Whether the amendment is supported by rippled (from feature RPC).
  */
-function addAmendmentToCache(
-  id: string,
-  name: string,
-  supported: boolean,
-): void {
+function addAmendmentToCache(id: string, name: string): void {
   amendmentIDs.set(id, {
     name,
-    // Mark as deprecated if it's in RETIRED_AMENDMENTS list OR if not supported
-    deprecated: RETIRED_AMENDMENTS.includes(name) || !supported,
+    retired: classification.retired.has(name),
+    obsolete: classification.obsolete.has(name),
   })
   votingAmendmentsToTrack.delete(id)
 }
@@ -296,6 +292,14 @@ async function ensureAmendmentStatusExists(
 
 export async function fetchAmendmentInfo(): Promise<void> {
   log.info('Fetch amendments info from data sources...')
+  const fetchedClassification = await fetchAmendmentClassification()
+  if (fetchedClassification === null) {
+    log.error(
+      'Could not determine retired/obsolete classification from features.macro; skipping amendment info update to avoid overwriting existing data.',
+    )
+    return
+  }
+  classification = fetchedClassification
   await fetchVotingAmendments()
   await fetchAmendmentsList()
   await fetchMinRippledVersions()
@@ -304,7 +308,8 @@ export async function fetchAmendmentInfo(): Promise<void> {
       id,
       name: value.name,
       rippled_version: rippledVersions.get(value.name),
-      deprecated: value.deprecated,
+      retired: value.retired,
+      obsolete: value.obsolete,
     }
     await saveAmendmentInfo(amendment)
   })
@@ -318,4 +323,5 @@ export function clearAmendmentCaches(): void {
   amendmentIDs.clear()
   votingAmendmentsToTrack.clear()
   rippledVersions.clear()
+  classification = { retired: new Set(), obsolete: new Set() }
 }

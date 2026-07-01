@@ -148,7 +148,8 @@ async function getEnabledAmendments(
       'amendments_status.date',
       'amendments_info.name',
       'amendments_info.rippled_version',
-      'amendments_info.deprecated',
+      'amendments_info.retired',
+      'amendments_info.obsolete',
     )
     .where('amendments_status.networks', id)
     .whereNotNull('amendments_status.tx_hash')) as EnabledAmendmentInfo[]
@@ -183,7 +184,8 @@ function parseAmendmentVote(
         threshold: '',
         consensus: '',
         validators: [],
-        deprecated: false,
+        retired: false,
+        obsolete: false,
       }
     }
     votingAmendments[amendmentId].validators.push({
@@ -273,7 +275,8 @@ async function getVotingAmendments(id: string): Promise<AmendmentInVoting[]> {
     if (amendment.id in votingAmendments) {
       votingAmendments[amendment.id].name = amendment.name
       votingAmendments[amendment.id].rippled_version = amendment.rippled_version
-      votingAmendments[amendment.id].deprecated = amendment.deprecated
+      votingAmendments[amendment.id].retired = amendment.retired
+      votingAmendments[amendment.id].obsolete = amendment.obsolete
       await calculateConsensus(votingAmendments, amendment.id, id)
     }
   }
@@ -288,7 +291,8 @@ async function getVotingAmendments(id: string): Promise<AmendmentInVoting[]> {
         id: key,
         name: value.name,
         rippled_version: value.rippled_version,
-        deprecated: value.deprecated,
+        retired: value.retired,
+        obsolete: value.obsolete,
         threshold: value.threshold,
         consensus: value.consensus,
         eta: value.eta,
@@ -325,7 +329,7 @@ async function addZeroVoteAmendments(
     const amendmentInfo = cacheInfo.amendments.find(
       (info) => info.id === amendmentId,
     )
-    if (!amendmentInfo || amendmentInfo.deprecated) {
+    if (!amendmentInfo || amendmentInfo.retired || amendmentInfo.obsolete) {
       continue
     }
     // Add to voting map with zero votes
@@ -335,7 +339,8 @@ async function addZeroVoteAmendments(
       threshold: '',
       consensus: '',
       validators: [],
-      deprecated: false,
+      retired: false,
+      obsolete: false,
       eta: status.eta ?? undefined,
     }
 
