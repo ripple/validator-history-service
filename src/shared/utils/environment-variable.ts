@@ -16,7 +16,6 @@ export enum EnvironmentVariable {
   addr = 'ADDR',
   mainnet_p2p_server = 'MAINNET_P2P_ENTRY',
   mainnet_unl = 'MAINNET_UNL',
-  rippled_release_tag = 'RIPPLED_RELEASE_TAG',
 }
 
 /**

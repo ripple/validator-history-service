@@ -45,13 +45,28 @@ XRPL_RETIRE_FEATURE(Escrow)
 `
 
 /**
- * Intercept the features.macro fetch (any pinned release tag) used by the
- * amendment classification. Persisted so repeated fetches within a test work.
+ * Intercept the GitHub latest-release lookup used to detect the rippled tag.
+ * Persisted so repeated fetches within a test work.
+ *
+ * @param tag - The tag to report as the latest release.
  */
-function mockFeaturesMacro(): void {
+function mockLatestReleaseTag(tag = '3.2.0'): void {
+  nock('https://api.github.com')
+    .get('/repos/XRPLF/rippled/releases/latest')
+    .reply(200, { tag_name: tag })
+    .persist()
+}
+
+/**
+ * Intercept the features.macro fetch (any release tag) used by the amendment
+ * classification. Persisted so repeated fetches within a test work.
+ *
+ * @param body - The features.macro contents to return.
+ */
+function mockFeaturesMacro(body: string = FEATURES_MACRO): void {
   nock('https://raw.githubusercontent.com')
     .get(/features\.macro$/u)
-    .reply(200, FEATURES_MACRO)
+    .reply(200, body)
     .persist()
 }
 
@@ -71,6 +86,7 @@ describe('Amendments Fetch Functions', () => {
     clearAmendmentCaches()
     jest.clearAllMocks()
     nock.cleanAll()
+    mockLatestReleaseTag()
     mockFeaturesMacro()
   })
 
@@ -367,10 +383,35 @@ describe('Amendments Fetch Functions', () => {
       await expect(fetchAmendmentInfo()).resolves.not.toThrow()
     })
 
+    test('should skip the DB update when the latest release cannot be detected', async () => {
+      // Simulate the GitHub releases API being unavailable. Without a tag we
+      // cannot locate features.macro, so no amendment info should be written.
+      nock.cleanAll()
+      nock('https://api.github.com')
+        .get('/repos/XRPLF/rippled/releases/latest')
+        .reply(500)
+        .persist()
+      mockFeaturesMacro()
+      nock('https://api.xrpscan.com')
+        .get('/api/v1/amendments')
+        .reply(200, featureResponses.xrpscanAmendments)
+      mockRequest.mockResolvedValue(featureResponses.featureAllResponse)
+
+      await fetchAmendmentInfo()
+      await flushPromises()
+
+      const saved = (await query('amendments_info').select(
+        '*',
+      )) as AmendmentInfo[]
+      expect(saved).toHaveLength(0)
+      expect(mockRequest).not.toHaveBeenCalled()
+    })
+
     test('should skip the DB update when features.macro path is invalid', async () => {
       // Simulate the features.macro path no longer being valid (e.g. a rippled
       // restructure). No amendment info should be written at all.
       nock.cleanAll()
+      mockLatestReleaseTag()
       nock('https://raw.githubusercontent.com')
         .get(/features\.macro$/u)
         .reply(404)
@@ -395,10 +436,8 @@ describe('Amendments Fetch Functions', () => {
       // The file is reachable but no longer contains recognizable macros, so the
       // classification parses to nothing - treat it as unknown and skip.
       nock.cleanAll()
-      nock('https://raw.githubusercontent.com')
-        .get(/features\.macro$/u)
-        .reply(200, '// restructured file\nSOMETHING_ELSE(Foo)\n')
-        .persist()
+      mockLatestReleaseTag()
+      mockFeaturesMacro('// restructured file\nSOMETHING_ELSE(Foo)\n')
       nock('https://api.xrpscan.com')
         .get('/api/v1/amendments')
         .reply(200, featureResponses.xrpscanAmendments)

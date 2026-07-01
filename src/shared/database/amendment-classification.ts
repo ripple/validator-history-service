@@ -1,9 +1,5 @@
 import axios from 'axios'
 
-import {
-  EnvironmentVariable,
-  getEnvironmentVariable,
-} from '../utils/environment-variable'
 import logger from '../utils/logger'
 
 const log = logger({ name: 'amendment-classification' })
@@ -15,9 +11,11 @@ const log = logger({ name: 'amendment-classification' })
 //   - VoteBehavior::Obsolete                 -> obsolete (supported but never
 //     passed, kept votable but marked so no one votes for it).
 // Neither is reliably derivable from the (public) feature RPC, so we parse the
-// file directly. We pin to a stable rippled release tag - NOT `develop` - so
-// the classification only changes when we intentionally bump the tag.
-const DEFAULT_RIPPLED_RELEASE_TAG = '3.2.0'
+// file directly. We source it from the latest stable rippled release tag (NOT
+// `develop`), auto-detected from the GitHub releases API, so the classification
+// tracks releases without any manual configuration.
+const RIPPLED_LATEST_RELEASE_URL =
+  'https://api.github.com/repos/XRPLF/rippled/releases/latest'
 
 /**
  * The set of amendment names classified as retired and obsolete by rippled.
@@ -28,14 +26,40 @@ export interface AmendmentClassification {
 }
 
 /**
- * Build the URL of the features.macro file for the configured rippled release.
+ * Detect the latest stable rippled release tag (prereleases excluded) from the
+ * GitHub releases API.
  *
+ * @returns The latest release tag, or null if it cannot be determined.
+ */
+async function fetchLatestReleaseTag(): Promise<string | null> {
+  try {
+    const response = await axios.get<{ tag_name?: string }>(
+      RIPPLED_LATEST_RELEASE_URL,
+    )
+    const tag = response.data.tag_name
+    if (!tag) {
+      log.error(
+        `Latest rippled release response from ${RIPPLED_LATEST_RELEASE_URL} did not include a tag_name.`,
+      )
+      return null
+    }
+    return tag
+  } catch (err) {
+    log.error(
+      `Failed to detect the latest rippled release tag from ${RIPPLED_LATEST_RELEASE_URL}.`,
+      err,
+    )
+    return null
+  }
+}
+
+/**
+ * Build the URL of the features.macro file for a given rippled release tag.
+ *
+ * @param tag - The rippled release tag.
  * @returns The raw GitHub URL of features.macro.
  */
-function featuresMacroUrl(): string {
-  const tag =
-    getEnvironmentVariable(EnvironmentVariable.rippled_release_tag) ??
-    DEFAULT_RIPPLED_RELEASE_TAG
+function featuresMacroUrl(tag: string): string {
   return `https://raw.githubusercontent.com/XRPLF/rippled/${tag}/include/xrpl/protocol/detail/features.macro`
 }
 
@@ -110,18 +134,24 @@ export function parseFeaturesMacro(macro: string): AmendmentClassification {
 
 /**
  * Fetch and parse rippled's features.macro to determine which amendments are
- * retired or obsolete.
+ * retired or obsolete. The file is sourced from the latest stable rippled
+ * release, auto-detected from the GitHub releases API.
  *
- * Returns null when the file cannot be fetched (for example if the path changed
- * after a rippled restructure) or parses to nothing (for example if the file
- * format changed). Callers must treat null as "classification unknown" and skip
+ * Returns null when the latest release tag can't be detected, when the file
+ * cannot be fetched (for example if the path changed after a rippled
+ * restructure), or when it parses to nothing (for example if the file format
+ * changed). Callers must treat null as "classification unknown" and skip
  * updating the database rather than persisting incorrect (all-false) flags.
  *
  * @returns The retired and obsolete amendment names, or null on failure.
  */
 // eslint-disable-next-line max-len -- Prettier keeps this signature on one line.
 export async function fetchAmendmentClassification(): Promise<AmendmentClassification | null> {
-  const url = featuresMacroUrl()
+  const tag = await fetchLatestReleaseTag()
+  if (tag === null) {
+    return null
+  }
+  const url = featuresMacroUrl(tag)
   try {
     const response = await axios.get<string>(url, { responseType: 'text' })
     const parsed = parseFeaturesMacro(response.data)
