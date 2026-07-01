@@ -10,26 +10,79 @@ const log = logger({ name: 'amendment-classification' })
 //     removed, identifier deprecated, permanently baked in).
 //   - VoteBehavior::Obsolete                 -> obsolete (supported but never
 //     passed, kept votable but marked so no one votes for it).
-// We also treat any amendment that is NOT registered in features.macro at all as
-// obsolete, since rippled only removes an amendment from this file once it has
+// An amendment that is not registered in features.macro at all is also treated
+// as "not votable", since rippled removes an amendment from the file once it has
 // been obsolete long enough that no client can still vote for it.
 //
-// We source the file from the `develop` branch on purpose: develop is the
-// superset of every amendment any live network can be running - mainnet (stable)
-// plus testnet/devnet (beta) - so beta amendments are still recognized and NOT
-// mislabeled obsolete, while genuinely-removed dead amendments remain absent.
-const FEATURES_MACRO_URL =
+// We parse TWO revisions and combine them:
+//   - retired  <- the latest stable RELEASE tag only. Using develop would mark
+//                 amendments retired before they ship in a release (premature).
+//   - obsolete <- an amendment is obsolete only if it is "not votable" in BOTH
+//                 the latest release AND develop. This avoids mislabeling beta
+//                 amendments (present in develop, not yet in a release) and
+//                 avoids prematurely obsoleting amendments still in the release.
+const RIPPLED_LATEST_RELEASE_URL =
+  'https://api.github.com/repos/XRPLF/rippled/releases/latest'
+const DEVELOP_FEATURES_MACRO_URL =
   'https://raw.githubusercontent.com/XRPLF/rippled/develop/include/xrpl/protocol/detail/features.macro'
 
 /**
- * The set of amendment names classified as retired and obsolete by rippled.
+ * The retired, obsolete, and all-registered amendment names parsed from a single
+ * features.macro revision.
  */
-export interface AmendmentClassification {
+export interface ParsedFeaturesMacro {
   retired: Set<string>
   obsolete: Set<string>
-  // Every amendment name registered in features.macro (active + retired). Used
-  // to treat amendments that rippled no longer registers as obsolete.
   all: Set<string>
+}
+
+/**
+ * The combined classification: the parsed features.macro of the latest stable
+ * release and of develop. `retired` is taken from the release; `obsolete` is
+ * derived from both (see amendments.classify).
+ */
+export interface AmendmentClassification {
+  release: ParsedFeaturesMacro
+  develop: ParsedFeaturesMacro
+}
+
+/**
+ * Build the raw GitHub URL of features.macro for a given rippled ref (tag or
+ * branch).
+ *
+ * @param ref - The rippled git ref (release tag or branch name).
+ * @returns The raw GitHub URL of features.macro.
+ */
+function featuresMacroUrl(ref: string): string {
+  return `https://raw.githubusercontent.com/XRPLF/rippled/${ref}/include/xrpl/protocol/detail/features.macro`
+}
+
+/**
+ * Detect the latest stable rippled release tag (prereleases excluded) from the
+ * GitHub releases API.
+ *
+ * @returns The latest release tag, or null if it cannot be determined.
+ */
+async function fetchLatestReleaseTag(): Promise<string | null> {
+  try {
+    const response = await axios.get<{ tag_name?: string }>(
+      RIPPLED_LATEST_RELEASE_URL,
+    )
+    const tag = response.data.tag_name
+    if (!tag) {
+      log.error(
+        `Latest rippled release response from ${RIPPLED_LATEST_RELEASE_URL} did not include a tag_name.`,
+      )
+      return null
+    }
+    return tag
+  } catch (err) {
+    log.error(
+      `Failed to detect the latest rippled release tag from ${RIPPLED_LATEST_RELEASE_URL}.`,
+      err,
+    )
+    return null
+  }
 }
 
 const RETIRE_FEATURE_RE = /^XRPL_RETIRE_FEATURE\s*\(\s*(?<name>[^),\s]+)/u
@@ -87,7 +140,7 @@ function matchActive(line: string): { name: string; obsolete: boolean } | null {
  * @param macro - The raw contents of features.macro.
  * @returns The retired, obsolete, and all-registered amendment names.
  */
-export function parseFeaturesMacro(macro: string): AmendmentClassification {
+export function parseFeaturesMacro(macro: string): ParsedFeaturesMacro {
   const retired = new Set<string>()
   const obsolete = new Set<string>()
   const all = new Set<string>()
@@ -119,38 +172,64 @@ export function parseFeaturesMacro(macro: string): AmendmentClassification {
 }
 
 /**
- * Fetch and parse rippled's features.macro (from the `develop` branch) to
- * determine which amendments are retired or obsolete.
+ * Fetch and parse a single features.macro revision.
  *
  * Returns null when the file cannot be fetched (for example if the path changed
  * after a rippled restructure) or when it parses to nothing (for example if the
- * file format changed). Callers must treat null as "classification unknown" and
- * skip updating the database rather than persisting incorrect (all-false) flags.
+ * file format changed) - either indicates we should not trust the result.
  *
- * @returns The retired and obsolete amendment names, or null on failure.
+ * @param url - The raw features.macro URL.
+ * @returns The parsed features.macro, or null on failure.
  */
-// eslint-disable-next-line max-len -- Prettier keeps this signature on one line.
-export async function fetchAmendmentClassification(): Promise<AmendmentClassification | null> {
+async function fetchFeaturesMacro(
+  url: string,
+): Promise<ParsedFeaturesMacro | null> {
   try {
-    const response = await axios.get<string>(FEATURES_MACRO_URL, {
-      responseType: 'text',
-    })
+    const response = await axios.get<string>(url, { responseType: 'text' })
     const parsed = parseFeaturesMacro(response.data)
-    if (parsed.retired.size === 0 && parsed.obsolete.size === 0) {
+    if (parsed.retired.size === 0 && parsed.all.size === 0) {
       log.error(
-        `No retired/obsolete amendments parsed from ${FEATURES_MACRO_URL}; the file path or format may have changed. Skipping amendment info update.`,
+        `No amendments parsed from ${url}; the file path or format may have changed.`,
       )
       return null
     }
-    log.info(
-      `Fetched amendment classification from ${FEATURES_MACRO_URL}: ${parsed.retired.size} retired, ${parsed.obsolete.size} obsolete, ${parsed.all.size} registered`,
-    )
     return parsed
   } catch (err) {
+    log.error(`Failed to fetch features.macro from ${url}.`, err)
+    return null
+  }
+}
+
+/**
+ * Fetch and parse rippled's features.macro from both the latest stable release
+ * (for retired) and the develop branch (for obsolete), and return the combined
+ * classification.
+ *
+ * Returns null when the latest release tag can't be detected, or when either
+ * revision can't be fetched/parsed. Callers must treat null as "classification
+ * unknown" and skip updating the database rather than persisting incorrect
+ * (all-false) flags.
+ *
+ * @returns The combined classification, or null on failure.
+ */
+// eslint-disable-next-line max-len -- Prettier keeps this signature on one line.
+export async function fetchAmendmentClassification(): Promise<AmendmentClassification | null> {
+  const tag = await fetchLatestReleaseTag()
+  if (tag === null) {
+    return null
+  }
+  const [release, develop] = await Promise.all([
+    fetchFeaturesMacro(featuresMacroUrl(tag)),
+    fetchFeaturesMacro(DEVELOP_FEATURES_MACRO_URL),
+  ])
+  if (release === null || develop === null) {
     log.error(
-      `Failed to fetch amendment classification from ${FEATURES_MACRO_URL}; skipping amendment info update.`,
-      err,
+      'Skipping amendment info update: could not fetch features.macro for the latest release and/or develop.',
     )
     return null
   }
+  log.info(
+    `Fetched amendment classification: release ${tag} (${release.retired.size} retired), develop (${develop.all.size} registered, ${develop.obsolete.size} obsolete)`,
+  )
+  return { release, develop }
 }

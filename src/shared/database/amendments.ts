@@ -10,6 +10,7 @@ import logger from '../utils/logger'
 
 import {
   AmendmentClassification,
+  ParsedFeaturesMacro,
   fetchAmendmentClassification,
 } from './amendment-classification'
 import { query } from './utils'
@@ -22,13 +23,21 @@ const amendmentIDs = new Map<
 >()
 const votingAmendmentsToTrack = new Set<string>()
 const rippledVersions = new Map<string, string>()
+/**
+ * An empty parsed features.macro (used as the initial classification value).
+ *
+ * @returns Empty retired/obsolete/all sets.
+ */
+function emptyParsedMacro(): ParsedFeaturesMacro {
+  return { retired: new Set(), obsolete: new Set(), all: new Set() }
+}
+
 // Retired / obsolete classification is sourced from rippled's features.macro
 // (see ./amendment-classification). This is refreshed at the start of every
 // fetchAmendmentInfo run.
 let classification: AmendmentClassification = {
-  retired: new Set(),
-  obsolete: new Set(),
-  all: new Set(),
+  release: emptyParsedMacro(),
+  develop: emptyParsedMacro(),
 }
 
 // Note: s2 seems to be outdated. Use p2p instead.
@@ -288,21 +297,36 @@ async function ensureAmendmentStatusExists(
 }
 
 /**
+ * Whether an amendment is "not votable" per a single features.macro revision:
+ * either rippled explicitly marks it `VoteBehavior::Obsolete`, or it is not
+ * registered in that revision at all (superseded or removed).
+ *
+ * @param macro - A parsed features.macro revision.
+ * @param name - The amendment name.
+ * @returns True if the amendment is not votable in that revision.
+ */
+function isNotVotable(macro: ParsedFeaturesMacro, name: string): boolean {
+  return macro.obsolete.has(name) || !macro.all.has(name)
+}
+
+/**
  * Compute the retired/obsolete flags for an amendment name from the current
- * classification. An amendment is obsolete when rippled marks it
- * `VoteBehavior::Obsolete`, or when it is not registered in `features.macro` at
- * all (a superseded or removed amendment).
+ * classification. `retired` comes from the latest release only (so amendments
+ * are not marked retired before they ship). `obsolete` requires the amendment to
+ * be not-votable in BOTH the latest release AND develop, so beta amendments
+ * (only in develop) and amendments still in the release are not mislabeled.
  *
  * @param name - The amendment name.
  * @returns The retired and obsolete flags.
  */
 function classify(name: string): { retired: boolean; obsolete: boolean } {
-  const retired = classification.retired.has(name)
+  const retired = classification.release.retired.has(name)
   return {
     retired,
     obsolete:
       !retired &&
-      (classification.obsolete.has(name) || !classification.all.has(name)),
+      isNotVotable(classification.release, name) &&
+      isNotVotable(classification.develop, name),
   }
 }
 
@@ -364,5 +388,5 @@ export function clearAmendmentCaches(): void {
   amendmentIDs.clear()
   votingAmendmentsToTrack.clear()
   rippledVersions.clear()
-  classification = { retired: new Set(), obsolete: new Set(), all: new Set() }
+  classification = { release: emptyParsedMacro(), develop: emptyParsedMacro() }
 }
