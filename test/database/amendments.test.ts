@@ -162,6 +162,35 @@ describe('Amendments Fetch Functions', () => {
       expect(unknown?.obsolete).toBe(true)
     })
 
+    test('should reclassify existing amendments the feature RPC no longer returns', async () => {
+      // A historical/seed amendment that the connected node no longer registers
+      // (not in the feature RPC response) but which is absent from features.macro
+      // must still be reclassified as obsolete rather than keeping null flags.
+      await query('amendments_info').insert({
+        id: 'ORPHAN999',
+        name: 'OrphanRemovedAmendment',
+        retired: null,
+        obsolete: null,
+      })
+
+      nock('https://api.xrpscan.com')
+        .get('/api/v1/amendments')
+        .reply(200, featureResponses.xrpscanAmendments)
+      // The feature RPC response does NOT include the orphan amendment.
+      mockRequest.mockResolvedValue(featureResponses.featureAllResponse)
+
+      await fetchAmendmentInfo()
+      await flushPromises()
+
+      const orphan = (await query('amendments_info')
+        .select('*')
+        .where('id', 'ORPHAN999')
+        .first()) as AmendmentInfo | undefined
+      expect(orphan).toBeDefined()
+      expect(orphan?.retired).toBe(false)
+      expect(orphan?.obsolete).toBe(true)
+    })
+
     test('should mark obsolete amendments from features.macro', async () => {
       // Mock XRPScan API
       nock('https://api.xrpscan.com')

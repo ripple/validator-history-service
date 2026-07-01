@@ -174,17 +174,7 @@ async function insertSupportedAmendmentsStatus(
  * @param name - The name of the amendment to add.
  */
 function addAmendmentToCache(id: string, name: string): void {
-  const retired = classification.retired.has(name)
-  amendmentIDs.set(id, {
-    name,
-    retired,
-    // An amendment is obsolete if rippled marks it VoteBehavior::Obsolete, or if
-    // it is no longer registered in features.macro at all (a superseded/removed
-    // amendment that some older network nodes may still report as supported).
-    obsolete:
-      !retired &&
-      (classification.obsolete.has(name) || !classification.all.has(name)),
-  })
+  amendmentIDs.set(id, { name, ...classify(name) })
   votingAmendmentsToTrack.delete(id)
 }
 
@@ -297,6 +287,47 @@ async function ensureAmendmentStatusExists(
     .catch((err) => log.error('Error ensuring amendment status exists', err))
 }
 
+/**
+ * Compute the retired/obsolete flags for an amendment name from the current
+ * classification. An amendment is obsolete when rippled marks it
+ * `VoteBehavior::Obsolete`, or when it is not registered in `features.macro` at
+ * all (a superseded or removed amendment).
+ *
+ * @param name - The amendment name.
+ * @returns The retired and obsolete flags.
+ */
+function classify(name: string): { retired: boolean; obsolete: boolean } {
+  const retired = classification.retired.has(name)
+  return {
+    retired,
+    obsolete:
+      !retired &&
+      (classification.obsolete.has(name) || !classification.all.has(name)),
+  }
+}
+
+/**
+ * Reclassify the retired/obsolete flags of every amendment already stored in
+ * `amendments_info`. The feature RPC only returns amendments the connected node
+ * still registers, so historical or seed amendments (such as removed obsolete
+ * ones) would otherwise never be reclassified and keep null flags.
+ *
+ * @returns Void.
+ */
+async function reclassifyExistingAmendments(): Promise<void> {
+  const rows = (await query('amendments_info').select('id', 'name')) as Array<{
+    id: string
+    name: string
+  }>
+  for (const row of rows) {
+    const { retired, obsolete } = classify(row.name)
+    await query('amendments_info')
+      .where('id', row.id)
+      .update({ retired, obsolete })
+      .catch((err) => log.error('Error reclassifying amendment', err))
+  }
+}
+
 export async function fetchAmendmentInfo(): Promise<void> {
   log.info('Fetch amendments info from data sources...')
   const fetchedClassification = await fetchAmendmentClassification()
@@ -310,7 +341,7 @@ export async function fetchAmendmentInfo(): Promise<void> {
   await fetchVotingAmendments()
   await fetchAmendmentsList()
   await fetchMinRippledVersions()
-  amendmentIDs.forEach(async (value, id) => {
+  for (const [id, value] of amendmentIDs) {
     const amendment: AmendmentInfo = {
       id,
       name: value.name,
@@ -319,7 +350,10 @@ export async function fetchAmendmentInfo(): Promise<void> {
       obsolete: value.obsolete,
     }
     await saveAmendmentInfo(amendment)
-  })
+  }
+  // Reclassify every stored amendment (including historical/seed rows the
+  // feature RPC no longer returns) so their flags stay correct.
+  await reclassifyExistingAmendments()
   log.info('Finish fetching amendments info from data sources...')
 }
 
