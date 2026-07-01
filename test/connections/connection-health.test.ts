@@ -73,13 +73,15 @@ describe('connection_health tests', () => {
   test('crawls and empty connection_health left join test', async () => {
     const crawlsData: Node[] = data.crawls_only as Node[]
 
-    crawlsData.forEach(async (row) => {
-      await query('crawls').insert({
-        ...row,
-        networks: 'main',
-        start: new Date(Date.now() - 5 * 60 * 1000),
-      })
-    })
+    await Promise.all(
+      crawlsData.map(async (row) =>
+        query('crawls').insert({
+          ...row,
+          networks: 'main',
+          start: new Date(Date.now() - 5 * 60 * 1000),
+        }),
+      ),
+    )
 
     await flushPromises()
 
@@ -100,13 +102,15 @@ describe('connection_health tests', () => {
       status_update_time: new Date(),
     } as ConnectionHealth
 
-    crawlsData.forEach(async (row) => {
-      await query('crawls').insert({
-        ...row,
-        networks: 'main',
-        start: new Date(Date.now() - 5 * 60 * 1000),
-      })
-    })
+    await Promise.all(
+      crawlsData.map(async (row) =>
+        query('crawls').insert({
+          ...row,
+          networks: 'main',
+          start: new Date(Date.now() - 5 * 60 * 1000),
+        }),
+      ),
+    )
 
     await flushPromises()
 
@@ -130,21 +134,25 @@ describe('connection_health tests', () => {
   test('findByPublicKey test', async () => {
     const crawlsData: Node[] = data.crawls_only as Node[]
 
-    crawlsData.forEach(async (row) => {
-      await query('crawls').insert({
-        ...row,
-        networks: 'main',
-        start: new Date(Date.now() - 5 * 60 * 1000),
-      })
-    })
+    await Promise.all(
+      crawlsData.map(async (row) =>
+        query('crawls').insert({
+          ...row,
+          networks: 'main',
+          start: new Date(Date.now() - 5 * 60 * 1000),
+        }),
+      ),
+    )
 
     const connectionHealthData = data.connection_health_find_by_public_key as {
       connection_health_rows: ConnectionHealth[]
     }
 
-    connectionHealthData.connection_health_rows.forEach(async (row) => {
-      await saveConnectionHealth({ ...row, status_update_time: new Date() })
-    })
+    await Promise.all(
+      connectionHealthData.connection_health_rows.map(async (row) =>
+        saveConnectionHealth({ ...row, status_update_time: new Date() }),
+      ),
+    )
 
     await flushPromises()
 
@@ -156,21 +164,25 @@ describe('connection_health tests', () => {
   test('findByIp and findByWsUrl test', async () => {
     const crawlsData: Node[] = data.crawls_only as Node[]
 
-    crawlsData.forEach(async (row) => {
-      await query('crawls').insert({
-        ...row,
-        networks: 'main',
-        start: new Date(Date.now() - 5 * 60 * 1000),
-      })
-    })
+    await Promise.all(
+      crawlsData.map(async (row) =>
+        query('crawls').insert({
+          ...row,
+          networks: 'main',
+          start: new Date(Date.now() - 5 * 60 * 1000),
+        }),
+      ),
+    )
 
     const connectionHealthData = data.connection_health_find_by_ip as {
       connection_health_rows: ConnectionHealth[]
     }
 
-    connectionHealthData.connection_health_rows.forEach(async (row) => {
-      await saveConnectionHealth({ ...row, status_update_time: new Date() })
-    })
+    await Promise.all(
+      connectionHealthData.connection_health_rows.map(async (row) =>
+        saveConnectionHealth({ ...row, status_update_time: new Date() }),
+      ),
+    )
 
     await flushPromises()
 
@@ -192,21 +204,25 @@ describe('connection_health tests', () => {
   test('updateConnectionHealthStatus test', async () => {
     const crawlsData: Node[] = data.crawls_only as Node[]
 
-    crawlsData.forEach(async (row) => {
-      await query('crawls').insert({
-        ...row,
-        networks: 'main',
-        start: new Date(Date.now() - 5 * 60 * 1000),
-      })
-    })
+    await Promise.all(
+      crawlsData.map(async (row) =>
+        query('crawls').insert({
+          ...row,
+          networks: 'main',
+          start: new Date(Date.now() - 5 * 60 * 1000),
+        }),
+      ),
+    )
 
     const connectionHealthData = data.connection_health_find_by_ip as {
       connection_health_rows: ConnectionHealth[]
     }
 
-    connectionHealthData.connection_health_rows.forEach(async (row) => {
-      await saveConnectionHealth({ ...row, status_update_time: new Date() })
-    })
+    await Promise.all(
+      connectionHealthData.connection_health_rows.map(async (row) =>
+        saveConnectionHealth({ ...row, status_update_time: new Date() }),
+      ),
+    )
 
     await flushPromises()
 
