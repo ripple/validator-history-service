@@ -128,12 +128,15 @@ This table keeps track of the amendments status on each network when either the 
 
 This table keeps track of the general information of all known amendments.
 
-| Key                  | Definition                                                 |
-|----------------------|------------------------------------------------------------|
-| `id`                 |The amendment id.                                           |
-| `name`               |The name of the amendment.                                  |
-| `rippled_version`    |The rippled version when the amendment is first enabled     |
-| `deprecated`         |Whether the amendment has been deprecated/retired           |
+| Key                  | Definition                                                                                      |
+|----------------------|------------------------------------------------------------------------------------------------|
+| `id`                 |The amendment id.                                                                                |
+| `name`               |The name of the amendment.                                                                       |
+| `rippled_version`    |The rippled version when the amendment is first enabled                                          |
+| `retired`            |Whether the amendment is retired (active 2+ years, code removed, permanently enabled in rippled).|
+| `obsolete`           |Whether the amendment is obsolete (`VoteBehavior::Obsolete`: supported but never passed).        |
+
+The `retired` and `obsolete` flags are sourced by parsing rippled's [`features.macro`](https://github.com/XRPLF/rippled/blob/develop/include/xrpl/protocol/detail/features.macro) from the latest stable rippled release (auto-detected via the GitHub releases API), since neither classification is reliably derivable from the `feature` RPC. If that file cannot be fetched or parsed, the amendments info update is skipped rather than overwriting existing flags.
 
 
 ### `ballot`
