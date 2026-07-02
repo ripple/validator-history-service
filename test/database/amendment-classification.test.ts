@@ -31,6 +31,19 @@ XRPL_FIX    (ObsoleteFix,       Supported::Yes, VoteBehavior::Obsolete)
     expect(retired.size).toBe(0)
   })
 
+  test('collects Supported::No amendments as unsupported', () => {
+    const macro = `
+XRPL_FEATURE(SupportedFeature,   Supported::Yes, VoteBehavior::DefaultNo)
+XRPL_FEATURE(PulledFeature,      Supported::No,  VoteBehavior::DefaultNo)
+XRPL_FIX    (PulledFix,          Supported::No,  VoteBehavior::DefaultNo)
+`
+    const { unsupported } = parseFeaturesMacro(macro)
+
+    expect(unsupported.has('PulledFeature')).toBe(true)
+    expect(unsupported.has('fixPulledFix')).toBe(true)
+    expect(unsupported.has('SupportedFeature')).toBe(false)
+  })
+
   test('ignores comments and blank lines', () => {
     const macro = `
 // XRPL_FEATURE(Example, Supported::yes, VoteBehavior::Obsolete)

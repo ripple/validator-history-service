@@ -1,3 +1,4 @@
+/* eslint-disable max-lines -- Amendment fetch, classification, and persistence live together here. */
 import axios from 'axios'
 import { Client } from 'xrpl'
 import {
@@ -29,7 +30,12 @@ const rippledVersions = new Map<string, string>()
  * @returns Empty retired/obsolete/all sets.
  */
 function emptyParsedMacro(): ParsedFeaturesMacro {
-  return { retired: new Set(), obsolete: new Set(), all: new Set() }
+  return {
+    retired: new Set(),
+    obsolete: new Set(),
+    unsupported: new Set(),
+    all: new Set(),
+  }
 }
 
 // Retired / obsolete classification is sourced from rippled's features.macro
@@ -298,15 +304,29 @@ async function ensureAmendmentStatusExists(
 
 /**
  * Whether an amendment is "not votable" per a single features.macro revision:
- * either rippled explicitly marks it `VoteBehavior::Obsolete`, or it is not
- * registered in that revision at all (superseded or removed).
+ * rippled explicitly marks it `VoteBehavior::Obsolete`, or it is not registered
+ * in that revision at all (superseded or removed). When `countUnsupported` is
+ * set, a `Supported::No` amendment also counts as not votable - used only for
+ * the release, where `Supported::No` means support was pulled. It is NOT used
+ * for develop, where `Supported::No` usually just means the amendment is new.
  *
  * @param macro - A parsed features.macro revision.
  * @param name - The amendment name.
+ * @param countUnsupported - Whether `Supported::No` counts as not votable.
  * @returns True if the amendment is not votable in that revision.
  */
-function isNotVotable(macro: ParsedFeaturesMacro, name: string): boolean {
-  return macro.obsolete.has(name) || !macro.all.has(name)
+function isNotVotable(
+  macro: ParsedFeaturesMacro,
+  name: string,
+  countUnsupported: boolean,
+): boolean {
+  if (!macro.all.has(name)) {
+    return true
+  }
+  if (macro.obsolete.has(name)) {
+    return true
+  }
+  return countUnsupported && macro.unsupported.has(name)
 }
 
 /**
@@ -314,7 +334,8 @@ function isNotVotable(macro: ParsedFeaturesMacro, name: string): boolean {
  * classification. `retired` comes from the latest release only (so amendments
  * are not marked retired before they ship). `obsolete` requires the amendment to
  * be not-votable in BOTH the latest release AND develop, so beta amendments
- * (only in develop) and amendments still in the release are not mislabeled.
+ * (only in develop) and amendments still supported in the release are not
+ * mislabeled. `Supported::No` counts as not-votable for the release only.
  *
  * @param name - The amendment name.
  * @returns The retired and obsolete flags.
@@ -325,8 +346,8 @@ function classify(name: string): { retired: boolean; obsolete: boolean } {
     retired,
     obsolete:
       !retired &&
-      isNotVotable(classification.release, name) &&
-      isNotVotable(classification.develop, name),
+      isNotVotable(classification.release, name, true) &&
+      isNotVotable(classification.develop, name, false),
   }
 }
 

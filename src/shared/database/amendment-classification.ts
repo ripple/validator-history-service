@@ -33,6 +33,11 @@ const DEVELOP_FEATURES_MACRO_URL =
 export interface ParsedFeaturesMacro {
   retired: Set<string>
   obsolete: Set<string>
+  // Amendments the build does not support (Supported::No) - it will not vote for
+  // them and cannot apply them. In a release this signals the amendment has been
+  // pulled (usually pending a rename); in develop it usually just means the
+  // amendment is new and not ready yet.
+  unsupported: Set<string>
   all: Set<string>
 }
 
@@ -85,6 +90,7 @@ async function fetchLatestReleaseTag(): Promise<string | null> {
   }
 }
 
+const SUPPORTED_NO_RE = /Supported::[Nn]o/u
 const RETIRE_FEATURE_RE = /^XRPL_RETIRE_FEATURE\s*\(\s*(?<name>[^),\s]+)/u
 const RETIRE_FIX_RE = /^XRPL_RETIRE_FIX\s*\(\s*(?<name>[^),\s]+)/u
 const FEATURE_RE = /^XRPL_FEATURE\s*\(\s*(?<name>[^),\s]+)/u
@@ -114,17 +120,21 @@ function matchRetired(line: string): string | null {
  * `XRPL_FIX` names are prefixed with `fix`.
  *
  * @param line - A single trimmed line of features.macro.
- * @returns The amendment name and whether it is obsolete, or null.
+ * @returns The amendment name, whether it is obsolete, and whether it is
+ * unsupported (Supported::No); or null.
  */
-function matchActive(line: string): { name: string; obsolete: boolean } | null {
-  const isObsolete = line.includes('VoteBehavior::Obsolete')
+function matchActive(
+  line: string,
+): { name: string; obsolete: boolean; unsupported: boolean } | null {
+  const obsolete = line.includes('VoteBehavior::Obsolete')
+  const unsupported = SUPPORTED_NO_RE.test(line)
   const feature = FEATURE_RE.exec(line)
   if (feature?.groups) {
-    return { name: feature.groups.name, obsolete: isObsolete }
+    return { name: feature.groups.name, obsolete, unsupported }
   }
   const fix = FIX_RE.exec(line)
   if (fix?.groups) {
-    return { name: `fix${fix.groups.name}`, obsolete: isObsolete }
+    return { name: `fix${fix.groups.name}`, obsolete, unsupported }
   }
   return null
 }
@@ -140,35 +150,57 @@ function matchActive(line: string): { name: string; obsolete: boolean } | null {
  * @param macro - The raw contents of features.macro.
  * @returns The retired, obsolete, and all-registered amendment names.
  */
-export function parseFeaturesMacro(macro: string): ParsedFeaturesMacro {
-  const retired = new Set<string>()
-  const obsolete = new Set<string>()
-  const all = new Set<string>()
+/**
+ * Classify a single trimmed features.macro line into the given sets.
+ *
+ * @param line - A single trimmed line of features.macro.
+ * @param sets - The accumulator sets to add the amendment to.
+ */
+function classifyLine(line: string, sets: ParsedFeaturesMacro): void {
+  const retiredName = matchRetired(line)
+  if (retiredName !== null) {
+    sets.retired.add(retiredName)
+    sets.all.add(retiredName)
+    return
+  }
+  const active = matchActive(line)
+  if (active === null) {
+    return
+  }
+  sets.all.add(active.name)
+  if (active.obsolete) {
+    sets.obsolete.add(active.name)
+  }
+  if (active.unsupported) {
+    sets.unsupported.add(active.name)
+  }
+}
 
+/**
+ * Parse the rippled features.macro file into the sets of retired, obsolete, and
+ * unsupported amendment names, plus the set of every registered amendment name.
+ *
+ * `XRPL_FIX` / `XRPL_RETIRE_FIX` amendment names are prefixed with `fix` in
+ * rippled (e.g. `XRPL_RETIRE_FIX(1201)` becomes `fix1201`), matching the names
+ * returned by the feature RPC.
+ *
+ * @param macro - The raw contents of features.macro.
+ * @returns The retired, obsolete, unsupported, and all-registered names.
+ */
+export function parseFeaturesMacro(macro: string): ParsedFeaturesMacro {
+  const sets: ParsedFeaturesMacro = {
+    retired: new Set(),
+    obsolete: new Set(),
+    unsupported: new Set(),
+    all: new Set(),
+  }
   for (const rawLine of macro.split('\n')) {
     const line = rawLine.trim()
-    if (line.startsWith('//') || line.length === 0) {
-      continue
-    }
-
-    const retiredName = matchRetired(line)
-    if (retiredName !== null) {
-      retired.add(retiredName)
-      all.add(retiredName)
-      continue
-    }
-
-    const active = matchActive(line)
-    if (active === null) {
-      continue
-    }
-    all.add(active.name)
-    if (active.obsolete) {
-      obsolete.add(active.name)
+    if (!line.startsWith('//') && line.length > 0) {
+      classifyLine(line, sets)
     }
   }
-
-  return { retired, obsolete, all }
+  return sets
 }
 
 /**

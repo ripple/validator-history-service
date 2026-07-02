@@ -211,13 +211,19 @@ describe('Amendments Fetch Functions', () => {
       // Release lags develop: RecentlyRetired is still active in the release but
       // retired in develop; StillInRelease exists only in the release; BetaFeature
       // exists only in develop; DeadEverywhere is in neither.
+      // PulledInRelease is Supported::No in the release and gone from develop
+      // (superseded) -> obsolete. UpcomingV1_1 is Supported::No in the release
+      // but supported in develop (still coming) -> NOT obsolete.
       const RELEASE = `
 XRPL_FEATURE(StillInRelease,   Supported::Yes, VoteBehavior::DefaultNo)
 XRPL_FEATURE(RecentlyRetired,  Supported::Yes, VoteBehavior::DefaultNo)
+XRPL_FEATURE(PulledInRelease,  Supported::No,  VoteBehavior::DefaultNo)
+XRPL_FEATURE(UpcomingV1_1,     Supported::No,  VoteBehavior::DefaultNo)
 XRPL_RETIRE_FEATURE(Escrow)
 `
       const DEVELOP = `
 XRPL_FEATURE(BetaFeature,      Supported::Yes, VoteBehavior::DefaultNo)
+XRPL_FEATURE(UpcomingV1_1,     Supported::Yes, VoteBehavior::DefaultNo)
 XRPL_RETIRE_FEATURE(Escrow)
 XRPL_RETIRE_FEATURE(RecentlyRetired)
 `
@@ -243,6 +249,8 @@ XRPL_RETIRE_FEATURE(RecentlyRetired)
         { id: 'ID_RECRET', name: 'RecentlyRetired' },
         { id: 'ID_BETA', name: 'BetaFeature' },
         { id: 'ID_DEAD', name: 'DeadEverywhere' },
+        { id: 'ID_PULLED', name: 'PulledInRelease' },
+        { id: 'ID_UPCOMING', name: 'UpcomingV1_1' },
       ])
 
       await fetchAmendmentInfo()
@@ -265,6 +273,10 @@ XRPL_RETIRE_FEATURE(RecentlyRetired)
       expect(byName.StillInRelease.obsolete).toBe(false)
       // Absent from both -> obsolete.
       expect(byName.DeadEverywhere.obsolete).toBe(true)
+      // Supported::No in the release and gone from develop -> obsolete.
+      expect(byName.PulledInRelease.obsolete).toBe(true)
+      // Supported::No in the release but still supported in develop -> not obsolete.
+      expect(byName.UpcomingV1_1.obsolete).toBe(false)
     })
 
     test('should mark obsolete amendments from features.macro', async () => {
