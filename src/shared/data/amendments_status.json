@@ -319,12 +319,6 @@
                 "ledger_index": 84206081,
                 "tx_hash": "CA4562711E4679FE9317DD767871E90A404C7A8B84FAFD35EC2CF0231F1F6DAF",
                 "date": 754411470
-            },
-            {
-                "id": "EE3CF852F0506782D05E65D49E5DCC3D16D50898CD1B646BAE274863401CC3CE",
-                "ledger_index": 94166785,
-                "tx_hash": "E74C0196A9D4F193DD2A1DB5CCC5E37D3D43A21E2CB6185F6797E9BF2EDBE36C",
-                "date": 792952400
             }
         ]
     },
