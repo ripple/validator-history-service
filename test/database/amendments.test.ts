@@ -559,6 +559,29 @@ XRPL_RETIRE_FEATURE(RecentlyRetired)
       expect(saved).toHaveLength(0)
       expect(mockRequest).not.toHaveBeenCalled()
     })
+
+    test('should skip the DB update when the retire list is empty', async () => {
+      // Active amendments parse fine but the retire section is gone/unparseable.
+      // A real features.macro always has retired entries, so this is untrusted.
+      nock.cleanAll()
+      mockLatestReleaseTag()
+      mockFeaturesMacro(
+        'XRPL_FEATURE(SomeFeature, Supported::Yes, VoteBehavior::DefaultNo)\n',
+      )
+      nock('https://api.xrpscan.com')
+        .get('/api/v1/amendments')
+        .reply(200, featureResponses.xrpscanAmendments)
+      mockRequest.mockResolvedValue(featureResponses.featureAllResponse)
+
+      await fetchAmendmentInfo()
+      await flushPromises()
+
+      const saved = (await query('amendments_info').select(
+        '*',
+      )) as AmendmentInfo[]
+      expect(saved).toHaveLength(0)
+      expect(mockRequest).not.toHaveBeenCalled()
+    })
   })
 
   describe('fetchNetworkAmendments behavior', () => {

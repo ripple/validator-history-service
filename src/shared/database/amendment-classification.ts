@@ -219,7 +219,10 @@ async function fetchFeaturesMacro(
   try {
     const response = await axios.get<string>(url, { responseType: 'text' })
     const parsed = parseFeaturesMacro(response.data)
-    if (parsed.retired.size === 0 && parsed.all.size === 0) {
+    // A real features.macro always registers amendments and always has a
+    // non-empty retire list, so either being empty means the path or format
+    // changed and the result can't be trusted.
+    if (parsed.all.size === 0 || parsed.retired.size === 0) {
       log.error(
         `No amendments parsed from ${url}; the file path or format may have changed.`,
       )
