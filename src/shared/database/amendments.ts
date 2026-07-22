@@ -1,3 +1,4 @@
+/* eslint-disable max-lines -- Amendment fetch, classification, and persistence live together here. */
 import axios from 'axios'
 import { Client } from 'xrpl'
 import {
@@ -8,32 +9,42 @@ import {
 import { AmendmentInfo } from '../types'
 import logger from '../utils/logger'
 
+import {
+  AmendmentClassification,
+  ParsedFeaturesMacro,
+  fetchAmendmentClassification,
+} from './amendment-classification'
 import { query } from './utils'
 
 const log = logger({ name: 'amendments' })
 
-const amendmentIDs = new Map<string, { name: string; deprecated: boolean }>()
+const amendmentIDs = new Map<
+  string,
+  { name: string; retired: boolean; obsolete: boolean }
+>()
 const votingAmendmentsToTrack = new Set<string>()
 const rippledVersions = new Map<string, string>()
-// TODO: Use feature RPC instead when this issue is fixed and released:
-// https://github.com/XRPLF/rippled/issues/4730
-const RETIRED_AMENDMENTS = [
-  'MultiSign',
-  'TrustSetAuth',
-  'FeeEscalation',
-  'PayChan',
-  'CryptoConditions',
-  'TickSize',
-  'fix1368',
-  'Escrow',
-  'fix1373',
-  'EnforceInvariants',
-  'SortedDirectories',
-  'fix1201',
-  'fix1512',
-  'fix1523',
-  'fix1528',
-]
+/**
+ * An empty parsed features.macro (used as the initial classification value).
+ *
+ * @returns Empty retired/obsolete/all sets.
+ */
+function emptyParsedMacro(): ParsedFeaturesMacro {
+  return {
+    retired: new Set(),
+    obsolete: new Set(),
+    unsupported: new Set(),
+    all: new Set(),
+  }
+}
+
+// Retired / obsolete classification is sourced from rippled's features.macro
+// (see ./amendment-classification). This is refreshed at the start of every
+// fetchAmendmentInfo run.
+let classification: AmendmentClassification = {
+  release: emptyParsedMacro(),
+  develop: emptyParsedMacro(),
+}
 
 // Note: s2 seems to be outdated. Use p2p instead.
 export const NETWORKS_HOSTS = new Map([
@@ -43,7 +54,7 @@ export const NETWORKS_HOSTS = new Map([
 ])
 
 /**
- * Fetch amendments information including id, name, and deprecated status.
+ * Fetch amendments information including id, name, and retired/obsolete status.
  *
  * @returns Void.
  */
@@ -55,7 +66,8 @@ async function fetchAmendmentsList(): Promise<void> {
 
 /**
  * Fetch a single voting amendment info from the feature RPC.
- * If the RPC returns a badFeature error, mark the amendment as deprecated.
+ * If the RPC returns a badFeature error, the amendment is recorded by name only
+ * (its retired/obsolete flags come from the features.macro classification).
  * If the amendment is supported but not enabled, add it to amendments_status.
  *
  * @param client - The xrpl Client instance.
@@ -73,27 +85,31 @@ async function fetchSingleVotingAmendment(
       feature: amendmentId,
     })
     const feature = featureOneResponse.result[amendmentId]
-    addAmendmentToCache(amendmentId, feature.name, feature.supported)
+    addAmendmentToCache(amendmentId, feature.name)
     // If supported and not yet enabled, add to amendments_status
     if (feature.supported && !feature.enabled) {
       await ensureAmendmentStatusExists(amendmentId, network)
     }
   } catch {
-    // badFeature error means the amendment is not supported/unknown - mark as deprecated.
+    // A badFeature error means this node's rippled binary doesn't recognize the
+    // amendment (usually a newer amendment than the node's version). This is a
+    // node-version artifact, not a retirement/obsolescence signal, so we only
+    // record the amendment by name and let the features.macro classification
+    // decide its retired/obsolete flags.
     const existingInfo = (await query('amendments_info')
       .select('name')
       .where('id', amendmentId)
       .first()) as { name: string } | undefined
     const name = existingInfo?.name ?? 'Unknown'
-    addAmendmentToCache(amendmentId, name, false)
+    addAmendmentToCache(amendmentId, name)
     log.info(
-      `Amendment ${amendmentId} (${name}) marked as deprecated on ${network} due to badFeature error`,
+      `Amendment ${amendmentId} (${name}) not recognized on ${network} (badFeature error)`,
     )
   }
 }
 
 /**
- * Fetch amendments information including id, name, and deprecated status of a network.
+ * Fetch amendments information including id, name, and retired/obsolete status of a network.
  *
  * @param network - The network being retrieved.
  * @param url - The Faucet URL of the network.
@@ -113,12 +129,12 @@ async function fetchNetworkAmendments(
     })
 
     const featuresAll = featureAllResponse.result.features
-    // Track supported (non-enabled, non-deprecated) amendments for this network
+    // Track supported (non-enabled) amendments for this network
     const supportedAmendments: string[] = []
 
     for (const id of Object.keys(featuresAll)) {
       const feature = featuresAll[id]
-      addAmendmentToCache(id, feature.name, feature.supported)
+      addAmendmentToCache(id, feature.name)
     }
 
     // Collect supported but not enabled amendments for amendments_status
@@ -167,21 +183,13 @@ async function insertSupportedAmendmentsStatus(
 
 /**
  * Add an amendment to amendmentIds cache and remove it from the votingAmendmentToTrack cache.
+ * The retired / obsolete flags are sourced from rippled's features.macro.
  *
  * @param id - The id of the amendment to add.
  * @param name - The name of the amendment to add.
- * @param supported - Whether the amendment is supported by rippled (from feature RPC).
  */
-function addAmendmentToCache(
-  id: string,
-  name: string,
-  supported: boolean,
-): void {
-  amendmentIDs.set(id, {
-    name,
-    // Mark as deprecated if it's in RETIRED_AMENDMENTS list OR if not supported
-    deprecated: RETIRED_AMENDMENTS.includes(name) || !supported,
-  })
+function addAmendmentToCache(id: string, name: string): void {
+  amendmentIDs.set(id, { name, ...classify(name) })
   votingAmendmentsToTrack.delete(id)
 }
 
@@ -294,20 +302,103 @@ async function ensureAmendmentStatusExists(
     .catch((err) => log.error('Error ensuring amendment status exists', err))
 }
 
+/**
+ * Whether an amendment is "not votable" per a single features.macro revision:
+ * rippled explicitly marks it `VoteBehavior::Obsolete`, or it is not registered
+ * in that revision at all (superseded or removed). When `countUnsupported` is
+ * set, a `Supported::No` amendment also counts as not votable - used only for
+ * the release, where `Supported::No` means support was pulled. It is NOT used
+ * for develop, where `Supported::No` usually just means the amendment is new.
+ *
+ * @param macro - A parsed features.macro revision.
+ * @param name - The amendment name.
+ * @param countUnsupported - Whether `Supported::No` counts as not votable.
+ * @returns True if the amendment is not votable in that revision.
+ */
+function isNotVotable(
+  macro: ParsedFeaturesMacro,
+  name: string,
+  countUnsupported: boolean,
+): boolean {
+  if (!macro.all.has(name)) {
+    return true
+  }
+  if (macro.obsolete.has(name)) {
+    return true
+  }
+  return countUnsupported && macro.unsupported.has(name)
+}
+
+/**
+ * Compute the retired/obsolete flags for an amendment name from the current
+ * classification. `retired` comes from the latest release only (so amendments
+ * are not marked retired before they ship). `obsolete` requires the amendment to
+ * be not-votable in BOTH the latest release AND develop, so beta amendments
+ * (only in develop) and amendments still supported in the release are not
+ * mislabeled. `Supported::No` counts as not-votable for the release only.
+ *
+ * @param name - The amendment name.
+ * @returns The retired and obsolete flags.
+ */
+function classify(name: string): { retired: boolean; obsolete: boolean } {
+  const retired = classification.release.retired.has(name)
+  return {
+    retired,
+    obsolete:
+      !retired &&
+      isNotVotable(classification.release, name, true) &&
+      isNotVotable(classification.develop, name, false),
+  }
+}
+
+/**
+ * Reclassify the retired/obsolete flags of every amendment already stored in
+ * `amendments_info`. The feature RPC only returns amendments the connected node
+ * still registers, so historical or seed amendments (such as removed obsolete
+ * ones) would otherwise never be reclassified and keep null flags.
+ *
+ * @returns Void.
+ */
+async function reclassifyExistingAmendments(): Promise<void> {
+  const rows = (await query('amendments_info').select('id', 'name')) as Array<{
+    id: string
+    name: string
+  }>
+  for (const row of rows) {
+    const { retired, obsolete } = classify(row.name)
+    await query('amendments_info')
+      .where('id', row.id)
+      .update({ retired, obsolete })
+      .catch((err) => log.error('Error reclassifying amendment', err))
+  }
+}
+
 export async function fetchAmendmentInfo(): Promise<void> {
   log.info('Fetch amendments info from data sources...')
+  const fetchedClassification = await fetchAmendmentClassification()
+  if (fetchedClassification === null) {
+    log.error(
+      'Could not determine retired/obsolete classification from features.macro; skipping amendment info update to avoid overwriting existing data.',
+    )
+    return
+  }
+  classification = fetchedClassification
   await fetchVotingAmendments()
   await fetchAmendmentsList()
   await fetchMinRippledVersions()
-  amendmentIDs.forEach(async (value, id) => {
+  for (const [id, value] of amendmentIDs) {
     const amendment: AmendmentInfo = {
       id,
       name: value.name,
       rippled_version: rippledVersions.get(value.name),
-      deprecated: value.deprecated,
+      retired: value.retired,
+      obsolete: value.obsolete,
     }
     await saveAmendmentInfo(amendment)
-  })
+  }
+  // Reclassify every stored amendment (including historical/seed rows the
+  // feature RPC no longer returns) so their flags stay correct.
+  await reclassifyExistingAmendments()
   log.info('Finish fetching amendments info from data sources...')
 }
 
@@ -318,4 +409,5 @@ export function clearAmendmentCaches(): void {
   amendmentIDs.clear()
   votingAmendmentsToTrack.clear()
   rippledVersions.clear()
+  classification = { release: emptyParsedMacro(), develop: emptyParsedMacro() }
 }
