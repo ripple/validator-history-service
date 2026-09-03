@@ -33,6 +33,49 @@ const flushPromises = async (): Promise<void> =>
     setTimeout(resolve, 100)
   })
 
+// A minimal features.macro used to drive the retired/obsolete classification.
+// Escrow and fix1201 are retired; SomeObsoleteFeature is obsolete. The other
+// active entries are amendments referenced by the tests so they are recognized
+// as registered (any amendment absent from this file is treated as obsolete).
+const FEATURES_MACRO = `
+// Add new amendments to the top of this list.
+XRPL_FEATURE(ExpandedSignerList,     Supported::Yes, VoteBehavior::DefaultNo)
+XRPL_FEATURE(NFTokenMintOffer,       Supported::Yes, VoteBehavior::DefaultNo)
+XRPL_FEATURE(NewVotingAmendment,     Supported::Yes, VoteBehavior::DefaultNo)
+XRPL_FEATURE(SomeObsoleteFeature,    Supported::Yes, VoteBehavior::Obsolete)
+
+XRPL_RETIRE_FIX(1201)
+XRPL_RETIRE_FEATURE(Escrow)
+`
+
+/**
+ * Intercept the GitHub latest-release lookup used to detect the release tag.
+ * Persisted so repeated fetches within a test work.
+ *
+ * @param tag - The tag to report as the latest release.
+ */
+function mockLatestReleaseTag(tag = '3.2.0'): void {
+  nock('https://api.github.com')
+    .get('/repos/XRPLF/rippled/releases/latest')
+    .reply(200, { tag_name: tag })
+    .persist()
+}
+
+/**
+ * Intercept the features.macro fetch used by the amendment classification. The
+ * regex matches both the release-tag and develop URLs, so by default both
+ * revisions get the same body.
+ * Persisted so repeated fetches within a test work.
+ *
+ * @param body - The features.macro contents to return.
+ */
+function mockFeaturesMacro(body: string = FEATURES_MACRO): void {
+  nock('https://raw.githubusercontent.com')
+    .get(/features\.macro$/u)
+    .reply(200, body)
+    .persist()
+}
+
 describe('Amendments Fetch Functions', () => {
   beforeAll(async () => {
     await setupTables()
@@ -49,6 +92,8 @@ describe('Amendments Fetch Functions', () => {
     clearAmendmentCaches()
     jest.clearAllMocks()
     nock.cleanAll()
+    mockLatestReleaseTag()
+    mockFeaturesMacro()
   })
 
   afterEach(async () => {
@@ -79,36 +124,44 @@ describe('Amendments Fetch Functions', () => {
       expect(savedAmendments.length).toBeGreaterThan(0)
 
       // Check that ExpandedSignerList was saved (it's supported but not enabled)
-      // Note: Escrow is in RETIRED_AMENDMENTS list so it gets marked as deprecated
       const expandedSignerList = savedAmendments.find(
         (am) => am.name === 'ExpandedSignerList',
       )
       expect(expandedSignerList).toBeDefined()
       expect(expandedSignerList?.rippled_version).toBe('1.9.0')
-      expect(expandedSignerList?.deprecated).toBe(false)
+      expect(expandedSignerList?.retired).toBe(false)
+      expect(expandedSignerList?.obsolete).toBe(false)
+
+      // Escrow is in the features.macro retired list, so it is flagged retired.
+      const escrow = savedAmendments.find((am) => am.name === 'Escrow')
+      expect(escrow).toBeDefined()
+      expect(escrow?.retired).toBe(true)
+      expect(escrow?.obsolete).toBe(false)
     })
 
-    test('should mark unsupported amendments as deprecated', async () => {
+    test('should mark amendments absent from features.macro as obsolete', async () => {
       // Mock XRPScan API
       nock('https://api.xrpscan.com')
         .get('/api/v1/amendments')
         .reply(200, featureResponses.xrpscanAmendments)
 
-      // Return response with an unsupported amendment
-      const responseWithUnsupported = {
+      // An amendment that is not registered in features.macro (e.g. superseded
+      // and removed) should be classified obsolete, even if a node still reports
+      // it as supported.
+      const responseWithUnknown = {
         result: {
           features: {
             ...featureResponses.featureAllResponse.result.features,
-            DEPRECATED123: {
+            UNKNOWN123: {
               enabled: false,
-              name: 'DeprecatedAmendment',
-              supported: false,
+              name: 'AmendmentNotInMacro',
+              supported: true,
             },
           },
           status: 'success',
         },
       }
-      mockRequest.mockResolvedValue(responseWithUnsupported)
+      mockRequest.mockResolvedValue(responseWithUnknown)
 
       await fetchAmendmentInfo()
       await flushPromises()
@@ -117,11 +170,150 @@ describe('Amendments Fetch Functions', () => {
         '*',
       )) as AmendmentInfo[]
 
-      const deprecated = savedAmendments.find(
-        (am) => am.name === 'DeprecatedAmendment',
+      const unknown = savedAmendments.find(
+        (am) => am.name === 'AmendmentNotInMacro',
       )
-      expect(deprecated).toBeDefined()
-      expect(deprecated?.deprecated).toBe(true)
+      expect(unknown).toBeDefined()
+      expect(unknown?.retired).toBe(false)
+      expect(unknown?.obsolete).toBe(true)
+    })
+
+    test('should reclassify existing amendments the feature RPC no longer returns', async () => {
+      // A historical/seed amendment that the connected node no longer registers
+      // (not in the feature RPC response) but which is absent from features.macro
+      // must still be reclassified as obsolete rather than keeping null flags.
+      await query('amendments_info').insert({
+        id: 'ORPHAN999',
+        name: 'OrphanRemovedAmendment',
+        retired: null,
+        obsolete: null,
+      })
+
+      nock('https://api.xrpscan.com')
+        .get('/api/v1/amendments')
+        .reply(200, featureResponses.xrpscanAmendments)
+      // The feature RPC response does NOT include the orphan amendment.
+      mockRequest.mockResolvedValue(featureResponses.featureAllResponse)
+
+      await fetchAmendmentInfo()
+      await flushPromises()
+
+      const orphan = (await query('amendments_info')
+        .select('*')
+        .where('id', 'ORPHAN999')
+        .first()) as AmendmentInfo | undefined
+      expect(orphan).toBeDefined()
+      expect(orphan?.retired).toBe(false)
+      expect(orphan?.obsolete).toBe(true)
+    })
+
+    test('sources retired from the release but obsolete from release AND develop', async () => {
+      // Release lags develop: RecentlyRetired is still active in the release but
+      // retired in develop; StillInRelease exists only in the release; BetaFeature
+      // exists only in develop; DeadEverywhere is in neither.
+      // PulledInRelease is Supported::No in the release and gone from develop
+      // (superseded) -> obsolete. UpcomingV1_1 is Supported::No in the release
+      // but supported in develop (still coming) -> NOT obsolete.
+      const RELEASE = `
+XRPL_FEATURE(StillInRelease,   Supported::Yes, VoteBehavior::DefaultNo)
+XRPL_FEATURE(RecentlyRetired,  Supported::Yes, VoteBehavior::DefaultNo)
+XRPL_FEATURE(PulledInRelease,  Supported::No,  VoteBehavior::DefaultNo)
+XRPL_FEATURE(UpcomingV1_1,     Supported::No,  VoteBehavior::DefaultNo)
+XRPL_RETIRE_FEATURE(Escrow)
+`
+      const DEVELOP = `
+XRPL_FEATURE(BetaFeature,      Supported::Yes, VoteBehavior::DefaultNo)
+XRPL_FEATURE(UpcomingV1_1,     Supported::Yes, VoteBehavior::DefaultNo)
+XRPL_RETIRE_FEATURE(Escrow)
+XRPL_RETIRE_FEATURE(RecentlyRetired)
+`
+      const macroPath = (ref: string): string =>
+        `/XRPLF/rippled/${ref}/include/xrpl/protocol/detail/features.macro`
+      nock.cleanAll()
+      mockLatestReleaseTag('3.2.0')
+      nock('https://raw.githubusercontent.com')
+        .get(macroPath('3.2.0'))
+        .reply(200, RELEASE)
+        .persist()
+      nock('https://raw.githubusercontent.com')
+        .get(macroPath('develop'))
+        .reply(200, DEVELOP)
+        .persist()
+      nock('https://api.xrpscan.com')
+        .get('/api/v1/amendments')
+        .reply(200, featureResponses.xrpscanAmendments)
+      mockRequest.mockResolvedValue(featureResponses.featureAllResponse)
+
+      await query('amendments_info').insert([
+        { id: 'ID_STILLREL', name: 'StillInRelease' },
+        { id: 'ID_RECRET', name: 'RecentlyRetired' },
+        { id: 'ID_BETA', name: 'BetaFeature' },
+        { id: 'ID_DEAD', name: 'DeadEverywhere' },
+        { id: 'ID_PULLED', name: 'PulledInRelease' },
+        { id: 'ID_UPCOMING', name: 'UpcomingV1_1' },
+      ])
+
+      await fetchAmendmentInfo()
+      await flushPromises()
+
+      const rows = (await query('amendments_info').select(
+        '*',
+      )) as AmendmentInfo[]
+      const byName = Object.fromEntries(rows.map((row) => [row.name, row]))
+
+      // Escrow is retired in the release -> retired.
+      expect(byName.Escrow.retired).toBe(true)
+      // Retired only in develop -> NOT retired (release-only); still in release -> not obsolete.
+      expect(byName.RecentlyRetired.retired).toBe(false)
+      expect(byName.RecentlyRetired.obsolete).toBe(false)
+      // Only in develop (beta) -> not retired, not obsolete.
+      expect(byName.BetaFeature.retired).toBe(false)
+      expect(byName.BetaFeature.obsolete).toBe(false)
+      // In release, absent from develop -> still votable per release -> not obsolete.
+      expect(byName.StillInRelease.obsolete).toBe(false)
+      // Absent from both -> obsolete.
+      expect(byName.DeadEverywhere.obsolete).toBe(true)
+      // Supported::No in the release and gone from develop -> obsolete.
+      expect(byName.PulledInRelease.obsolete).toBe(true)
+      // Supported::No in the release but still supported in develop -> not obsolete.
+      expect(byName.UpcomingV1_1.obsolete).toBe(false)
+    })
+
+    test('should mark obsolete amendments from features.macro', async () => {
+      // Mock XRPScan API
+      nock('https://api.xrpscan.com')
+        .get('/api/v1/amendments')
+        .reply(200, featureResponses.xrpscanAmendments)
+
+      // SomeObsoleteFeature is marked VoteBehavior::Obsolete in the macro.
+      const responseWithObsolete = {
+        result: {
+          features: {
+            ...featureResponses.featureAllResponse.result.features,
+            OBSOLETE123: {
+              enabled: false,
+              name: 'SomeObsoleteFeature',
+              supported: true,
+            },
+          },
+          status: 'success',
+        },
+      }
+      mockRequest.mockResolvedValue(responseWithObsolete)
+
+      await fetchAmendmentInfo()
+      await flushPromises()
+
+      const savedAmendments = (await query('amendments_info').select(
+        '*',
+      )) as AmendmentInfo[]
+
+      const obsolete = savedAmendments.find(
+        (am) => am.name === 'SomeObsoleteFeature',
+      )
+      expect(obsolete).toBeDefined()
+      expect(obsolete?.obsolete).toBe(true)
+      expect(obsolete?.retired).toBe(false)
     })
 
     test('should track supported non-enabled amendments in amendments_status', async () => {
@@ -199,10 +391,11 @@ describe('Amendments Fetch Functions', () => {
         (am) => am.name === 'NewVotingAmendment',
       )
       expect(newAmendment).toBeDefined()
-      expect(newAmendment?.deprecated).toBe(false)
+      expect(newAmendment?.retired).toBe(false)
+      expect(newAmendment?.obsolete).toBe(false)
     })
 
-    test('should handle badFeature error and mark as deprecated', async () => {
+    test('should mark a badFeature amendment absent from features.macro as obsolete', async () => {
       // Insert voting data with an amendment that will return badFeature
       await query('ballot').insert({
         signing_key: 'nHBtBkHGfL4NpB54H1AwBaaSJkSJLUSPvnUNAcuNpuffYB51VjH6',
@@ -210,11 +403,12 @@ describe('Amendments Fetch Functions', () => {
         amendments: 'BADFEAT456',
       })
 
-      // Pre-populate amendments_info so we have a name for the deprecated amendment
+      // Pre-populate amendments_info so we have a name for the amendment
       await query('amendments_info').insert({
         id: 'BADFEAT456',
-        name: 'ObsoleteAmendment',
-        deprecated: false,
+        name: 'UnknownAmendment',
+        retired: false,
+        obsolete: false,
       })
 
       // Mock XRPScan API
@@ -240,11 +434,13 @@ describe('Amendments Fetch Functions', () => {
         '*',
       )) as AmendmentInfo[]
 
-      const obsolete = savedAmendments.find(
-        (am) => am.name === 'ObsoleteAmendment',
+      const unknown = savedAmendments.find(
+        (am) => am.name === 'UnknownAmendment',
       )
-      expect(obsolete).toBeDefined()
-      expect(obsolete?.deprecated).toBe(true)
+      expect(unknown).toBeDefined()
+      expect(unknown?.retired).toBe(false)
+      // UnknownAmendment is not registered in features.macro, so it is obsolete.
+      expect(unknown?.obsolete).toBe(true)
     })
 
     test('should handle XRPScan API failure gracefully', async () => {
@@ -265,14 +461,15 @@ describe('Amendments Fetch Functions', () => {
       )) as AmendmentInfo[]
       expect(savedAmendments.length).toBeGreaterThan(0)
 
-      // Sample an amendment and verify it has id, name, deprecated but no rippled_version
+      // Sample an amendment and verify it has id, name, flags but no rippled_version
       const sampleAmendment = savedAmendments.find(
         (am) => am.name === 'ExpandedSignerList',
       )
       expect(sampleAmendment).toBeDefined()
       expect(sampleAmendment?.id).toBeDefined()
       expect(sampleAmendment?.name).toBe('ExpandedSignerList')
-      expect(sampleAmendment?.deprecated).toBe(false)
+      expect(sampleAmendment?.retired).toBe(false)
+      expect(sampleAmendment?.obsolete).toBe(false)
       // Database returns null for undefined values
       expect(sampleAmendment?.rippled_version).toBeNull()
     })
@@ -292,6 +489,98 @@ describe('Amendments Fetch Functions', () => {
 
       // Should not throw even if one network fails
       await expect(fetchAmendmentInfo()).resolves.not.toThrow()
+    })
+
+    test('should skip the DB update when the latest release cannot be detected', async () => {
+      // Without the latest release tag we cannot source the retired list.
+      nock.cleanAll()
+      nock('https://api.github.com')
+        .get('/repos/XRPLF/rippled/releases/latest')
+        .reply(500)
+        .persist()
+      mockFeaturesMacro()
+      nock('https://api.xrpscan.com')
+        .get('/api/v1/amendments')
+        .reply(200, featureResponses.xrpscanAmendments)
+      mockRequest.mockResolvedValue(featureResponses.featureAllResponse)
+
+      await fetchAmendmentInfo()
+      await flushPromises()
+
+      const saved = (await query('amendments_info').select(
+        '*',
+      )) as AmendmentInfo[]
+      expect(saved).toHaveLength(0)
+      expect(mockRequest).not.toHaveBeenCalled()
+    })
+
+    test('should skip the DB update when features.macro path is invalid', async () => {
+      // Simulate the features.macro path no longer being valid (e.g. a rippled
+      // restructure). No amendment info should be written at all.
+      nock.cleanAll()
+      mockLatestReleaseTag()
+      nock('https://raw.githubusercontent.com')
+        .get(/features\.macro$/u)
+        .reply(404)
+        .persist()
+      nock('https://api.xrpscan.com')
+        .get('/api/v1/amendments')
+        .reply(200, featureResponses.xrpscanAmendments)
+      mockRequest.mockResolvedValue(featureResponses.featureAllResponse)
+
+      await fetchAmendmentInfo()
+      await flushPromises()
+
+      const saved = (await query('amendments_info').select(
+        '*',
+      )) as AmendmentInfo[]
+      expect(saved).toHaveLength(0)
+      // We bail out before ever querying the feature RPC.
+      expect(mockRequest).not.toHaveBeenCalled()
+    })
+
+    test('should skip the DB update when features.macro format is unrecognized', async () => {
+      // The file is reachable but no longer contains recognizable macros, so the
+      // classification parses to nothing - treat it as unknown and skip.
+      nock.cleanAll()
+      mockLatestReleaseTag()
+      mockFeaturesMacro('// restructured file\nSOMETHING_ELSE(Foo)\n')
+      nock('https://api.xrpscan.com')
+        .get('/api/v1/amendments')
+        .reply(200, featureResponses.xrpscanAmendments)
+      mockRequest.mockResolvedValue(featureResponses.featureAllResponse)
+
+      await fetchAmendmentInfo()
+      await flushPromises()
+
+      const saved = (await query('amendments_info').select(
+        '*',
+      )) as AmendmentInfo[]
+      expect(saved).toHaveLength(0)
+      expect(mockRequest).not.toHaveBeenCalled()
+    })
+
+    test('should skip the DB update when the retire list is empty', async () => {
+      // Active amendments parse fine but the retire section is gone/unparseable.
+      // A real features.macro always has retired entries, so this is untrusted.
+      nock.cleanAll()
+      mockLatestReleaseTag()
+      mockFeaturesMacro(
+        'XRPL_FEATURE(SomeFeature, Supported::Yes, VoteBehavior::DefaultNo)\n',
+      )
+      nock('https://api.xrpscan.com')
+        .get('/api/v1/amendments')
+        .reply(200, featureResponses.xrpscanAmendments)
+      mockRequest.mockResolvedValue(featureResponses.featureAllResponse)
+
+      await fetchAmendmentInfo()
+      await flushPromises()
+
+      const saved = (await query('amendments_info').select(
+        '*',
+      )) as AmendmentInfo[]
+      expect(saved).toHaveLength(0)
+      expect(mockRequest).not.toHaveBeenCalled()
     })
   })
 

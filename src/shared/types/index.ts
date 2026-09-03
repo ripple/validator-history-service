@@ -224,7 +224,8 @@ interface AmendmentInfo {
   id: string
   name: string
   rippled_version?: string
-  deprecated: boolean
+  retired: boolean
+  obsolete: boolean
 }
 
 interface ConnectionHealth {

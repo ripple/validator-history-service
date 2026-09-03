@@ -246,8 +246,26 @@ async function setupAmendmentsInfoTable(): Promise<void> {
       table.string('id')
       table.string('name')
       table.string('rippled_version')
-      table.boolean('deprecated')
+      table.boolean('retired')
+      table.boolean('obsolete')
       table.primary(['id'])
+    })
+  }
+  // Migrate existing databases from the single `deprecated` column to the
+  // separate `retired` and `obsolete` columns.
+  if (!(await db().schema.hasColumn('amendments_info', 'retired'))) {
+    await db().schema.alterTable('amendments_info', (table) => {
+      table.boolean('retired')
+    })
+  }
+  if (!(await db().schema.hasColumn('amendments_info', 'obsolete'))) {
+    await db().schema.alterTable('amendments_info', (table) => {
+      table.boolean('obsolete')
+    })
+  }
+  if (await db().schema.hasColumn('amendments_info', 'deprecated')) {
+    await db().schema.alterTable('amendments_info', (table) => {
+      table.dropColumn('deprecated')
     })
   }
 }
