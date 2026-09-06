@@ -28,6 +28,7 @@ import {
 const log = logger({ name: 'connections' })
 const ports = [443, 80, 6005, 6006, 51233, 51234]
 const protocols = ['wss://', 'ws://']
+const VALID_WS_HOST = /^[a-zA-Z0-9.-]+$/u
 const networkFee: Map<string, FeeVote> = new Map()
 const validationNetworkDb: Map<string, string> = new Map()
 const enableAmendmentLedgerIndexMap: Map<string, number> = new Map()
@@ -128,6 +129,35 @@ async function setHandlers(
 }
 
 /**
+ * Checks whether a host can be safely interpolated into a WebSocket url.
+ *
+ * IPv6 is rejected quietly since it is expected: the url is built by
+ * concatenation, which cannot produce the bracketed form IPv6 requires.
+ * Anything else malformed is logged, since it means a peer is reporting a host
+ * that would take down the connection manager.
+ *
+ * @param host - The node's host, already normalized by {@link getIPv4Address}.
+ * @param node - The node the host came from, for log context.
+ * @returns Whether a WebSocket url can be built from the host.
+ */
+function isValidWsHost(host: string, node: WsNode): boolean {
+  if (host.search(':') !== -1) {
+    return false
+  }
+
+  if (!VALID_WS_HOST.test(host)) {
+    log.warn(
+      `Skipping node with invalid host '${node.ip}' (public_key: ${
+        node.public_key ?? 'unknown'
+      }, network: ${node.networks})`,
+    )
+    return false
+  }
+
+  return true
+}
+
+/**
  * Tries to find a valid WebSockets endpoint for a node.
  *
  * @param node - The node we are trying to connect to.
@@ -135,7 +165,7 @@ async function setHandlers(
  */
 async function findConnection(node: WsNode): Promise<void> {
   const ipv4 = getIPv4Address(node.ip)
-  if (ipv4.search(':') !== -1) {
+  if (!isValidWsHost(ipv4, node)) {
     return Promise.resolve()
   }
   node.ip = ipv4
