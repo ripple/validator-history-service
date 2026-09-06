@@ -248,9 +248,6 @@ setInterval(async () => {
 export default async function startConnections(): Promise<void> {
   if (!cmStarted) {
     cmStarted = true
-    log.info(
-      `Starting connection manager -- peer host validation active: ${VALID_WS_HOST.source}`,
-    )
     await fetchAmendmentInfo()
     await clearConnectionHealthDb()
     await fetchAmendmentsFromLedgerEntry()
