@@ -1,1 +1,16 @@
-[]
+[
+  {
+    "id": "A360E2BFD775A5B0DCE1C36C16DF31B72735A57584FD163655D2F9564F8E7AC8",
+    "name": "LendingProtocolV1_1",
+    "rippled_version": "3.4.0",
+    "retired": false,
+    "obsolete": false
+  },
+  {
+    "id": "98433DD001A5737F773D74F8CA2A25A065089C73B2E611C760BAF369E4FECA76",
+    "name": "fixCleanup3_4_0",
+    "rippled_version": "3.4.0",
+    "retired": false,
+    "obsolete": false
+  }
+]

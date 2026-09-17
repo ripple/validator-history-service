@@ -251,10 +251,18 @@ async function fetchMinRippledVersions(): Promise<void> {
 export async function saveAmendmentInfo(
   amendment: AmendmentInfo,
 ): Promise<void> {
+  // A merge without an explicit column list also merges `rippled_version`,
+  // which knex inserts as DEFAULT (null) when the version is unknown. That
+  // would wipe a version already stored for the amendment (for example one
+  // seeded from amendments_info.json), so only merge it when we have one.
+  const mergeColumns = ['name', 'retired', 'obsolete']
+  if (amendment.rippled_version != null) {
+    mergeColumns.push('rippled_version')
+  }
   await query('amendments_info')
     .insert(amendment)
     .onConflict('id')
-    .merge()
+    .merge(mergeColumns)
     .catch((err) => log.error('Error Saving AmendmentInfo', err))
 }
 
