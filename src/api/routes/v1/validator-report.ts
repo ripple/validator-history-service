@@ -4,12 +4,9 @@ import { db, query } from '../../../shared/database'
 import { AgreementScore } from '../../../shared/types'
 import logger from '../../../shared/utils/logger'
 
-const log = logger({ name: 'api-validator-report' })
+import { EFFECTIVE_KEY } from './utils'
 
-// Agreement rows are keyed by `master_key ?? signing_key` (see
-// `saveDailyAgreement` in the connection-manager), so reads must resolve a
-// validator to that same effective key.
-const EFFECTIVE_KEY = 'COALESCE(validators.master_key, validators.signing_key)'
+const log = logger({ name: 'api-validator-report' })
 
 interface ScoreResponse {
   validation_public_key: string

@@ -2,6 +2,14 @@ import { getNetworks, query } from '../../../shared/database'
 import { AgreementScore } from '../../../shared/types'
 
 export const CACHE_INTERVAL_MILLIS = 60 * 1000
+
+// Agreement rows are keyed by `master_key ?? signing_key` (see
+// `saveDailyAgreement` in the connection-manager), so reads must resolve a
+// validator to that same effective key. Validators that never published a
+// manifest have a null `master_key` and are only reachable by signing key.
+export const EFFECTIVE_KEY =
+  'COALESCE(validators.master_key, validators.signing_key)'
+
 /**
  * Formats agreement score for response.
  *
