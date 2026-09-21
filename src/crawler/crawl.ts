@@ -112,8 +112,8 @@ class Crawler {
    * @param network - 'mainnet' 'testnet' or 'devnet'.
    */
   public async saveConnections(network: string): Promise<void> {
-    for (const [key, connections] of this.connections) {
-      void query('crawls')
+    const updates = Array.from(this.connections, async ([key, connections]) =>
+      query('crawls')
         .where({ public_key: key })
         .update({
           inbound_count: connections.in.size,
@@ -122,8 +122,10 @@ class Crawler {
         })
         .catch((err) =>
           log.error('Error updating crawls inbound outbound', err),
-        )
-    }
+        ),
+    )
+
+    await Promise.all(updates)
   }
 
   /**

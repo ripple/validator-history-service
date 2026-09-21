@@ -64,7 +64,7 @@ export async function saveNode(
   const sanitizedMergeNode = shouldOverwriteNull
     ? { ip: null, port: null, ...node }
     : node
-  query('crawls')
+  await query('crawls')
     .insert(node)
     .onConflict('public_key')
     .merge(sanitizedMergeNode)
@@ -275,13 +275,15 @@ export async function saveAmendmentsStatus(
   amendments: string[],
   networks: string | undefined,
 ): Promise<void> {
-  amendments.forEach(async (amendment) => {
-    await query('amendments_status')
-      .insert({ amendment_id: amendment, networks })
-      .onConflict(['amendment_id', 'networks'])
-      .merge()
-      .catch((err) => log.error('Error Saving Status Amendment', err))
-  })
+  await Promise.all(
+    amendments.map(async (amendment) =>
+      query('amendments_status')
+        .insert({ amendment_id: amendment, networks })
+        .onConflict(['amendment_id', 'networks'])
+        .merge()
+        .catch((err) => log.error('Error Saving Status Amendment', err)),
+    ),
+  )
 }
 
 /**
