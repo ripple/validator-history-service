@@ -4,7 +4,7 @@ import { db, query } from '../../../shared/database'
 import { AgreementScore } from '../../../shared/types'
 import logger from '../../../shared/utils/logger'
 
-import { EFFECTIVE_KEY } from './utils'
+import { CANONICAL_KEY, EFFECTIVE_KEY, MATCHES_PUBLIC_KEY } from './utils'
 
 const log = logger({ name: 'api-validator-report' })
 
@@ -56,9 +56,12 @@ function formatResponse(response: DatabaseResponse): ScoreResponse {
 /**
  * Gets all daily score reports for a validator.
  *
- * Accepts either a master key or a signing key, matching the behavior of the
- * validator endpoint. Validators that never published a manifest have a null
- * `master_key` and are only reachable by their signing key.
+ * Accepts a master key or a signing key, matching the behavior of the validator
+ * endpoint. Agreement rows are keyed by the master key when one is recorded on
+ * the validator and by the signing key otherwise, so the join and the lookup
+ * differ. The join uses the key the rows were written under, while the lookup
+ * also consults `manifests` so a validator stays reachable by master key even
+ * when `validators.master_key` is null.
  *
  * @param public_key - Master key or signing key of validator.
  * @returns A promise that resolves to an array of ScoreResponse.
@@ -66,7 +69,7 @@ function formatResponse(response: DatabaseResponse): ScoreResponse {
 async function getReports(public_key: string): Promise<ScoreResponse[]> {
   return query('daily_agreement')
     .select([
-      db().raw(`${EFFECTIVE_KEY} as master_key`),
+      db().raw(`${CANONICAL_KEY} as master_key`),
       'daily_agreement.day as date',
       'validators.chain',
       'daily_agreement.agreement',
@@ -74,11 +77,7 @@ async function getReports(public_key: string): Promise<ScoreResponse[]> {
     .innerJoin('validators', (join) => {
       join.on(db().raw(`daily_agreement.main_key = ${EFFECTIVE_KEY}`))
     })
-    .where((builder) => {
-      builder
-        .where('validators.master_key', '=', public_key)
-        .orWhere('validators.signing_key', '=', public_key)
-    })
+    .whereRaw(MATCHES_PUBLIC_KEY, [public_key, public_key, public_key])
     .andWhere('validators.revoked', '=', 'false')
     .then((resp: DatabaseResponse[]) => resp.map(formatResponse))
 }

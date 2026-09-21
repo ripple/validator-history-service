@@ -12,6 +12,12 @@ const MASTER_KEY = 'nHUon2tpyJEHrb55CQ1sTYZFJvmsBvjcxfE7NLzczCmYAM7X4c1s'
 // Validator whose only day so far has no validated and no missed ledgers.
 const ZERO_TOTAL_MASTER_KEY =
   'nHBidG3pZK11zQD6kpNDoAhDxH6WLGui6ZxSbUx7LSqLHsgzMPec'
+// Validator whose manifest records a master key that never made it onto its
+// `validators` row, so its agreement rows are keyed by signing key.
+const UNLINKED_MASTER_KEY =
+  'nHBd3WLAZKmAuXX8bc99XYF7vA2VaKMznwPV1MpiZtNcZkHekUPT'
+const UNLINKED_SIGNING_KEY =
+  'n9L996F3HA2t8jL4WhRfkaj55zXJmYnQsAiqoPPCu1WjrYy8C6wm'
 
 const TODAY = new Date()
 TODAY.setHours(0, 0, 0, 0)
@@ -41,6 +47,26 @@ const validators = [
     chain: 'main',
     networks: 'main',
   },
+  {
+    master_key: null,
+    signing_key: UNLINKED_SIGNING_KEY,
+    revoked: false,
+    chain: 'main',
+    networks: 'main',
+  },
+]
+
+const manifests = [
+  {
+    master_key: UNLINKED_MASTER_KEY,
+    signing_key: UNLINKED_SIGNING_KEY,
+    master_signature: 'E2AC88F1',
+    signature: '3045022100',
+    domain: 'trimaera.tech',
+    domain_verified: true,
+    revoked: false,
+    seq: 2,
+  },
 ]
 
 // saveDailyAgreement keys rows by `master_key ?? signing_key`.
@@ -59,6 +85,12 @@ const dailyAgreements = [
     main_key: ZERO_TOTAL_MASTER_KEY,
     day: TODAY,
     agreement: JSON.stringify({ validated: 0, missed: 0, incomplete: false }),
+  },
+  // Written under the signing key, because validators.master_key is null.
+  {
+    main_key: UNLINKED_SIGNING_KEY,
+    day: TODAY,
+    agreement: JSON.stringify({ validated: 60, missed: 40, incomplete: false }),
   },
   // A prior day, which today's report must not include.
   {
@@ -110,13 +142,16 @@ describe('tests for daily report endpoint', () => {
     await setupTables()
     await query('validators').delete('*')
     await query('daily_agreement').delete('*')
+    await query('manifests').delete('*')
     await query('validators').insert(validators)
     await query('daily_agreement').insert(dailyAgreements)
+    await query('manifests').insert(manifests)
   })
 
   afterAll(async () => {
     await query('validators').delete('*')
     await query('daily_agreement').delete('*')
+    await query('manifests').delete('*')
     await destroy()
   })
 
@@ -138,9 +173,18 @@ describe('tests for daily report endpoint', () => {
 
   it('reports only today, one row per validator', async () => {
     const { count, reports } = await getDailyReport()
+    const keys = reports.map((report) => report.validation_public_key)
 
-    expect(count).toBe(3)
-    expect(reports).toHaveLength(3)
+    expect(count).toBe(4)
+    expect(new Set(keys).size).toBe(4)
+  })
+
+  it('names a validator by its manifest master key', async () => {
+    const { reports } = await getDailyReport()
+    const keys = reports.map((report) => report.validation_public_key)
+
+    expect(keys).toContain(UNLINKED_MASTER_KEY)
+    expect(keys).not.toContain(UNLINKED_SIGNING_KEY)
   })
 
   it('scores a day with no validated and no missed ledgers as zero', async () => {

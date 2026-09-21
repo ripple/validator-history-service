@@ -4,7 +4,7 @@ import { db, query } from '../../../shared/database'
 import { AgreementScore } from '../../../shared/types'
 import logger from '../../../shared/utils/logger'
 
-import { CACHE_INTERVAL_MILLIS, EFFECTIVE_KEY } from './utils'
+import { CACHE_INTERVAL_MILLIS, CANONICAL_KEY, EFFECTIVE_KEY } from './utils'
 
 const log = logger({ name: 'api-daily-report' })
 
@@ -78,7 +78,7 @@ async function getReports(): Promise<DailyScoreResponse[]> {
 
   return query('daily_agreement')
     .select([
-      db().raw(`${EFFECTIVE_KEY} as master_key`),
+      db().raw(`${CANONICAL_KEY} as master_key`),
       'daily_agreement.day as date',
       'validators.chain',
       'daily_agreement.agreement',
