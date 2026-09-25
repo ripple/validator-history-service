@@ -1,4 +1,9 @@
-import { parseFeaturesMacro } from '../../src/shared/database/amendment-classification'
+import amendmentInfoData from '../../src/shared/data/amendments_info.json'
+import {
+  manualClassification,
+  parseFeaturesMacro,
+} from '../../src/shared/database/amendment-classification'
+import { AmendmentInfo } from '../../src/shared/types'
 
 describe('parseFeaturesMacro', () => {
   test('classifies retired features and fixes (with fix prefix)', () => {
@@ -76,5 +81,37 @@ XRPL_RETIRE_FIX(1201)
     // Amendments never mentioned in the file are absent from `all`, so callers
     // can treat them as obsolete/removed.
     expect(all.has('SomethingRemoved')).toBe(false)
+  })
+})
+
+describe('manualClassification', () => {
+  test('returns the override for an amendment listed in amendments_info.json', () => {
+    for (const entry of amendmentInfoData as AmendmentInfo[]) {
+      expect(manualClassification(entry.id)).toEqual({
+        retired: entry.retired,
+        obsolete: entry.obsolete,
+      })
+    }
+  })
+
+  test('returns null for an amendment that is not overridden', () => {
+    expect(manualClassification('NOT_AN_OVERRIDDEN_AMENDMENT_ID')).toBeNull()
+  })
+
+  test('fixBatchV1_2 is overridden as votable', () => {
+    // rippled 3.4.1 ships fixBatchV1_2 but is not tagged on GitHub and the
+    // amendment has not landed in develop, so features.macro has no record of
+    // it on either tracked ref and it would otherwise be flagged obsolete.
+    const id =
+      '14A2B45E48A4A124D1BBA657AC7B0DC3D5EA8C256C89E8F0D8142D32960A7944'
+    const entry = (amendmentInfoData as AmendmentInfo[]).find(
+      (amendment) => amendment.id === id,
+    )
+
+    expect(entry?.name).toBe('fixBatchV1_2')
+    expect(manualClassification(id)).toEqual({
+      retired: false,
+      obsolete: false,
+    })
   })
 })

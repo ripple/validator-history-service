@@ -13,6 +13,7 @@ import {
   AmendmentClassification,
   ParsedFeaturesMacro,
   fetchAmendmentClassification,
+  manualClassification,
 } from './amendment-classification'
 import { query } from './utils'
 
@@ -189,7 +190,7 @@ async function insertSupportedAmendmentsStatus(
  * @param name - The name of the amendment to add.
  */
 function addAmendmentToCache(id: string, name: string): void {
-  amendmentIDs.set(id, { name, ...classify(name) })
+  amendmentIDs.set(id, { name, ...classify(id, name) })
   votingAmendmentsToTrack.delete(id)
 }
 
@@ -337,10 +338,20 @@ function isNotVotable(
  * (only in develop) and amendments still supported in the release are not
  * mislabeled. `Supported::No` counts as not-votable for the release only.
  *
+ * Amendments listed in `amendments_info.json` bypass this entirely.
+ *
+ * @param id - The amendment id.
  * @param name - The amendment name.
  * @returns The retired and obsolete flags.
  */
-function classify(name: string): { retired: boolean; obsolete: boolean } {
+function classify(
+  id: string,
+  name: string,
+): { retired: boolean; obsolete: boolean } {
+  const override = manualClassification(id)
+  if (override !== null) {
+    return override
+  }
   const retired = classification.release.retired.has(name)
   return {
     retired,
@@ -365,7 +376,7 @@ async function reclassifyExistingAmendments(): Promise<void> {
     name: string
   }>
   for (const row of rows) {
-    const { retired, obsolete } = classify(row.name)
+    const { retired, obsolete } = classify(row.id, row.name)
     await query('amendments_info')
       .where('id', row.id)
       .update({ retired, obsolete })

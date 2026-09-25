@@ -1,1 +1,9 @@
-[]
+[
+  {
+    "id": "14A2B45E48A4A124D1BBA657AC7B0DC3D5EA8C256C89E8F0D8142D32960A7944",
+    "name": "fixBatchV1_2",
+    "rippled_version": "3.4.1",
+    "retired": false,
+    "obsolete": false
+  }
+]

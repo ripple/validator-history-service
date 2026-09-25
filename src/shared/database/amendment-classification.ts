@@ -1,8 +1,42 @@
 import axios from 'axios'
 
+import amendmentInfoData from '../data/amendments_info.json'
+import { AmendmentInfo } from '../types'
 import logger from '../utils/logger'
 
 const log = logger({ name: 'amendment-classification' })
+
+// Amendments listed in `amendments_info.json` are manual overrides: their
+// retired/obsolete flags win over whatever features.macro implies, and survive
+// the periodic reclassification.
+//
+// This exists because an amendment can ship in a rippled release whose source
+// is not on GitHub under that tag yet, and which has not landed in develop
+// either. features.macro then has no record of it on either tracked ref, and
+// the "not registered means not votable" rule below would wrongly flag a brand
+// new, actively votable amendment as obsolete. Remove an entry once rippled
+// registers the amendment upstream.
+const manualOverrides = new Map<
+  string,
+  { retired: boolean; obsolete: boolean }
+>(
+  (amendmentInfoData as AmendmentInfo[]).map((amendment) => [
+    amendment.id,
+    { retired: amendment.retired, obsolete: amendment.obsolete },
+  ]),
+)
+
+/**
+ * Look up the manual retired/obsolete override for an amendment.
+ *
+ * @param id - The amendment id.
+ * @returns The override flags, or null when the amendment is not overridden.
+ */
+export function manualClassification(
+  id: string,
+): { retired: boolean; obsolete: boolean } | null {
+  return manualOverrides.get(id) ?? null
+}
 
 // The classification of an amendment as "retired" or "obsolete" is only
 // authoritatively declared in rippled's features.macro file:
