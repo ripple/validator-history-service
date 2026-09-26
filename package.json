@@ -37,7 +37,7 @@
     "@types/nconf": "^0.10.0",
     "@types/node": "^20.17.30",
     "@types/ws": "^8.5.5",
-    "@xrplf/eslint-config": "^2.0.0",
+    "@xrplf/eslint-config": "^3.0.0",
     "@xrplf/prettier-config": "^1.9.1",
     "eslint": "^9.32.0",
     "eslint-config-prettier": "^10.1.8",
