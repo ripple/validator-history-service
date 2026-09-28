@@ -471,8 +471,8 @@ export async function handleAmendmentsVote(
       await cacheAmendmentsVote()
     }
     const networkVotes:
-      | Array<EnabledAmendmentInfo | AmendmentInVoting>
-      | undefined = cacheVote.networks.get(network)
+      Array<EnabledAmendmentInfo | AmendmentInVoting> | undefined =
+      cacheVote.networks.get(network)
     if (networkVotes) {
       const response: AmendmentsVoteResponse = {
         result: 'success',
@@ -511,8 +511,8 @@ export async function handleAmendmentVote(
       await cacheAmendmentsVote()
     }
     const networkVotes:
-      | Array<EnabledAmendmentInfo | AmendmentInVoting>
-      | undefined = cacheVote.networks.get(network)
+      Array<EnabledAmendmentInfo | AmendmentInVoting> | undefined =
+      cacheVote.networks.get(network)
     if (networkVotes === undefined) {
       log.error(
         'Error handleAmendmentVote: network not found. network = ',

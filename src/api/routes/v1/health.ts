@@ -40,11 +40,11 @@ export async function handleMonitoringMetrics(
   res: Response,
 ): Promise<void> {
   try {
-    const result = (await query('connection_health')
+    const result = await query('connection_health')
       .select('network')
       .count('* as count')
       .where('connected', '=', true)
-      .groupBy('network')) as Array<{ network: string; count: number }>
+      .groupBy<Array<{ network: string; count: number }>>('network')
 
     const networkCountMap = new Map<string, number>(
       result.map((row) => [row.network, Number(row.count)]),

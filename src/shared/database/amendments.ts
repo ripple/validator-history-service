@@ -360,10 +360,9 @@ function classify(name: string): { retired: boolean; obsolete: boolean } {
  * @returns Void.
  */
 async function reclassifyExistingAmendments(): Promise<void> {
-  const rows = (await query('amendments_info').select('id', 'name')) as Array<{
-    id: string
-    name: string
-  }>
+  const rows = await query('amendments_info').select<
+    Array<{ id: string; name: string }>
+  >('id', 'name')
   for (const row of rows) {
     const { retired, obsolete } = classify(row.name)
     await query('amendments_info')
