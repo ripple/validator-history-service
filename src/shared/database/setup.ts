@@ -111,6 +111,74 @@ async function setupManifestTable(): Promise<void> {
       table.bigInteger('seq')
     })
   }
+  // Validator key resolution looks up manifests by signing key, and revocation
+  // handling looks them up by master key and seq. Without these indexes each
+  // lookup is a sequential scan of the whole table.
+  await ensureIndex('manifests_signing_key_master_key_idx', 'manifests', [
+    'signing_key',
+    'master_key',
+  ])
+  await ensureIndex('manifests_master_key_seq_idx', 'manifests', [
+    'master_key',
+    'seq',
+  ])
+}
+
+/**
+ * Creates an index without blocking writes to the table. Does nothing if a
+ * valid index with the same name already exists.
+ *
+ * An interrupted `CREATE INDEX CONCURRENTLY` (pod restart, statement timeout)
+ * leaves an invalid index behind, which `IF NOT EXISTS` would then skip
+ * forever. An invalid index is dropped and rebuilt, unless another process is
+ * still building it (the crawler and the connection manager both run setup).
+ *
+ * Errors are logged rather than thrown because queries still work without
+ * the index, just more slowly.
+ *
+ * @param name - Name of the index.
+ * @param table - Table to index.
+ * @param columns - Columns to index, in order.
+ */
+async function ensureIndex(
+  name: string,
+  table: string,
+  columns: string[],
+): Promise<void> {
+  try {
+    const result = await db().raw<{
+      rows: Array<{ valid: boolean; building: boolean }>
+    }>(
+      `SELECT i.indisvalid AS valid,
+              EXISTS (SELECT 1 FROM pg_stat_progress_create_index p
+                       WHERE p.index_relid = i.indexrelid) AS building
+         FROM pg_index i
+        WHERE i.indexrelid = to_regclass(?)`,
+      [name],
+    )
+    const existing = result.rows.at(0)
+    if (existing?.valid) {
+      return
+    }
+    if (existing?.building) {
+      log.info(`Index ${name} is being built by another process, skipping`)
+      return
+    }
+    if (existing) {
+      log.warn(`Dropping invalid index ${name} before rebuilding it`)
+      await db().raw('DROP INDEX CONCURRENTLY IF EXISTS ??', [name])
+    }
+
+    log.info(`Creating index ${name}...`)
+    const columnBindings = columns.map(() => '??').join(', ')
+    await db().raw(
+      `CREATE INDEX CONCURRENTLY IF NOT EXISTS ?? ON ?? (${columnBindings})`,
+      [name, table, ...columns],
+    )
+    log.info(`Finished creating index ${name}`)
+  } catch (err) {
+    log.error(`Error creating index ${name}`, err)
+  }
 }
 
 async function setupLedgersTable(): Promise<void> {
