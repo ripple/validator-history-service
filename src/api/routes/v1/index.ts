@@ -13,7 +13,6 @@ import handleValidatorManifest from './manifests'
 import handleNetworks from './networks'
 import { handleNode, handleNodes, handleTopology } from './nodes'
 import { handleValidator, handleValidators } from './validator'
-import handleValidatorDiagnostics from './validator-diagnostics'
 import handleValidatorReport from './validator-report'
 
 const api = createRouter()
@@ -38,11 +37,6 @@ api.use('/network/validator/:publicKey/manifests', handleValidatorManifest)
 api.use('/network/validator/:publicKey', handleValidator)
 api.use('/network/validators/:param', handleValidators)
 api.use('/network/validators', handleValidators)
-
-// TEMPORARY: aggregate counts over the validators table for debugging the dev
-// row-count discrepancy. Not under /network/validators, which would be caught
-// by the :param route above. Remove when no longer needed.
-api.use('/diagnostics/validators', handleValidatorDiagnostics)
 
 api.use('/network/networks', handleNetworks)
 
