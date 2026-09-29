@@ -1,13 +1,11 @@
 /* eslint-disable max-lines -- Disabled for this file. */
 import { Request, Response } from 'express'
 
-import { db, query } from '../../../shared/database'
+import { query } from '../../../shared/database'
 import logger from '../../../shared/utils/logger'
 
 import {
   CACHE_INTERVAL_MILLIS,
-  RESOLVED_MASTER_KEY,
-  MATCHES_PUBLIC_KEY,
   formatAgreementScore,
   formatAmendments,
   getChains,
@@ -91,10 +89,10 @@ interface dbResponse {
   master_key?: string
   signing_key: string
   revoked?: boolean
-  amendments?: string | null
-  base_fee?: number | null
-  reserve_base?: number | null
-  reserve_inc?: number | null
+  amendments?: string
+  base_fee?: number
+  reserve_base?: number
+  reserve_inc?: number
 }
 
 const cache: Cache = {
@@ -109,7 +107,7 @@ const cache: Cache = {
  */
 async function getValidators(): Promise<ValidatorResponse[]> {
   return query('validators')
-    .leftJoin('ballot', 'validators.signing_key', 'ballot.signing_key')
+    .join('ballot', 'validators.signing_key', 'ballot.signing_key')
     .select([
       'validators.partial',
       'validators.unl',
@@ -122,8 +120,9 @@ async function getValidators(): Promise<ValidatorResponse[]> {
       'validators.chain',
       'validators.networks',
       'validators.server_version',
-      db().raw(`${RESOLVED_MASTER_KEY} as master_key`),
+      'validators.master_key',
       'validators.signing_key',
+      'validators.master_key',
       'validators.revoked',
       'ballot.amendments',
       'ballot.base_fee',
@@ -197,27 +196,23 @@ async function formatResponse(resp: dbResponse): Promise<ValidatorResponse> {
     unl: resp.unl ?? false,
     revoked: resp.revoked,
     amendments: amendments_list,
-    base_fee: resp.base_fee ?? undefined,
-    reserve_base: resp.reserve_base ?? undefined,
-    reserve_inc: resp.reserve_inc ?? undefined,
+    base_fee: resp.base_fee,
+    reserve_base: resp.reserve_base,
+    reserve_inc: resp.reserve_inc,
   }
 }
 
 /**
  * Finds Validator with public_key in database.
  *
- * Matches on master key, signing key, or the master key recorded in
- * `manifests`. The columns must be table-qualified because the `ballot` join
- * also exposes a `signing_key`.
- *
- * @param public_key - Master key or signing key for validator.
+ * @param public_key - Signing key for validator.
  * @returns Validator or undefined if not found.
  */
 async function findInDatabase(
   public_key: string,
 ): Promise<ValidatorResponse | undefined> {
   const result = (await query('validators')
-    .leftJoin('ballot', 'validators.signing_key', 'ballot.signing_key')
+    .join('ballot', 'validators.signing_key', 'ballot.signing_key')
     .select([
       'validators.partial',
       'validators.unl',
@@ -229,15 +224,17 @@ async function findInDatabase(
       'validators.chain',
       'validators.networks',
       'validators.server_version',
-      db().raw(`${RESOLVED_MASTER_KEY} as master_key`),
+      'validators.master_key',
       'validators.signing_key',
+      'validators.master_key',
       'validators.revoked',
       'ballot.amendments',
       'ballot.base_fee',
       'ballot.reserve_base',
       'ballot.reserve_inc',
     ])
-    .whereRaw(MATCHES_PUBLIC_KEY, [public_key, public_key, public_key])
+    .where({ master_key: public_key })
+    .orWhere({ signing_key: public_key })
     .limit(1)) as dbResponse[]
 
   if (result.length === 0) {

@@ -1,10 +1,10 @@
 import { Request, Response } from 'express'
 
-import { db, query } from '../../../shared/database'
+import { query } from '../../../shared/database'
 import { AgreementScore } from '../../../shared/types'
 import logger from '../../../shared/utils/logger'
 
-import { CACHE_INTERVAL_MILLIS, CANONICAL_KEY, EFFECTIVE_KEY } from './utils'
+import { CACHE_INTERVAL_MILLIS } from './utils'
 
 const log = logger({ name: 'api-daily-report' })
 
@@ -48,8 +48,7 @@ function formatResponse(response: DatabaseResponse): DailyScoreResponse {
     chain,
     agreement: { validated, missed },
   } = response
-  const denominator = validated + missed
-  const score: number = denominator === 0 ? 0 : validated / denominator
+  const score: number = validated / (validated + missed)
   const time = new Date()
   time.setHours(23, 0, 0, 0)
 
@@ -65,12 +64,9 @@ function formatResponse(response: DatabaseResponse): DailyScoreResponse {
 }
 
 /**
- * Reads today's daily agreement scores from the database.
+ * Reads nodes from database.
  *
- * Joins on the effective key so that validators without a manifest (null
- * `master_key`) are included, matching the validator reports endpoint.
- *
- * @returns Daily scores for every validator with agreement data today.
+ * @returns Locations of nodes crawled in the last day.
  */
 async function getReports(): Promise<DailyScoreResponse[]> {
   const day = new Date()
@@ -78,15 +74,18 @@ async function getReports(): Promise<DailyScoreResponse[]> {
 
   return query('daily_agreement')
     .select([
-      db().raw(`${CANONICAL_KEY} as master_key`),
+      'validators.master_key',
       'daily_agreement.day as date',
       'validators.chain',
       'daily_agreement.agreement',
     ])
-    .innerJoin('validators', (join) => {
-      join.on(db().raw(`daily_agreement.main_key = ${EFFECTIVE_KEY}`))
-    })
+    .innerJoin(
+      'validators',
+      'daily_agreement.main_key',
+      'validators.master_key',
+    )
     .where('daily_agreement.day', '=', day)
+    .whereNotNull('validators.master_key')
     .then((resp: DatabaseResponse[]) => resp.map(formatResponse))
 }
 
