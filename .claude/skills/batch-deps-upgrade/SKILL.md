@@ -6,7 +6,7 @@ disable-model-invocation: true
 
 Batch all open Dependabot dependency upgrade PRs into a single PR for this repository, **plus any further upgrades needed to resolve the open Semgrep JIRA tickets that a package upgrade can fix**.
 
-**Scope — only tickets a package upgrade can fix:** ones naming a vulnerable dependency and a version that fixes it.
+**Scope — only tickets a package upgrade can fix:** ones naming a vulnerable dependency. The fix version comes from the ticket or, when the ticket omits it, from the ticket's GitHub advisory.
 
 Within that scope, the two inputs are independent. Every in-scope ticket gets fixed whether or not a Dependabot PR happens to propose that upgrade. Where no open Dependabot PR covers an impacted package, this PR adds the upgrade itself.
 
@@ -84,7 +84,7 @@ Do NOT commit or create a PR. Instead, generate the following outputs for the hu
    - Closing instructions with two paragraphs:
      1. "After merging, run `/batch-deps-upgrade close` to close the superseded PRs and the resolved Semgrep tickets." Follow it with the list of Upgraded and No-op PRs (#X, #Y, #Z) as a record, so the PR documents what will be closed even if the skill isn't used.
      2. "The following PRs were Skipped and should remain open: #A (package-a), #B (package-b), ..." — annotate each with the package name. These stay open so Dependabot keeps rebasing them.
-   - Include a **"Semgrep tickets"** table with the same columns, the first headed `Ticket`. Status alone cannot be verified against `main`, so `Asked for` and `Resolved` must be their own columns. Because `close-list.md` is not committed, this table is the closing run's fallback.
+   - Include a **"Semgrep tickets"** table with the same columns, the first headed `Ticket`. Status alone cannot be verified against `main`, so `Asked for` and `Resolved` must be their own columns. Because `close-list.md` is not committed, this table is the closing run's fallback. List the out-of-scope tickets (code findings, config findings) in one line above the table so a reader can see they were considered. Tickets with no fix version in their description are not out of scope — they get rows like any other.
    - Give ticket-driven upgrades that no Dependabot PR proposed their own table naming the motivating ticket — they are additions, not supersessions.
    - Call out separately, in the overview, any **major** bump taken to unblock a ticket: no PR or ticket asked for it, so a reviewer will not be expecting it and must see it flagged rather than buried in a table.
 
@@ -97,6 +97,8 @@ Do NOT commit or create a PR. Instead, generate the following outputs for the hu
       ```
 
       The third field must carry the **resolved** version, not the proposed one — that is what step 1 of the closing run checks against `main`, and a proposed version cannot be verified.
+
+      For a ticket closed because its vulnerable version is no longer installed, put every installed version (or `none`) in the third field and the advisory's affected range in the parentheses, so the closing run can re-check it: `installed 7.0.6 (affected < 6.0.6 || >=7.0.0 <7.0.5)`.
 
       Every comment must reference the batch PR, which does not exist yet at this point. Write that reference as the literal token `<PR>`; the closing run substitutes the merged PR's URL. Use a URL rather than `#1234`, which JIRA renders as plain text.
    2. **Left open** — every Skipped one, with its reason. Each is a security fix that did not land, so this is worth reading. Skipped PRs stay open for Dependabot to keep rebasing.
@@ -124,7 +126,9 @@ The full result is large; request only `summary`, `status`, `priority` and `desc
 
 **Take the package name from the summary, not the description** — a description may list several packages sharing one advisory, so it picks the wrong one. Take the fix version (`Recommended fix version:`), severity and CVE/GHSA link from the description. Wording varies, so read for intent rather than matching labels literally.
 
-Keep tickets naming a package and a fix version; drop the rest (code findings such as "Mishandled Sensitive Information" or XSS, config findings such as `dependabot.yml`, and package tickets whose description gives no fix version). If tickets came back but none of them could be parsed, that is a parsing failure — stop. If the query returned nothing, or nothing was in scope, there is simply no Semgrep work this quarter: record zero and carry on with the Dependabot batch. A ticket becomes a row whether or not a Dependabot PR proposes that package; a ticket is reason enough on its own.
+**A missing fix version does not put a ticket out of scope.** Older tickets (e.g. the DGE-39xx scans, summary "… in validator-history-service") give only `Current version` and a GHSA link. Look the advisory up with `gh api /advisories/<GHSA-id>` and read, for the ticket's package, each `vulnerable_version_range` and its `first_patched_version`. That gives the ticket a target, and it also gives the affected range used in **Picking the target and matching results** below. Dropping these tickets leaves them open forever: they never reach the Semgrep table or `close-list.md`, so the closing run never touches them and they come back every quarter.
+
+Keep every ticket that names a package; drop only code findings (such as "Mishandled Sensitive Information" or XSS) and config findings (such as `dependabot.yml`). If tickets came back but none of them could be parsed, that is a parsing failure — stop. If the query returned nothing, or nothing was in scope, there is simply no Semgrep work this quarter: record zero and carry on with the Dependabot batch. A ticket becomes a row whether or not a Dependabot PR proposes that package; a ticket is reason enough on its own.
 
 ### Picking the target and matching results (Step 2)
 
@@ -133,6 +137,8 @@ Where a ticket and a PR both want the same install, the target is the **highest*
 - Compare with semver, never as strings — lexically `"7.5.9" > "7.5.21"`.
 - Check the install the ticket means. One package can resolve at several versions at once (`brace-expansion`, and `axios` — ours at 1.x, `xrpl-validator-domains`' at 0.21.x), so "any install ≥ target" can answer yes off an unrelated major line. Match the install on the ticket's own major line (the ticket's `Current version`). If that line is gone because the package moved to a **higher** major, the ticket is satisfied — the vulnerable line is no longer installed — provided the advisory's affected range does not extend into the new major.
 - Match per ticket, not per package. Tickets sharing one install can want different versions (`js-yaml`). Never conclude "we upgraded X, so close the X tickets".
+
+**Vulnerable version no longer installed.** A ticket whose vulnerable version has left the lockfile — because some earlier upgrade moved it past the fix, or its parent stopped depending on it — is **No-op** (`vulnerable version no longer installed`) and gets closed like any other No-op. Decide it from the advisory's affected ranges, not from the ticket's `Current version`: the ticket is satisfied only when **no** installed copy of the package, at any path in the lockfile, falls inside any affected range (compare with `semver.satisfies`, after turning the advisory's `>= a, < b` into `>=a <b`). A package absent from the lockfile altogether is satisfied. If an install still falls inside a range, the ticket is Upgraded or Skipped by the normal rules; when the advisory's `first_patched_version` is null there is no fix to upgrade to, so it is Skipped (`no patched version published`).
 
 Classify from the Step 2.5 diff, not from which PR did what: a parent bump carries along a dependency it pins exactly, so a ticket can come out Upgraded with no PR naming its package.
 
@@ -148,7 +154,7 @@ Never remove a dependency to resolve a finding. A transitive dep leaves only whe
 
 Runs none of Steps 1-4: no ticket discovery, no bumps, and none of Step 3's build/test chain. That exclusion does **not** cover the per-item check in step 1 below — that one always runs, and it is the safeguard against closing something whose fix was reverted. Read section 1 of `close-list.md`; if it is missing, fall back to the merged PR body's lists. Identify the batch PR from an argument or `gh pr list --repo ripple/validator-history-service --state merged --head <branch>`, and replace the `<PR>` token in every comment with its URL. **Check that no comment still contains `<PR>` before posting anything** — if one does, the substitution failed, so stop rather than post a placeholder onto dozens of tickets.
 
-1. **Verify each item against the current `main`** and skip anything not genuinely satisfied — a reviewer may have had an upgrade reverted. This is what makes the run safe whether or not the batch has merged.
+1. **Verify each item against the current `main`** and skip anything not genuinely satisfied — a reviewer may have had an upgrade reverted. For items recorded with an affected range (`(affected …)`), check that no installed copy of the package on `main` falls inside it. This is what makes the run safe whether or not the batch has merged.
 2. **Close everything that verified.** Do not ask for approval; the engineer reviewed both lists on the PR, and step 1 is the real check.
    - **JIRA tickets** — complete the `Done` transition first (query available transitions, take the one to `Done`), then post the comment. This avoids open-but-commented tickets if transition fails.
    - **Dependabot PRs** — `gh pr close <n> --repo ripple/validator-history-service --comment "<comment>"`.
