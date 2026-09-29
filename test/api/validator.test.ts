@@ -17,6 +17,9 @@ const UNLINKED_SIGNING_KEY =
 // Validator with no manifest at all, so it genuinely has no master key.
 const NO_MASTER_SIGNING_KEY =
   'n9LS8sE7BCxYFJKC2eR3dFLGLRu7KYq2s88z1irdUTUkha4qWv4q'
+// One of the fabricated keys flooding dev: no network and no chain.
+const FABRICATED_SIGNING_KEY =
+  'n9431BemLDaB4Tk13jKuxnU2PfThMPXrdD5dxRCEFeyWYFyDJ8WQ'
 // Validator that has not reached a flag ledger yet, so it has no ballot row.
 const NO_BALLOT_SIGNING_KEY =
   'n9KaxgJv69FucW5kkiaMhCqS6sAR1wUVxpZaZmLGVXxAcAse9YhR'
@@ -49,6 +52,15 @@ const validators = [
     revoked: false,
     chain: 'main',
     networks: 'main',
+  },
+  // Fabricated validation: no network, no chain, no manifest. Must not be
+  // reachable from the API at all, or Explorer will surface it on search.
+  {
+    master_key: null,
+    signing_key: FABRICATED_SIGNING_KEY,
+    revoked: false,
+    chain: null,
+    networks: null,
   },
 ]
 
@@ -193,6 +205,13 @@ describe('tests for validator endpoint key resolution', () => {
     const { body } = await getValidator(LINKED_MASTER_KEY)
 
     expect(body.base_fee).toBe(10)
+  })
+
+  it('returns 404 for a fabricated validator with no network or chain', async () => {
+    const { status, body } = await getValidator(FABRICATED_SIGNING_KEY)
+
+    expect(status).toBe(404)
+    expect(body.message).toBe('validator not found')
   })
 
   it('returns 404 rather than a SQL error for an unknown key', async () => {

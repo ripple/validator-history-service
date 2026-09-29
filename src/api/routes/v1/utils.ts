@@ -10,6 +10,18 @@ export const CACHE_INTERVAL_MILLIS = 60 * 1000
 export const EFFECTIVE_KEY =
   'COALESCE(validators.master_key, validators.signing_key)'
 
+// A validator we have actually placed on a network or a chain.
+//
+// Dev receives a flood of fabricated validations - tens of thousands of
+// distinct keys all reporting ledger index 1000000, each with a different
+// ledger hash - and none of them ever get a network, a chain, a manifest or an
+// agreement score. Side-chain validators often have a chain but no network, so
+// both columns count.
+export const ON_A_NETWORK = `(
+  validators.networks IS NOT NULL
+  OR validators.chain IS NOT NULL
+)`
+
 // Matches a validator by either of its keys.
 //
 // `validators.master_key` is authoritative: the write path no longer nulls it

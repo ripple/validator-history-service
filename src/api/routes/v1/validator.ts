@@ -7,6 +7,7 @@ import logger from '../../../shared/utils/logger'
 import {
   CACHE_INTERVAL_MILLIS,
   MATCHES_PUBLIC_KEY,
+  ON_A_NETWORK,
   formatAgreementScore,
   formatAmendments,
   getChains,
@@ -107,44 +108,32 @@ const cache: Cache = {
  * @returns List of Validators.
  */
 async function getValidators(): Promise<ValidatorResponse[]> {
-  return (
-    query('validators')
-      .leftJoin('ballot', 'validators.signing_key', 'ballot.signing_key')
-      .select([
-        'validators.partial',
-        'validators.unl',
-        'validators.agreement_1hour',
-        'validators.agreement_24hour',
-        'validators.agreement_30day',
-        'validators.current_index',
-        'validators.domain',
-        'validators.ledger_hash',
-        'validators.chain',
-        'validators.networks',
-        'validators.server_version',
-        'validators.master_key',
-        'validators.signing_key',
-        'validators.revoked',
-        'ballot.amendments',
-        'ballot.base_fee',
-        'ballot.reserve_base',
-        'ballot.reserve_inc',
-      ])
-      .where('validators.revoked', '=', 'false')
-      // Only list validators we have placed on a network or a chain. Dev is
-      // receiving a flood of fabricated validations - tens of thousands of
-      // distinct keys all reporting ledger index 1000000, each with a
-      // different ledger hash - and none of them ever get a network, a chain,
-      // a manifest or an agreement score. Side-chain validators often have a
-      // chain but no network, so both columns are checked.
-      .where((builder) => {
-        void builder
-          .whereNotNull('validators.networks')
-          .orWhereNotNull('validators.chain')
-      })
-      .orderBy(['validators.master_key', 'validators.signing_key'])
-      .then(async (res: dbResponse[]) => Promise.all(res.map(formatResponse)))
-  )
+  return query('validators')
+    .leftJoin('ballot', 'validators.signing_key', 'ballot.signing_key')
+    .select([
+      'validators.partial',
+      'validators.unl',
+      'validators.agreement_1hour',
+      'validators.agreement_24hour',
+      'validators.agreement_30day',
+      'validators.current_index',
+      'validators.domain',
+      'validators.ledger_hash',
+      'validators.chain',
+      'validators.networks',
+      'validators.server_version',
+      'validators.master_key',
+      'validators.signing_key',
+      'validators.revoked',
+      'ballot.amendments',
+      'ballot.base_fee',
+      'ballot.reserve_base',
+      'ballot.reserve_inc',
+    ])
+    .where('validators.revoked', '=', 'false')
+    .whereRaw(ON_A_NETWORK)
+    .orderBy(['validators.master_key', 'validators.signing_key'])
+    .then(async (res: dbResponse[]) => Promise.all(res.map(formatResponse)))
 }
 
 /**
@@ -250,6 +239,7 @@ async function findInDatabase(
       'ballot.reserve_inc',
     ])
     .whereRaw(MATCHES_PUBLIC_KEY, [public_key, public_key])
+    .whereRaw(ON_A_NETWORK)
     .limit(1)) as dbResponse[]
 
   if (result.length === 0) {
