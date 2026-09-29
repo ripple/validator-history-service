@@ -10,29 +10,16 @@ export const CACHE_INTERVAL_MILLIS = 60 * 1000
 export const EFFECTIVE_KEY =
   'COALESCE(validators.master_key, validators.signing_key)'
 
-// `validators.master_key` can be null even when a manifest records one, so fall
-// back to the manifest before the signing key when naming a validator.
-const MANIFEST_MASTER_KEY = `(SELECT m.master_key FROM manifests m
-     WHERE m.signing_key = validators.signing_key LIMIT 1)`
-
-// A validator's master key, taken from `validators` when set and from the
-// manifest otherwise. Null when the validator genuinely has no master key.
-export const RESOLVED_MASTER_KEY = `COALESCE(validators.master_key, ${MANIFEST_MASTER_KEY})`
-
-// The key a validator is reported under: its master key when known from either
-// source, otherwise its signing key. Never null.
-export const CANONICAL_KEY = `COALESCE(${RESOLVED_MASTER_KEY}, validators.signing_key)`
-
-// Matches a validator by any key that identifies it. The manifest lookup covers
-// validators whose `validators.master_key` is null despite a known manifest,
-// which would otherwise be unreachable by master key.
+// Matches a validator by either of its keys.
+//
+// `validators.master_key` is authoritative: the write path no longer nulls it
+// and `updateValidatorMasterKeys` backfills it from `manifests`, so reads never
+// need to consult `manifests` themselves. Do NOT reintroduce a per-row manifest
+// lookup here - as a correlated subquery in a list endpoint's select list it
+// caused two outages (full scan of ~200k rows per row with a null master_key).
 export const MATCHES_PUBLIC_KEY = `(
   validators.master_key = ?
   OR validators.signing_key = ?
-  OR EXISTS (
-    SELECT 1 FROM manifests m
-     WHERE m.signing_key = validators.signing_key AND m.master_key = ?
-  )
 )`
 
 /**

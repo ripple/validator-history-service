@@ -2,6 +2,7 @@ import { Request, Response } from 'express'
 
 import { CACHE_INTERVAL_MILLIS } from '../../src/api/routes/v1/utils'
 import { handleValidator } from '../../src/api/routes/v1/validator'
+import { updateValidatorMasterKeys } from '../../src/connection-manager/manifests'
 import { destroy, query, setupTables } from '../../src/shared/database'
 
 // Validator whose `validators` row carries its master key.
@@ -128,6 +129,10 @@ describe('tests for validator endpoint key resolution', () => {
     await query('validators').insert(validators)
     await query('ballot').insert(ballots)
     await query('manifests').insert(manifests)
+    // The API reads validators.master_key directly; resolving it from
+    // manifests is the connection-manager's job. Drive that here rather
+    // than expecting the read path to fall back to a manifest lookup.
+    await updateValidatorMasterKeys()
   })
 
   afterAll(async () => {
@@ -137,7 +142,7 @@ describe('tests for validator endpoint key resolution', () => {
     await destroy()
   })
 
-  it('reports the master key recorded in manifests', async () => {
+  it('reports the master key backfilled from manifests', async () => {
     const { status, body } = await getValidator(UNLINKED_SIGNING_KEY)
 
     expect(status).toBe(200)

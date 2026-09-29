@@ -39,6 +39,33 @@ async function getFirstUNL(networkName: string): Promise<string> {
 }
 
 /**
+ * Points a validator row at the master key from a freshly ingested manifest.
+ *
+ * `updateValidatorMasterKeys` does this in bulk, but only once per job cycle.
+ * Manifests also arrive continuously over the validation stream, so without
+ * this a validator stays unreachable by master key until the next cycle. This
+ * is a single indexed row update, unlike the bulk backfill.
+ *
+ * @param manifest - The manifest that was just saved.
+ * @returns A promise that resolves once the validator row is linked.
+ */
+async function linkValidatorMasterKey(
+  manifest: DatabaseManifest,
+): Promise<void> {
+  const { master_key, signing_key } = manifest
+  if (!master_key || !signing_key) {
+    return
+  }
+  await query('validators')
+    .where('signing_key', signing_key)
+    // IS DISTINCT FROM, not <>: a plain comparison is NULL (never true) for the
+    // null master_key rows this exists to fix.
+    .whereRaw('master_key IS DISTINCT FROM ?', [master_key])
+    .update({ master_key })
+    .catch((err) => log.error('Error linking validator master key', err))
+}
+
+/**
  * Performs Domain verification and saves the Manifest.
  *
  * @param manifest - Manifest to be handled. Can be a Manifest, StreamManifest or hex string.
@@ -66,6 +93,7 @@ export async function handleManifest(
       ...normalized,
     }
     await saveManifest(dBManifest)
+    await linkValidatorMasterKey(dBManifest)
     return
   }
   if (verification.verified_manifest_signature && verification.manifest) {
@@ -74,6 +102,7 @@ export async function handleManifest(
       ...verification.manifest,
     }
     await saveManifest(dBManifest)
+    await linkValidatorMasterKey(dBManifest)
   }
 }
 
@@ -213,11 +242,22 @@ export async function updateUnls(): Promise<void> {
  *
  * @returns A promise that resolves to void once all master keys are updated.
  */
-async function updateValidatorMasterKeys(): Promise<void> {
+export async function updateValidatorMasterKeys(): Promise<void> {
   log.info('Updating validator master keys...')
   try {
+    // DISTINCT ON keeps this deterministic if a signing key ever appears under
+    // more than one master key: the highest manifest seq wins. IS DISTINCT FROM
+    // limits the write to rows that actually change.
     await db().raw(
-      'UPDATE validators SET master_key = manifests.master_key FROM manifests WHERE validators.signing_key = manifests.signing_key',
+      `UPDATE validators SET master_key = m.master_key
+         FROM (
+           SELECT DISTINCT ON (signing_key) signing_key, master_key
+             FROM manifests
+            WHERE signing_key IS NOT NULL AND master_key IS NOT NULL
+            ORDER BY signing_key, seq DESC
+         ) m
+        WHERE validators.signing_key = m.signing_key
+          AND validators.master_key IS DISTINCT FROM m.master_key`,
     )
   } catch (err) {
     log.error(`Error updating validator master keys`, err)
