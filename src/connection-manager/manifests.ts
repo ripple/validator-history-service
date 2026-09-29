@@ -295,7 +295,14 @@ export async function purgeOldValidators(): Promise<void> {
   log.info('Deleting old validators')
   try {
     await query('validators')
-      .where('last_ledger_time', '<', thirtyDaysAgo)
+      .where((builder) => {
+        void builder
+          // `last_ledger_time < x` is NULL, never true, for rows that have no
+          // last_ledger_time - so without the explicit null branch those rows
+          // can never be deleted and the table grows without bound.
+          .where('last_ledger_time', '<', thirtyDaysAgo)
+          .orWhereNull('last_ledger_time')
+      })
       .whereNull('unl')
       .del()
   } catch (err) {

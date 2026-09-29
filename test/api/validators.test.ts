@@ -1,7 +1,7 @@
 import { Request, Response } from 'express'
 
 import { handleValidators } from '../../src/api/routes/v1/validator'
-import { destroy, query, setupTables } from '../../src/shared/database'
+import { db, destroy, query, setupTables } from '../../src/shared/database'
 
 import expectedValidatorsResult from './fixtures/expected_validators_result.json'
 import initialBallotSet from './fixtures/initial_ballot_table.json'
@@ -9,8 +9,11 @@ import initialValidatorsSet from './fixtures/initial_validators_db.json'
 
 describe('tests for validators endpoint', () => {
   beforeAll(async () => {
-    await query('validators').delete('*')
-    await query('ballot').delete('*')
+    // This suite may run before any suite that creates the tables.
+    if (await db().schema.hasTable('validators')) {
+      await query('validators').delete('*')
+      await query('ballot').delete('*')
+    }
     await setupTables()
   })
 

@@ -252,6 +252,37 @@ describe('manifest ingest', () => {
     expect(validators).toHaveLength(0)
   })
 
+  test('purgeOldValidators - purges validator with no last_ledger_time', async () => {
+    // `last_ledger_time < cutoff` is NULL (never true) for these rows, so
+    // without an explicit null branch they can never be deleted.
+    await query('validators').insert({
+      signing_key: 'n9NoLedgerTime11111111111111111111111111111111111111111',
+      master_key: 'nHNoLedgerTime11111111111111111111111111111111111111111',
+      last_ledger_time: null,
+    })
+
+    await purgeOldValidators()
+
+    const validators = (await query('validators').select('*')) as unknown[]
+    expect(validators).toHaveLength(0)
+  })
+
+  test('purgeOldValidators - keeps UNL validator with no last_ledger_time', async () => {
+    // Guards the OR grouping: an ungrouped `or last_ledger_time is null` would
+    // escape the `unl is null` filter and delete UNL validators.
+    await query('validators').insert({
+      signing_key: 'n9UnlNoLedgerTime111111111111111111111111111111111111111',
+      master_key: 'nHUnlNoLedgerTime111111111111111111111111111111111111111',
+      last_ledger_time: null,
+      unl: 'vl.ripple.com',
+    })
+
+    await purgeOldValidators()
+
+    const validators = (await query('validators').select('*')) as unknown[]
+    expect(validators).toHaveLength(1)
+  })
+
   test('purgeOldValidators - keeps UNL validator even if older than 30 days', async () => {
     const thirtyOneDaysAgo = new Date()
     thirtyOneDaysAgo.setDate(thirtyOneDaysAgo.getDate() - 31)
