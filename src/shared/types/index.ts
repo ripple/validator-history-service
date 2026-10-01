@@ -92,7 +92,9 @@ interface ValidationRaw {
   full: boolean
   ledger_hash: string
   ledger_index: string
-  master_key: string
+  // rippled omits this when the connected node does not know the validator's
+  // manifest, so it is genuinely optional on the wire.
+  master_key?: string
   signature: string
   signing_time: number
   type: string
