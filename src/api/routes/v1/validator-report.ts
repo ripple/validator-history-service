@@ -4,7 +4,7 @@ import { db, query } from '../../../shared/database'
 import { AgreementScore } from '../../../shared/types'
 import logger from '../../../shared/utils/logger'
 
-import { CANONICAL_KEY, EFFECTIVE_KEY, MATCHES_PUBLIC_KEY } from './utils'
+import { EFFECTIVE_KEY, MATCHES_PUBLIC_KEY } from './utils'
 
 const log = logger({ name: 'api-validator-report' })
 
@@ -69,7 +69,7 @@ function formatResponse(response: DatabaseResponse): ScoreResponse {
 async function getReports(public_key: string): Promise<ScoreResponse[]> {
   return query('daily_agreement')
     .select([
-      db().raw(`${CANONICAL_KEY} as master_key`),
+      db().raw(`${EFFECTIVE_KEY} as master_key`),
       'daily_agreement.day as date',
       'validators.chain',
       'daily_agreement.agreement',
@@ -77,7 +77,7 @@ async function getReports(public_key: string): Promise<ScoreResponse[]> {
     .innerJoin('validators', (join) => {
       join.on(db().raw(`daily_agreement.main_key = ${EFFECTIVE_KEY}`))
     })
-    .whereRaw(MATCHES_PUBLIC_KEY, [public_key, public_key, public_key])
+    .whereRaw(MATCHES_PUBLIC_KEY, [public_key, public_key])
     .andWhere('validators.revoked', '=', 'false')
     .then((resp: DatabaseResponse[]) => resp.map(formatResponse))
 }

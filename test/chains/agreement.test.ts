@@ -5,7 +5,11 @@ import {
   query,
   setupTables,
 } from '../../src/shared/database'
-import { DailyAgreement, HourlyAgreement } from '../../src/shared/types'
+import {
+  DailyAgreement,
+  HourlyAgreement,
+  ValidationRaw,
+} from '../../src/shared/types'
 
 import validations from './fixtures/all-validations.json'
 
@@ -22,12 +26,14 @@ describe('Agreement', () => {
     await query('hourly_agreement').delete('*')
     await query('daily_agreement').delete('*')
     await query('manifests').delete('*')
+    await query('validators').delete('*')
   })
 
   afterEach(async () => {
     await query('hourly_agreement').delete('*')
     await query('daily_agreement').delete('*')
     await query('manifests').delete('*')
+    await query('validators').delete('*')
   })
 
   test('Correctly computes hourly + daily agreement', async () => {
@@ -83,5 +89,56 @@ describe('Agreement', () => {
   test('Returns null if server version last 16 bits are not 0', () => {
     const incorrectVersionLast16B = decodeServerVersion('1745990418748670208')
     expect(incorrectVersionLast16B).toBe(null)
+  })
+
+  test('a validation without master_key does not null the stored one', async () => {
+    const SIGNING = 'VALIDATOR1'
+    const MASTER = 'VALIDATOR1MASTER'
+    // As updateValidatorMasterKeys / handleManifest would have left it.
+    await query('validators').insert({
+      signing_key: SIGNING,
+      master_key: MASTER,
+      revoked: false,
+    })
+
+    // rippled omits master_key when the connected node does not know the
+    // validator's manifest. The key must be PRESENT and undefined, not absent:
+    // that is what knex turns into SQL DEFAULT (null) via onConflict().merge(),
+    // which is the clobber this guards against.
+    const withoutMasterKey: ValidationRaw = {
+      ...(validations[0] as ValidationRaw),
+      master_key: undefined,
+      ledger_hash: 'LEDGER_NO_MASTER_KEY',
+    }
+
+    await agreement.handleValidation(withoutMasterKey)
+
+    const rows = (await query('validators')
+      .select('master_key')
+      .where({ signing_key: SIGNING })) as Array<{ master_key: string | null }>
+
+    expect(rows).toHaveLength(1)
+    expect(rows[0].master_key).toBe(MASTER)
+  })
+
+  test('a validation carrying master_key still sets it', async () => {
+    const SIGNING = 'VALIDATOR1'
+    const MASTER = 'VALIDATOR1MASTER'
+    await query('validators').insert({
+      signing_key: SIGNING,
+      master_key: null,
+      revoked: false,
+    })
+
+    await agreement.handleValidation({
+      ...(validations[0] as ValidationRaw),
+      ledger_hash: 'LEDGER_WITH_MASTER_KEY',
+    })
+
+    const rows = (await query('validators')
+      .select('master_key')
+      .where({ signing_key: SIGNING })) as Array<{ master_key: string | null }>
+
+    expect(rows[0].master_key).toBe(MASTER)
   })
 })

@@ -221,12 +221,21 @@ class Agreement {
       hashes.set(validation.ledger_hash, Date.now())
       this.validationsByPublicKey.set(signing_key, hashes)
       const validator: Validator = {
-        master_key: validation.master_key,
         signing_key,
         ledger_hash: validation.ledger_hash,
         current_index: Number(validation.ledger_index),
         partial: !validation.full,
         last_ledger_time: new Date(),
+      }
+
+      // Only set master_key when the validation actually carries one. rippled
+      // omits it when the connected node does not know the validator's
+      // manifest, and `saveValidator` merges every key present on this object,
+      // so a `master_key: undefined` is written as SQL DEFAULT (null) and wipes
+      // what `updateValidatorMasterKeys` backfilled. Omitting the key leaves
+      // the stored value untouched.
+      if (validation.master_key) {
+        validator.master_key = validation.master_key
       }
 
       let serverVersion = null
