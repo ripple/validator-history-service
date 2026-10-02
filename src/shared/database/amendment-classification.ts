@@ -16,13 +16,10 @@ const log = logger({ name: 'amendment-classification' })
 // the "not registered means not votable" rule below would wrongly flag a brand
 // new, actively votable amendment as obsolete. Remove an entry once rippled
 // registers the amendment upstream.
-const manualOverrides = new Map<
-  string,
-  { retired: boolean; obsolete: boolean }
->(
+const manualOverrides = new Map<string, AmendmentInfo>(
   (amendmentInfoData as AmendmentInfo[]).map((amendment) => [
     amendment.id,
-    { retired: amendment.retired, obsolete: amendment.obsolete },
+    amendment,
   ]),
 )
 
@@ -35,7 +32,25 @@ const manualOverrides = new Map<
 export function manualClassification(
   id: string,
 ): { retired: boolean; obsolete: boolean } | null {
-  return manualOverrides.get(id) ?? null
+  const override = manualOverrides.get(id)
+  if (override === undefined) {
+    return null
+  }
+  return { retired: override.retired, obsolete: override.obsolete }
+}
+
+/**
+ * Look up the manually patched `rippled_version` for an amendment.
+ *
+ * The amendment may not be listed by the upstream version source at all - that
+ * is the same reason it needs a classification override - so the patched value
+ * has to win over whatever that source reports.
+ *
+ * @param id - The amendment id.
+ * @returns The patched version, or undefined when not overridden.
+ */
+export function manualRippledVersion(id: string): string | undefined {
+  return manualOverrides.get(id)?.rippled_version
 }
 
 // The classification of an amendment as "retired" or "obsolete" is only

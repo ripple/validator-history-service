@@ -14,6 +14,7 @@ import {
   ParsedFeaturesMacro,
   fetchAmendmentClassification,
   manualClassification,
+  manualRippledVersion,
 } from './amendment-classification'
 import { query } from './utils'
 
@@ -401,9 +402,18 @@ export async function fetchAmendmentInfo(): Promise<void> {
     const amendment: AmendmentInfo = {
       id,
       name: value.name,
-      rippled_version: rippledVersions.get(value.name),
       retired: value.retired,
       obsolete: value.obsolete,
+    }
+    // The patch wins: an amendment needing a classification override is
+    // typically one the upstream version source does not list either.
+    const rippledVersion =
+      manualRippledVersion(id) ?? rippledVersions.get(value.name)
+    // Assign only when known. saveAmendmentInfo merges every key present on
+    // this object, so a `rippled_version: undefined` would be written as SQL
+    // DEFAULT and null out a version already stored.
+    if (rippledVersion !== undefined) {
+      amendment.rippled_version = rippledVersion
     }
     await saveAmendmentInfo(amendment)
   }
