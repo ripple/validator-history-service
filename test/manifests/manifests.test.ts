@@ -74,6 +74,36 @@ describe('manifest ingest', () => {
     })
   })
 
+  test('handleManifest links the validator master key immediately', async () => {
+    const MASTER = 'nHDaeKJcfRzzmx3gGKnrFTQazYi95tdGrdoiCYLinoU9EkJsp4Ho'
+    const SIGNING = 'n9KhXam7XB436XHhzo3aTzEW5NxkKwVDkuy9DwdDC1ja8j8mv3ot'
+    // A validator seen on the stream before its manifest arrived.
+    await query('validators').insert({
+      master_key: null,
+      signing_key: SIGNING,
+      revoked: false,
+      chain: 'main',
+      networks: 'main',
+    })
+
+    await handleManifest({
+      master_key: MASTER,
+      master_signature:
+        '7CA31C480E2ED7DBD1C2A0CA950545C73C7EB9838D5A5C5D16D61DFDB47EBC23DAF2BD25B9AA4FE5B8E39D30C575501BC7EE4042E068D935D6D97391B3B46706',
+      seq: 1,
+      signature:
+        '30440220711EC38538E10E01198086D85D4728E81993ADD0746E6D3CEF2E12DC3C3A3A92022046F698FD1B1B3222498049D6006E95EC1422C4E0CB2BFD0D210A4709BAF17A08',
+      signing_key: SIGNING,
+    })
+
+    const rows = (await query('validators')
+      .select('master_key')
+      .where({ signing_key: SIGNING })) as Array<{ master_key: string | null }>
+
+    // Without waiting for the hourly backfill.
+    expect(rows[0].master_key).toBe(MASTER)
+  })
+
   test('updateUnlManifests', async () => {
     networks.forEach((network) => {
       nock(`http://${network.unls[0]}`).get('/').reply(200, unl1)
@@ -220,6 +250,37 @@ describe('manifest ingest', () => {
       signing_key: string
     }>
     expect(validators).toHaveLength(0)
+  })
+
+  test('purgeOldValidators - purges validator with no last_ledger_time', async () => {
+    // `last_ledger_time < cutoff` is NULL (never true) for these rows, so
+    // without an explicit null branch they can never be deleted.
+    await query('validators').insert({
+      signing_key: 'n9NoLedgerTime11111111111111111111111111111111111111111',
+      master_key: 'nHNoLedgerTime11111111111111111111111111111111111111111',
+      last_ledger_time: null,
+    })
+
+    await purgeOldValidators()
+
+    const validators = (await query('validators').select('*')) as unknown[]
+    expect(validators).toHaveLength(0)
+  })
+
+  test('purgeOldValidators - keeps UNL validator with no last_ledger_time', async () => {
+    // Guards the OR grouping: an ungrouped `or last_ledger_time is null` would
+    // escape the `unl is null` filter and delete UNL validators.
+    await query('validators').insert({
+      signing_key: 'n9UnlNoLedgerTime111111111111111111111111111111111111111',
+      master_key: 'nHUnlNoLedgerTime111111111111111111111111111111111111111',
+      last_ledger_time: null,
+      unl: 'vl.ripple.com',
+    })
+
+    await purgeOldValidators()
+
+    const validators = (await query('validators').select('*')) as unknown[]
+    expect(validators).toHaveLength(1)
   })
 
   test('purgeOldValidators - keeps UNL validator even if older than 30 days', async () => {
