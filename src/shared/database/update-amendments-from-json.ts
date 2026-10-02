@@ -47,10 +47,12 @@ async function saveAmendmentsStatus(
  */
 async function addAmendmentsInfoFromJSON(): Promise<void> {
   log.info('Adding Amendments Information from JSON File...')
-  const data = amendmentInfoData
-  data.forEach(async (amendmentInfo: AmendmentInfo) => {
-    await saveAmendmentInfo(amendmentInfo)
-  })
+  const data = amendmentInfoData as AmendmentInfo[]
+  await Promise.all(
+    data.map(async (amendmentInfo: AmendmentInfo) =>
+      saveAmendmentInfo(amendmentInfo),
+    ),
+  )
   log.info('Finished adding Amendments Information from JSON File.')
 }
 
@@ -62,26 +64,28 @@ async function addAmendmentsInfoFromJSON(): Promise<void> {
 async function addAmendmentsStatusFromJSON(): Promise<void> {
   log.info('Adding Amendments Status Data from JSON File...')
   const data = amendmentStatusData as AmendmentStatusJson[]
-  data.forEach((networkData: AmendmentStatusJson) => {
-    networkData.amendments.forEach(async (amendment) => {
-      const statusData: AmendmentStatus = {
-        amendment_id: amendment.id,
-        networks: networkData.networks,
-        ledger_index: amendment.ledger_index,
-        tx_hash: amendment.tx_hash,
-        date: amendment.date
-          ? new Date(rippleTimeToUnixTime(amendment.date))
-          : undefined,
-        eta: amendment.eta
-          ? new Date(
-              rippleTimeToUnixTime(amendment.eta) +
-                FOURTEEN_DAYS_IN_MILLISECONDS,
-            )
-          : undefined,
-      }
-      await saveAmendmentsStatus(statusData)
-    })
-  })
+  await Promise.all(
+    data.flatMap((networkData: AmendmentStatusJson) =>
+      networkData.amendments.map(async (amendment) => {
+        const statusData: AmendmentStatus = {
+          amendment_id: amendment.id,
+          networks: networkData.networks,
+          ledger_index: amendment.ledger_index,
+          tx_hash: amendment.tx_hash,
+          date: amendment.date
+            ? new Date(rippleTimeToUnixTime(amendment.date))
+            : undefined,
+          eta: amendment.eta
+            ? new Date(
+                rippleTimeToUnixTime(amendment.eta) +
+                  FOURTEEN_DAYS_IN_MILLISECONDS,
+              )
+            : undefined,
+        }
+        return saveAmendmentsStatus(statusData)
+      }),
+    ),
+  )
   log.info('Finished adding Amendments Status Data from JSON File.')
 }
 

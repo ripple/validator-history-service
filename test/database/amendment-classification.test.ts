@@ -1,4 +1,10 @@
-import { parseFeaturesMacro } from '../../src/shared/database/amendment-classification'
+import amendmentInfoData from '../../src/shared/data/amendments_info.json'
+import {
+  manualClassification,
+  manualRippledVersion,
+  parseFeaturesMacro,
+} from '../../src/shared/database/amendment-classification'
+import { AmendmentInfo } from '../../src/shared/types'
 
 describe('parseFeaturesMacro', () => {
   test('classifies retired features and fixes (with fix prefix)', () => {
@@ -76,5 +82,61 @@ XRPL_RETIRE_FIX(1201)
     // Amendments never mentioned in the file are absent from `all`, so callers
     // can treat them as obsolete/removed.
     expect(all.has('SomethingRemoved')).toBe(false)
+  })
+})
+
+describe('manualClassification', () => {
+  test('returns the override for an amendment listed in amendments_info.json', () => {
+    for (const entry of amendmentInfoData as AmendmentInfo[]) {
+      expect(manualClassification(entry.id)).toEqual({
+        retired: entry.retired,
+        obsolete: entry.obsolete,
+      })
+    }
+  })
+
+  test('returns null for an amendment that is not overridden', () => {
+    expect(manualClassification('NOT_AN_OVERRIDDEN_AMENDMENT_ID')).toBeNull()
+  })
+
+  test('fixBatchV1_2 is overridden as votable', () => {
+    // rippled 3.4.1 ships fixBatchV1_2 but is not tagged on GitHub and the
+    // amendment has not landed in develop, so features.macro has no record of
+    // it on either tracked ref and it would otherwise be flagged obsolete.
+    const id =
+      '14A2B45E48A4A124D1BBA657AC7B0DC3D5EA8C256C89E8F0D8142D32960A7944'
+    const entry = (amendmentInfoData as AmendmentInfo[]).find(
+      (amendment) => amendment.id === id,
+    )
+
+    expect(entry?.name).toBe('fixBatchV1_2')
+    expect(manualClassification(id)).toEqual({
+      retired: false,
+      obsolete: false,
+    })
+  })
+})
+
+describe('manualRippledVersion', () => {
+  it('returns the patched version for every overridden amendment', () => {
+    for (const entry of amendmentInfoData as AmendmentInfo[]) {
+      expect(manualRippledVersion(entry.id)).toBe(entry.rippled_version)
+    }
+  })
+
+  it('returns undefined for an amendment that is not patched', () => {
+    expect(
+      manualRippledVersion('NOT_AN_OVERRIDDEN_AMENDMENT_ID'),
+    ).toBeUndefined()
+  })
+
+  it('patches fixBatchV1_2 to the version that ships it', () => {
+    // rippled 3.4.1 ships it, but it is absent from features.macro on both the
+    // latest release and develop, so the upstream version source may not list
+    // it either. The patch has to win.
+    const id =
+      '14A2B45E48A4A124D1BBA657AC7B0DC3D5EA8C256C89E8F0D8142D32960A7944'
+
+    expect(manualRippledVersion(id)).toBe('3.4.1')
   })
 })
