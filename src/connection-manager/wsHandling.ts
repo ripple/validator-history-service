@@ -104,9 +104,16 @@ export async function handleWsMessageSubscribeTypes(
     if (validationNetwork) {
       validationData.ledger_fee = network_fee.get(validationNetwork)
     }
-    void agreement.handleValidation(validationData)
+    // Fire-and-forget: without a catch, any rejection in here (notably a
+    // KnexTimeoutError from a saturated pool) is an unhandled rejection and
+    // exits the process.
+    agreement
+      .handleValidation(validationData)
+      .catch((err) => log.error('Error handling validation', err))
   } else if (data.type === 'manifestReceived') {
-    void handleManifest(data as StreamManifest)
+    handleManifest(data as StreamManifest).catch((err) =>
+      log.error('Error handling manifest', err),
+    )
   } else if (data.type.includes('ledger')) {
     const current_ledger = data as StreamLedger
     ledger_hashes.push(current_ledger.ledger_hash)
@@ -159,7 +166,9 @@ function checkAndHandleEnableAmendmentLedger(
   }
 
   enableAmendmentLedgerIndexMap.set(network, ledgerIndex)
-  void processEnableAmendmentTransaction(url, network, ledgerIndex)
+  processEnableAmendmentTransaction(url, network, ledgerIndex).catch((err) =>
+    log.error('Error processing EnableAmendment transaction', err),
+  )
 }
 
 /**
@@ -187,7 +196,9 @@ async function processEnableAmendmentTransaction(
       api_version: RIPPLED_API_V1,
     })
 
-    void handleWsMessageLedgerEnableAmendments(ledgerResponse, network)
+    handleWsMessageLedgerEnableAmendments(ledgerResponse, network).catch(
+      (err) => log.error('Error handling ledger EnableAmendments', err),
+    )
     await client.disconnect()
   } catch (err) {
     log.error(
