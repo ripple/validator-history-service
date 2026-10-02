@@ -160,7 +160,9 @@ class Agreement {
    */
   public start(): void {
     setInterval(() => {
-      void this.calculateAgreement()
+      this.calculateAgreement().catch((err) =>
+        log.error('Error calculating agreement', err),
+      )
     }, AGREEMENT_INTERVAL)
     setInterval(() => {
       this.purge()

@@ -9,6 +9,13 @@ type NodeEnv = 'development' | 'production' | 'test'
 const nodeEnv = (getEnvironmentVariable(EnvironmentVariable.node_env) ??
   'development') as NodeEnv
 
+// Knex's own pool, which is what saturates under load - not the Postgres
+// connection ceiling, which has ample headroom. The knex default of max 10 is
+// too small for validation throughput: every validation runs two writes via
+// saveValidator, so the pool fills, acquires queue up, and then time out.
+const DB_POOL_MIN = 2
+const DB_POOL_MAX = 20
+
 const db = {
   client: getEnvironmentVariable(EnvironmentVariable.db) ?? 'pg',
   connection: {
@@ -17,10 +24,13 @@ const db = {
     database: getRequiredEnvironmentVariable(EnvironmentVariable.database),
     password: getEnvironmentVariable(EnvironmentVariable.password),
   },
-  // Increase waiting connection's timeout to 2 minutes since we are doing many parallel database connections - https://knexjs.org/guide/#acquireconnectiontimeout
+  pool: { min: DB_POOL_MIN, max: DB_POOL_MAX },
+  // Fail fast rather than queueing. At the previous 2 minute timeout a backlog
+  // could grow enormous before anything surfaced, which made a transient spike
+  // look like a hard outage - https://knexjs.org/guide/#acquireconnectiontimeout
   acquireConnectionTimeout: parseInt(
     getEnvironmentVariable(EnvironmentVariable.acquireConnectionTimeout) ??
-      '120000',
+      '30000',
     10,
   ),
 }
