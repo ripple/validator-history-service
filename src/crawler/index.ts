@@ -3,10 +3,13 @@ import 'dotenv/config'
 import moment from 'moment'
 
 import { setupTables, getNetworks } from '../shared/database'
+import keepAliveOnUnhandledRejection from '../shared/utils/keep-alive'
 import logger from '../shared/utils/logger'
 
 import Crawler from './crawl'
 import locate from './locate'
+
+keepAliveOnUnhandledRejection('crawler')
 
 const log = logger({ name: 'crawler-start' })
 const LOCATE_INTERVAL = 24 * 60 * 60 * 1000

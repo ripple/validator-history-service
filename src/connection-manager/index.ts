@@ -3,10 +3,13 @@ import 'dotenv/config'
 
 import Crawler from '../crawler/crawl'
 import { setupTables, getNetworks } from '../shared/database'
+import keepAliveOnUnhandledRejection from '../shared/utils/keep-alive'
 
 import agreement from './agreement'
 import startConnections from './connections'
 import { doManifestJobs } from './manifests'
+
+keepAliveOnUnhandledRejection('connection-manager')
 
 async function start(): Promise<void> {
   await setupTables()
