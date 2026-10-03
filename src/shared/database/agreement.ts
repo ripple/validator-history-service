@@ -19,7 +19,10 @@ const log = logger({ name: 'database-agreement' })
 export async function saveHourlyAgreement(
   agreement: HourlyAgreement,
 ): Promise<void> {
-  query('hourly_agreement')
+  // Awaited on purpose. Callers roll the 24h and 30d scores up from this
+  // table immediately afterwards; a floating insert races that read and a
+  // rejection used to escape as an unhandled rejection.
+  await query('hourly_agreement')
     .insert(agreement)
     .onConflict(['main_key', 'start'])
     .merge()

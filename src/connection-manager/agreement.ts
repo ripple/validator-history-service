@@ -174,37 +174,31 @@ class Agreement {
    */
   public async calculateAgreement(): Promise<void> {
     log.info('Calculating agreement scores')
-    const promises = []
+    try {
+      const promises = []
 
-    const agreementChains = chains.calculateChainsFromLedgers()
+      const agreementChains = chains.calculateChainsFromLedgers()
 
-    for (const chain of agreementChains) {
-      const ledger_hashes = chain.ledgers
-
-      const networkName = await getNetworkNameFromChainId(chain)
-
-      log.info(
-        `Agreement: ${chain.id}:${networkName}:${Array.from(
-          chain.validators,
-        ).join(',')}`,
-      )
-
-      for (const signing_key of chain.validators) {
-        promises.push(
-          this.calculateValidatorAgreement(
-            signing_key,
-            ledger_hashes,
-            chain.incomplete,
-          ),
-        )
+      for (const chain of agreementChains) {
+        promises.push(...(await this.queueChainAgreement(chain)))
       }
+      await Promise.all(promises)
+
+      await purgeHourlyAgreementScores()
+    } finally {
+      // The chain ledger set and reported_at live only in this process.
+      // validationsByPublicKey is trimmed to two hours on its own timer.
+      // If a score write fails and this reset is skipped, later hours are
+      // scored as two hours over the age of the unpurged set, for every
+      // validator on the chain. #516 keeps the process up across that
+      // failure, so the reset has to happen here.
+      try {
+        await chains.purgeChains()
+      } catch (err) {
+        log.error('Error purging chains after agreement', err)
+      }
+      this.reported_at = new Date()
     }
-    await Promise.all(promises)
-
-    await purgeHourlyAgreementScores()
-    await chains.purgeChains()
-
-    this.reported_at = new Date()
   }
 
   /**
@@ -268,6 +262,43 @@ class Agreement {
       chains.updateLedgers(validation)
       await saveValidator(validator)
     }
+  }
+
+  /**
+   * Queues one agreement calculation per validator on a chain.
+   *
+   * A single rejection must not fail the batch. Promise.all used to do that,
+   * and the window reset after it never ran.
+   *
+   * @param chain - Chain whose validators are scored against its ledger set.
+   * @returns Promises that resolve even when a validator's score write fails.
+   */
+  private async queueChainAgreement(
+    chain: Chain,
+  ): Promise<Array<Promise<void>>> {
+    const ledger_hashes = chain.ledgers
+    const networkName = await getNetworkNameFromChainId(chain)
+    const promises: Array<Promise<void>> = []
+
+    log.info(
+      `Agreement: ${chain.id}:${networkName}:${Array.from(
+        chain.validators,
+      ).join(',')}`,
+    )
+
+    for (const signing_key of chain.validators) {
+      promises.push(
+        this.calculateValidatorAgreement(
+          signing_key,
+          ledger_hashes,
+          chain.incomplete,
+        ).catch((err) => {
+          log.error(`Error calculating agreement for ${signing_key}`, err)
+        }),
+      )
+    }
+
+    return promises
   }
 
   /**
