@@ -20,8 +20,7 @@ export async function saveHourlyAgreement(
   agreement: HourlyAgreement,
 ): Promise<void> {
   // Awaited on purpose. Callers roll the 24h and 30d scores up from this
-  // table immediately afterwards; a floating insert races that read and a
-  // rejection used to escape as an unhandled rejection.
+  // table immediately afterwards, and a floating insert races that read.
   await query('hourly_agreement')
     .insert(agreement)
     .onConflict(['main_key', 'start'])
