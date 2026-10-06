@@ -105,6 +105,10 @@ async function getHourlyAgreementScores(
         (score) => score.agreement,
       ),
     )
+    .catch((err) => {
+      log.error('Error getting hourly agreement scores', err)
+      return []
+    })
 }
 
 /**

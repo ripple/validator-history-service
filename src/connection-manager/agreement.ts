@@ -195,7 +195,12 @@ class Agreement {
             signing_key,
             ledger_hashes,
             chain.incomplete,
-          ),
+          ).catch((err) => {
+            log.error(
+              `Error calculating agreement for validator ${signing_key}`,
+              err,
+            )
+          }),
         )
       }
     }
