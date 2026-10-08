@@ -13,6 +13,8 @@ import {
   AmendmentClassification,
   ParsedFeaturesMacro,
   fetchAmendmentClassification,
+  manualClassification,
+  manualRippledVersion,
 } from './amendment-classification'
 import { query } from './utils'
 
@@ -189,7 +191,7 @@ async function insertSupportedAmendmentsStatus(
  * @param name - The name of the amendment to add.
  */
 function addAmendmentToCache(id: string, name: string): void {
-  amendmentIDs.set(id, { name, ...classify(name) })
+  amendmentIDs.set(id, { name, ...classify(id, name) })
   votingAmendmentsToTrack.delete(id)
 }
 
@@ -337,10 +339,20 @@ function isNotVotable(
  * (only in develop) and amendments still supported in the release are not
  * mislabeled. `Supported::No` counts as not-votable for the release only.
  *
+ * Amendments listed in `amendments_info.json` bypass this entirely.
+ *
+ * @param id - The amendment id.
  * @param name - The amendment name.
  * @returns The retired and obsolete flags.
  */
-function classify(name: string): { retired: boolean; obsolete: boolean } {
+function classify(
+  id: string,
+  name: string,
+): { retired: boolean; obsolete: boolean } {
+  const override = manualClassification(id)
+  if (override !== null) {
+    return override
+  }
   const retired = classification.release.retired.has(name)
   return {
     retired,
@@ -364,7 +376,7 @@ async function reclassifyExistingAmendments(): Promise<void> {
     Array<{ id: string; name: string }>
   >('id', 'name')
   for (const row of rows) {
-    const { retired, obsolete } = classify(row.name)
+    const { retired, obsolete } = classify(row.id, row.name)
     await query('amendments_info')
       .where('id', row.id)
       .update({ retired, obsolete })
@@ -389,9 +401,18 @@ export async function fetchAmendmentInfo(): Promise<void> {
     const amendment: AmendmentInfo = {
       id,
       name: value.name,
-      rippled_version: rippledVersions.get(value.name),
       retired: value.retired,
       obsolete: value.obsolete,
+    }
+    // The patch wins: an amendment needing a classification override is
+    // typically one the upstream version source does not list either.
+    const rippledVersion =
+      manualRippledVersion(id) ?? rippledVersions.get(value.name)
+    // Assign only when known. saveAmendmentInfo merges every key present on
+    // this object, so a `rippled_version: undefined` would be written as SQL
+    // DEFAULT and null out a version already stored.
+    if (rippledVersion !== undefined) {
+      amendment.rippled_version = rippledVersion
     }
     await saveAmendmentInfo(amendment)
   }

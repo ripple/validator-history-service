@@ -260,9 +260,13 @@ export async function saveValidator(
   // set revoked to false only if revoked doesn't exist
   // (this prevents someone from messing with data by submitting
   // bad validations with an old signing key)
+  // This must not be left uncaught. handleValidation is invoked fire-and-forget,
+  // so a rejection here (a KnexTimeoutError when the pool is saturated) becomes
+  // an unhandled rejection and takes the whole process down.
   await query('validators')
     .where({ signing_key: validator.signing_key, revoked: null })
     .update({ revoked: false })
+    .catch((err) => log.error('Error defaulting validator revoked flag', err))
 }
 
 /**

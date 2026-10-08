@@ -2,6 +2,7 @@ import { Request, Response } from 'express'
 
 import handleDailyScores from '../../src/api/routes/v1/daily-report'
 import { CACHE_INTERVAL_MILLIS } from '../../src/api/routes/v1/utils'
+import { updateValidatorMasterKeys } from '../../src/connection-manager/manifests'
 import { destroy, query, setupTables } from '../../src/shared/database'
 
 // Validator that never published a manifest, so it has no master key.
@@ -86,9 +87,10 @@ const dailyAgreements = [
     day: TODAY,
     agreement: JSON.stringify({ validated: 0, missed: 0, incomplete: false }),
   },
-  // Written under the signing key, because validators.master_key is null.
+  // Written under the master key: once the backfill populates
+  // validators.master_key, that is the key saveDailyAgreement uses.
   {
-    main_key: UNLINKED_SIGNING_KEY,
+    main_key: UNLINKED_MASTER_KEY,
     day: TODAY,
     agreement: JSON.stringify({ validated: 60, missed: 40, incomplete: false }),
   },
@@ -146,6 +148,10 @@ describe('tests for daily report endpoint', () => {
     await query('validators').insert(validators)
     await query('daily_agreement').insert(dailyAgreements)
     await query('manifests').insert(manifests)
+    // The API reads validators.master_key directly; resolving it from
+    // manifests is the connection-manager's job. Drive that here rather
+    // than expecting the read path to fall back to a manifest lookup.
+    await updateValidatorMasterKeys()
   })
 
   afterAll(async () => {
@@ -179,7 +185,7 @@ describe('tests for daily report endpoint', () => {
     expect(new Set(keys).size).toBe(4)
   })
 
-  it('names a validator by its manifest master key', async () => {
+  it('names a validator by its backfilled master key', async () => {
     const { reports } = await getDailyReport()
     const keys = reports.map((report) => report.validation_public_key)
 

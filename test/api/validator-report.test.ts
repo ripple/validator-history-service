@@ -1,6 +1,7 @@
 import { Request, Response } from 'express'
 
 import handleValidatorReport from '../../src/api/routes/v1/validator-report'
+import { updateValidatorMasterKeys } from '../../src/connection-manager/manifests'
 import { destroy, query, setupTables } from '../../src/shared/database'
 
 // Validator that never published a manifest, so it has no master key.
@@ -83,9 +84,10 @@ const dailyAgreements = [
     day: DAY,
     agreement: JSON.stringify({ validated: 50, missed: 50, incomplete: false }),
   },
-  // Written under the signing key, because validators.master_key is null.
+  // Written under the master key: once the backfill populates
+  // validators.master_key, that is the key saveDailyAgreement uses.
   {
-    main_key: UNLINKED_SIGNING_KEY,
+    main_key: UNLINKED_MASTER_KEY,
     day: DAY,
     agreement: JSON.stringify({ validated: 60, missed: 40, incomplete: false }),
   },
@@ -124,6 +126,10 @@ describe('tests for validator reports endpoint', () => {
     await query('validators').insert(validators)
     await query('daily_agreement').insert(dailyAgreements)
     await query('manifests').insert(manifests)
+    // The API reads validators.master_key directly; resolving it from
+    // manifests is the connection-manager's job. Drive that here rather
+    // than expecting the read path to fall back to a manifest lookup.
+    await updateValidatorMasterKeys()
   })
 
   afterAll(async () => {
@@ -163,14 +169,14 @@ describe('tests for validator reports endpoint', () => {
     expect(body.count).toBe(0)
   })
 
-  it('finds a validator by master key when only its manifest records it', async () => {
+  it('finds a validator by master key once the backfill has run', async () => {
     const body = await getReportsFor(UNLINKED_MASTER_KEY)
 
     expect(body.count).toBe(1)
     expect(body.reports[0].score).toBe('0.60000')
   })
 
-  it('reports the manifest master key as the canonical public key', async () => {
+  it('reports the master key for either lookup key', async () => {
     const bySigning = await getReportsFor(UNLINKED_SIGNING_KEY)
     const byMaster = await getReportsFor(UNLINKED_MASTER_KEY)
 

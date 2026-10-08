@@ -1,12 +1,16 @@
 import { Request, Response } from 'express'
 
 import handleNetworks from '../../src/api/routes/v1/networks'
-import { setupTables, destroy, query } from '../../src/shared/database'
+import { db, setupTables, destroy, query } from '../../src/shared/database'
 import networks from '../../src/shared/database/networks'
 
 describe('networks endpoint', () => {
   beforeAll(async () => {
-    await query('networks').delete('*')
+    // Only wipe if the table is already there: this suite may run before any
+    // suite that creates it. setupTables then reseeds the default networks.
+    if (await db().schema.hasTable('networks')) {
+      await query('networks').delete('*')
+    }
     await setupTables()
   })
 

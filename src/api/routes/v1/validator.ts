@@ -1,13 +1,13 @@
 /* eslint-disable max-lines -- Disabled for this file. */
 import { Request, Response } from 'express'
 
-import { db, query } from '../../../shared/database'
+import { query } from '../../../shared/database'
 import logger from '../../../shared/utils/logger'
 
 import {
   CACHE_INTERVAL_MILLIS,
-  RESOLVED_MASTER_KEY,
   MATCHES_PUBLIC_KEY,
+  ON_A_NETWORK,
   formatAgreementScore,
   formatAmendments,
   getChains,
@@ -122,7 +122,7 @@ async function getValidators(): Promise<ValidatorResponse[]> {
       'validators.chain',
       'validators.networks',
       'validators.server_version',
-      db().raw(`${RESOLVED_MASTER_KEY} as master_key`),
+      'validators.master_key',
       'validators.signing_key',
       'validators.revoked',
       'ballot.amendments',
@@ -131,6 +131,7 @@ async function getValidators(): Promise<ValidatorResponse[]> {
       'ballot.reserve_inc',
     ])
     .where('validators.revoked', '=', 'false')
+    .whereRaw(ON_A_NETWORK)
     .orderBy(['validators.master_key', 'validators.signing_key'])
     .then(async (res: dbResponse[]) => Promise.all(res.map(formatResponse)))
 }
@@ -229,7 +230,7 @@ async function findInDatabase(
       'validators.chain',
       'validators.networks',
       'validators.server_version',
-      db().raw(`${RESOLVED_MASTER_KEY} as master_key`),
+      'validators.master_key',
       'validators.signing_key',
       'validators.revoked',
       'ballot.amendments',
@@ -237,7 +238,8 @@ async function findInDatabase(
       'ballot.reserve_base',
       'ballot.reserve_inc',
     ])
-    .whereRaw(MATCHES_PUBLIC_KEY, [public_key, public_key, public_key])
+    .whereRaw(MATCHES_PUBLIC_KEY, [public_key, public_key])
+    .whereRaw(ON_A_NETWORK)
     .limit(1)) as dbResponse[]
 
   if (result.length === 0) {
