@@ -19,9 +19,8 @@ interface CrawlAndPort {
 }
 
 async function updateMaxNetwork(): Promise<void> {
-  const currentNetworks = (await query('networks').select('id')) as Array<{
-    id: string
-  }>
+  const currentNetworks =
+    await query('networks').select<Array<{ id: string }>>('id')
   const currentNetworkNumbers = currentNetworks.reduce(
     (filtered: number[], network: { id: string }) => {
       const { id } = network
