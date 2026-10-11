@@ -60,7 +60,7 @@
     "typescript-eslint": "^8.39.0"
   },
   "dependencies": {
-    "@maxmind/geoip2-node": "^6.3.4",
+    "@maxmind/geoip2-node": "^7.0.0",
     "@types/bunyan": "^1.8.7",
     "axios": "^1.15.2",
     "bunyan": "^1.8.15",
