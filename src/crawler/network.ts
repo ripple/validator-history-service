@@ -1,8 +1,8 @@
-/* eslint-disable @typescript-eslint/no-unsafe-assignment -- TODO: add type for Peer Crawler to remove eslint-disable */
-/* eslint-disable @typescript-eslint/no-unsafe-member-access -- TODO: add type for Peer Crawler to remove eslint-disable */
-/* eslint-disable @typescript-eslint/no-unsafe-call -- TODO: add type for Peer Crawler to remove eslint-disable */
-/* eslint-disable no-unsafe-optional-chaining -- TODO: add type for Peer Crawler to remove eslint-disable */
+/* eslint-disable @typescript-eslint/no-unsafe-member-access -- untyped peer crawl response */
+/* eslint-disable @typescript-eslint/no-unsafe-call -- untyped peer crawl response */
+
 import https from 'https'
+import net from 'net'
 
 import axios, { AxiosInstance } from 'axios'
 
@@ -36,6 +36,92 @@ function getAxiosInstance(): AxiosInstance {
 const TIMEOUT = 6000
 
 /**
+ * Builds the `/crawl` URL for a host, bracketing bare IPv6 literals so the URL
+ * parser doesn't mistake the address colons for a port separator (which threw
+ * ERR_INVALID_URL on v6 peers and aborted the crawl).
+ *
+ * @param host - Hostname or IP address of peer.
+ * @param port - Port to hit the /crawl endpoint on.
+ * @returns A well-formed https URL.
+ */
+function buildCrawlUrl(host: string, port: number): string {
+  const formattedHost = net.isIPv6(host) ? `[${host}]` : host
+  return `https://${formattedHost}:${port}/crawl`
+}
+
+interface CrawlResponseBody {
+  overlay?: { active?: Node[] }
+  server?: Record<string, unknown>
+  unl?: { validator_sites?: Array<{ uri: string }> }
+}
+
+/**
+ * Extracts the UNL host from a crawl response's validator_sites, stripping any
+ * scheme. Returns undefined when the response advertises no validator site.
+ *
+ * @param body - The parsed /crawl response body.
+ * @returns The UNL host, or null.
+ */
+function parseNodeUnl(body: CrawlResponseBody): string | null {
+  const validatorSites = body.unl?.validator_sites ?? []
+  if (validatorSites.length === 0) {
+    return null
+  }
+  return validatorSites[0].uri.replace(/^https?:\/\//u, '')
+}
+
+/**
+ * Parses a /crawl HTTP response body into a Crawl, or undefined if the body is
+ * not a well-formed crawl response.
+ *
+ * @param body - The parsed JSON response body from a peer.
+ * @returns The Crawl, or undefined if the body is malformed.
+ */
+function parseCrawlResponse(body: CrawlResponseBody): Crawl | undefined {
+  const active_nodes = body.overlay?.active
+  const server = body.server
+
+  // A well-formed /crawl response carries a `server` object with a string
+  // `pubkey_node`, and an `overlay.active` array. A peer that omits or
+  // mistypes any of these used to throw a TypeError on destructuring (or
+  // later while iterating active_nodes), which rejected the whole crawl
+  // cycle; treat a malformed body as an empty result instead.
+  if (
+    !Array.isArray(active_nodes) ||
+    server == null ||
+    typeof server.pubkey_node !== 'string'
+  ) {
+    return undefined
+  }
+
+  const {
+    pubkey_node: public_key,
+    server_state,
+    io_latency_ms,
+    load_factor_server,
+    uptime,
+    build_version: version,
+    complete_ledgers,
+  } = server
+
+  const this_node = {
+    public_key,
+    server_state,
+    io_latency_ms,
+    load_factor_server,
+    uptime,
+    version,
+    complete_ledgers,
+  } as Node
+
+  return {
+    this_node,
+    active_nodes,
+    node_unl: parseNodeUnl(body),
+  }
+}
+
+/**
  * Crawl endpoint at host:port/crawl.
  *
  * @param host - Hostname or ip address of peer.
@@ -47,46 +133,8 @@ async function crawlNode(
   port: number,
 ): Promise<Crawl | undefined> {
   return getAxiosInstance()
-    .get(`https://${host}:${port}/crawl`, { timeout: TIMEOUT })
-    .then(async (response) => {
-      const active_nodes = response.data?.overlay?.active
-      const {
-        pubkey_node: public_key,
-        server_state,
-        io_latency_ms,
-        load_factor_server,
-        uptime,
-        build_version: version,
-        complete_ledgers,
-      } = response.data?.server
-
-      if (active_nodes === undefined) {
-        return undefined
-      }
-
-      const this_node: Node = {
-        public_key,
-        server_state,
-        io_latency_ms,
-        load_factor_server,
-        uptime,
-        version,
-        complete_ledgers,
-      }
-
-      const validatorSites = response.data?.unl?.validator_sites ?? []
-
-      const crawl: Crawl = {
-        this_node,
-        active_nodes,
-        node_unl:
-          validatorSites.length > 0
-            ? validatorSites[0].uri.replace(/^https?:\/\//u, '')
-            : undefined,
-      }
-
-      return crawl
-    })
+    .get<CrawlResponseBody>(buildCrawlUrl(host, port), { timeout: TIMEOUT })
+    .then((response) => parseCrawlResponse(response.data))
     .catch((error) => {
       if (error.message.includes('wrong network')) {
         throw error
