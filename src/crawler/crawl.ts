@@ -207,47 +207,44 @@ class Crawler {
     // If we are saving the node outside of peer iterations, we do not want to force missing parameters to null
     const promises: Array<Promise<void>> = [saveNode(this_node, false)]
     for (const node of active_nodes) {
-      promises.push(...this.processPeer(this_node, node, unls))
+      promises.push(this.processPeer(this_node, node, unls))
     }
 
     // allSettled, not all: one peer that rejects (unparseable body, an invalid
-    // URL, a DB error) must not abort the crawl cycle. If it did, the cycle's
-    // summary line never logs and the "no crawl activity" alert flips to NoData
-    // even though crawling is still happening.
+    // URL, a malformed field, a DB error) must not abort the crawl cycle. If it
+    // did, the cycle's summary line never logs and the "no crawl activity"
+    // alert flips to NoData even though crawling is still happening.
     const results = await Promise.allSettled(promises)
     logRejections(results, `${host}:${port}`)
   }
 
   /**
-   * Records one active peer and returns any follow-up work (saving the peer and
-   * recursively crawling it). Returns an empty array when the peer should be
-   * skipped - a malformed public key, a ledger out of range, an already-seen
-   * key, or a peer with no reachable ip/port.
+   * Records one active peer and performs any follow-up work (saving the peer
+   * and recursively crawling it). Resolves without doing anything when the peer
+   * should be skipped - a ledger out of range, an already-seen key, or a peer
+   * with no reachable ip/port.
+   *
+   * This is `async` so that a throw on any peer-controlled field (an invalid
+   * public key, a non-string `complete_ledgers` or `ip`) becomes a rejected
+   * promise that the caller's `allSettled` isolates, rather than propagating
+   * out of the loop and dropping every remaining peer on the endpoint.
    *
    * @param this_node - The node that reported this peer.
    * @param node - The active peer to process.
    * @param unls - List of UNLs on the current network.
-   * @returns Promises for the peer's save and sub-crawl, if any.
+   * @returns A promise that resolves once the peer is handled.
    */
-  private processPeer(
+  private async processPeer(
     this_node: Node,
     node: Node,
     unls: string[],
-  ): Array<Promise<void>> {
-    // A malformed public key (bad base58/base64) throws in normalization.
-    // Skip that one peer rather than aborting the whole endpoint crawl.
-    let normalizedPublicKey: string
-    try {
-      normalizedPublicKey = Crawler.normalizePublicKey(node.public_key)
-    } catch (err) {
-      log.error(`Skipping peer with invalid public key`, err)
-      return []
-    }
+  ): Promise<void> {
+    const normalizedPublicKey = Crawler.normalizePublicKey(node.public_key)
 
     if (
       !Crawler.ledgerInRange(this_node.complete_ledgers, node.complete_ledgers)
     ) {
-      return []
+      return
     }
 
     this.updateConnections(
@@ -257,7 +254,7 @@ class Crawler {
     )
 
     if (this.publicKeysSeen.has(normalizedPublicKey)) {
-      return []
+      return
     }
     this.publicKeysSeen.add(normalizedPublicKey)
 
@@ -273,7 +270,7 @@ class Crawler {
       const ip = getIPv4Address(node.ip)
       promises.push(this.crawlEndpoint(ip, node.port, unls))
     }
-    return promises
+    await Promise.all(promises)
   }
 }
 

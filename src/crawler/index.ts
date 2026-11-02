@@ -27,9 +27,7 @@ async function crawl(): Promise<void> {
       promises.push(crawler.crawl(entry))
     }
     // allSettled, not all: a single network's crawl rejecting must not abort
-    // the cycle, so the summary line below always logs. That line is what the
-    // "no crawl activity" alert watches; losing it reads as a dead crawler
-    // even while other networks crawled fine.
+    // the cycle - the other networks should still be crawled and counted.
     const results = await Promise.allSettled(promises)
     const rejected = results.filter(
       (result): result is PromiseRejectedResult => result.status === 'rejected',
@@ -37,15 +35,29 @@ async function crawl(): Promise<void> {
     for (const result of rejected) {
       log.error(`Error crawling network`, result.reason)
     }
-  } catch (err) {
-    log.error(`Error during crawl cycle`, err)
-  } finally {
+
     const duration = moment.utc().diff(startCrawl) / 1000
     const peers = crawlers.reduce(
       (size, crawler) => crawler.publicKeysSeen.size + size,
       0,
     )
-    log.info(`Crawl took ${duration} seconds, ${peers} peers discovered`)
+
+    // The "no crawl activity" alert counts the "...peers discovered" summary
+    // line, so only emit it when the cycle actually discovered peers. A cycle
+    // that found none - every network rejected, or they resolved but returned
+    // nothing - is itself "no crawl activity", so log it as an error WITHOUT
+    // the summary phrase rather than a green-looking "0 peers discovered".
+    if (peers > 0) {
+      log.info(`Crawl took ${duration} seconds, ${peers} peers discovered`)
+    } else {
+      log.error(
+        `Crawl cycle discovered 0 peers after ${duration}s (${rejected.length}/${results.length} networks errored)`,
+      )
+    }
+  } catch (err) {
+    // getNetworks() or another cycle-level step failed: nothing was crawled.
+    // Deliberately no "peers discovered" phrase here so the alert still fires.
+    log.error(`Crawl cycle failed before crawling`, err)
   }
 }
 

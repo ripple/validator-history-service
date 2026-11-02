@@ -81,11 +81,16 @@ function parseCrawlResponse(body: CrawlResponseBody): Crawl | undefined {
   const active_nodes = body.overlay?.active
   const server = body.server
 
-  // A well-formed /crawl response always carries a `server` object and an
-  // active-peers array. A peer that omits either used to throw a TypeError on
-  // destructuring, which rejected the whole crawl cycle; treat it as an empty
-  // result instead.
-  if (active_nodes === undefined || server == null) {
+  // A well-formed /crawl response carries a `server` object with a string
+  // `pubkey_node`, and an `overlay.active` array. A peer that omits or
+  // mistypes any of these used to throw a TypeError on destructuring (or
+  // later while iterating active_nodes), which rejected the whole crawl
+  // cycle; treat a malformed body as an empty result instead.
+  if (
+    !Array.isArray(active_nodes) ||
+    server == null ||
+    typeof server.pubkey_node !== 'string'
+  ) {
     return undefined
   }
 
