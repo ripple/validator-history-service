@@ -3,7 +3,7 @@ import { encodeNodePublic } from 'ripple-address-codec'
 
 import { query, saveNode } from '../shared/database'
 import { Network } from '../shared/database/networks'
-import { Crawl } from '../shared/types'
+import { Crawl, Node } from '../shared/types'
 import { getIPv4Address } from '../shared/utils'
 import logger from '../shared/utils/logger'
 
@@ -206,49 +206,92 @@ class Crawler {
 
     // If we are saving the node outside of peer iterations, we do not want to force missing parameters to null
     const promises: Array<Promise<void>> = [saveNode(this_node, false)]
-
     for (const node of active_nodes) {
-      const normalizedPublicKey = Crawler.normalizePublicKey(node.public_key)
+      promises.push(...this.processPeer(this_node, node, unls))
+    }
 
-      if (
-        !Crawler.ledgerInRange(
-          this_node.complete_ledgers,
-          node.complete_ledgers,
-        )
-      ) {
-        continue
-      }
+    // allSettled, not all: one peer that rejects (unparseable body, an invalid
+    // URL, a DB error) must not abort the crawl cycle. If it did, the cycle's
+    // summary line never logs and the "no crawl activity" alert flips to NoData
+    // even though crawling is still happening.
+    const results = await Promise.allSettled(promises)
+    logRejections(results, `${host}:${port}`)
+  }
 
-      this.updateConnections(
-        this_node.public_key,
-        normalizedPublicKey,
-        node.type === 'in',
-      )
+  /**
+   * Records one active peer and returns any follow-up work (saving the peer and
+   * recursively crawling it). Returns an empty array when the peer should be
+   * skipped - a malformed public key, a ledger out of range, an already-seen
+   * key, or a peer with no reachable ip/port.
+   *
+   * @param this_node - The node that reported this peer.
+   * @param node - The active peer to process.
+   * @param unls - List of UNLs on the current network.
+   * @returns Promises for the peer's save and sub-crawl, if any.
+   */
+  private processPeer(
+    this_node: Node,
+    node: Node,
+    unls: string[],
+  ): Array<Promise<void>> {
+    // A malformed public key (bad base58/base64) throws in normalization.
+    // Skip that one peer rather than aborting the whole endpoint crawl.
+    let normalizedPublicKey: string
+    try {
+      normalizedPublicKey = Crawler.normalizePublicKey(node.public_key)
+    } catch (err) {
+      log.error(`Skipping peer with invalid public key`, err)
+      return []
+    }
 
-      const dbNode = {
-        ...node,
-        public_key: normalizedPublicKey,
-        start: this.start.format(TIME_FORMAT),
-      }
+    if (
+      !Crawler.ledgerInRange(this_node.complete_ledgers, node.complete_ledgers)
+    ) {
+      return []
+    }
 
-      if (this.publicKeysSeen.has(normalizedPublicKey)) {
-        continue
-      }
+    this.updateConnections(
+      this_node.public_key,
+      normalizedPublicKey,
+      node.type === 'in',
+    )
 
-      this.publicKeysSeen.add(normalizedPublicKey)
+    if (this.publicKeysSeen.has(normalizedPublicKey)) {
+      return []
+    }
+    this.publicKeysSeen.add(normalizedPublicKey)
 
-      // If a peer has the node IP as null, we want to overwrite in the database
-      promises.push(saveNode(dbNode, true))
+    const dbNode = {
+      ...node,
+      public_key: normalizedPublicKey,
+      start: this.start.format(TIME_FORMAT),
+    }
+    // If a peer has the node IP as null, we want to overwrite in the database
+    const promises: Array<Promise<void>> = [saveNode(dbNode, true)]
 
-      if (node.ip === undefined || node.port === undefined) {
-        continue
-      }
-
+    if (node.ip !== undefined && node.port !== undefined) {
       const ip = getIPv4Address(node.ip)
       promises.push(this.crawlEndpoint(ip, node.port, unls))
     }
+    return promises
+  }
+}
 
-    await Promise.all(promises)
+/**
+ * Logs any rejected promises from a settled batch without rethrowing, so a
+ * single failed peer save or sub-crawl can't abort the crawl.
+ *
+ * @param results - The settled results from the peer save/crawl batch.
+ * @param source - The host:port the batch was crawled from, for the log line.
+ */
+function logRejections(
+  results: Array<PromiseSettledResult<void>>,
+  source: string,
+): void {
+  for (const result of results) {
+    if (result.status === 'rejected') {
+      log.error(`Error crawling from ${source}`, result.reason)
+    }
   }
 }
 

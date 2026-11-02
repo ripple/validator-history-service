@@ -18,21 +18,35 @@ const CRAWL_INTERVAL = 2 * 60 * 1000
 async function crawl(): Promise<void> {
   const crawlers: Crawler[] = []
   const startCrawl = moment.utc()
-  const promises = []
-  const networks = await getNetworks()
-  for (const entry of networks) {
-    const crawler = new Crawler()
-    crawlers.push(crawler)
-    promises.push(crawler.crawl(entry))
+  try {
+    const networks = await getNetworks()
+    const promises = []
+    for (const entry of networks) {
+      const crawler = new Crawler()
+      crawlers.push(crawler)
+      promises.push(crawler.crawl(entry))
+    }
+    // allSettled, not all: a single network's crawl rejecting must not abort
+    // the cycle, so the summary line below always logs. That line is what the
+    // "no crawl activity" alert watches; losing it reads as a dead crawler
+    // even while other networks crawled fine.
+    const results = await Promise.allSettled(promises)
+    const rejected = results.filter(
+      (result): result is PromiseRejectedResult => result.status === 'rejected',
+    )
+    for (const result of rejected) {
+      log.error(`Error crawling network`, result.reason)
+    }
+  } catch (err) {
+    log.error(`Error during crawl cycle`, err)
+  } finally {
+    const duration = moment.utc().diff(startCrawl) / 1000
+    const peers = crawlers.reduce(
+      (size, crawler) => crawler.publicKeysSeen.size + size,
+      0,
+    )
+    log.info(`Crawl took ${duration} seconds, ${peers} peers discovered`)
   }
-  await Promise.all(promises)
-
-  const duration = moment.utc().diff(startCrawl) / 1000
-  const peers = crawlers.reduce(
-    (size, crawler) => crawler.publicKeysSeen.size + size,
-    0,
-  )
-  log.info(`Crawl took ${duration} seconds, ${peers} peers discovered`)
 }
 
 async function start(): Promise<void> {
@@ -42,7 +56,13 @@ async function start(): Promise<void> {
 }
 
 async function main(): Promise<void> {
-  await start()
+  try {
+    await start()
+  } catch (err) {
+    // Don't let a failed first crawl stop the periodic crawls from being
+    // scheduled - the service should keep retrying, not go dark.
+    log.error(`Error during crawler startup`, err)
+  }
 
   setInterval(() => {
     void crawl()

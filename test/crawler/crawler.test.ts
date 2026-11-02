@@ -185,4 +185,85 @@ describe('Runs test crawl', () => {
       public_key: 'n9Kt2gdtxsYV6h4SAfHkRFUMU8gB6rDQ3MktiB3MMEDS9s9obu9b',
     })
   })
+
+  test('a peer with a malformed body (no server) does not abort the crawl', async () => {
+    // Entry reports two peers. One of them (1.1.1.13) returns a body with no
+    // `server` object - previously this threw a TypeError while destructuring
+    // and rejected the whole crawl. The entry and the other valid peer must
+    // still be saved.
+    nock(`https://1.1.1.1:51235`)
+      .get('/crawl')
+      .reply(200, network1.peers['1.1.1.1'])
+    nock(`https://1.1.1.13:51235`)
+      .get('/crawl')
+      .reply(200, { overlay: { active: [] } })
+    nock(`https://1.1.1.23:51235`)
+      .get('/crawl')
+      .reply(200, network1.peers['1.1.1.23'])
+
+    await expect(crawl('1.1.1.1')).resolves.toBeUndefined()
+
+    const results: Node[] = await query('crawls').select([
+      'ip',
+      'port',
+      'public_key',
+    ])
+
+    // Entry node saved.
+    expect(results).toContainEqual({
+      ip: null,
+      port: null,
+      public_key: 'n9Mh83gUuY4hBXVD9geWHsyVwz5h32rjauLWQCZJVTEbCb5TYs21',
+    })
+    // The valid peer beyond the malformed one is still reached and saved.
+    expect(results).toContainEqual({
+      ip: '1.1.1.23',
+      port: 51235,
+      public_key: 'n9LgkNWaPfRnxLKAgnSCMHRCyHBZsSdGBdRmyaYEArL3SBoq1EqK',
+    })
+  })
+
+  test('an IPv6 peer is crawled with a bracketed URL and does not abort the crawl', async () => {
+    // The entry reports a peer whose ip is a bare IPv6 literal. Unbracketed,
+    // `https://<v6>:<port>/crawl` is an invalid URL and threw ERR_INVALID_URL,
+    // which aborted the crawl. The crawler must bracket the host, reach the
+    // peer, and save both the entry and the IPv6 peer.
+    const entryWithV6Peer = {
+      server: {
+        complete_ledgers: '10-20',
+        pubkey_node: 'n9Mh83gUuY4hBXVD9geWHsyVwz5h32rjauLWQCZJVTEbCb5TYs21',
+        server_state: 'connected',
+        io_latency_ms: '1',
+        load_factor_server: '1',
+        uptime: '1',
+        version: '1.6.0',
+      },
+      overlay: {
+        active: [
+          {
+            ip: '2a0c:3bc0::106e',
+            port: 51235,
+            public_key: 'n9LgkNWaPfRnxLKAgnSCMHRCyHBZsSdGBdRmyaYEArL3SBoq1EqK',
+            complete_ledgers: '10-20',
+          },
+        ],
+      },
+    }
+
+    nock(`https://1.1.1.1:51235`).get('/crawl').reply(200, entryWithV6Peer)
+    nock(`https://[2a0c:3bc0::106e]:51235`)
+      .get('/crawl')
+      .reply(200, { overlay: { active: [] }, server: entryWithV6Peer.server })
+
+    await expect(crawl('1.1.1.1')).resolves.toBeUndefined()
+
+    const results: Node[] = await query('crawls').select(['public_key'])
+    const keys = results.map((node) => node.public_key)
+    expect(keys).toContain(
+      'n9Mh83gUuY4hBXVD9geWHsyVwz5h32rjauLWQCZJVTEbCb5TYs21',
+    )
+    expect(keys).toContain(
+      'n9LgkNWaPfRnxLKAgnSCMHRCyHBZsSdGBdRmyaYEArL3SBoq1EqK',
+    )
+  })
 })
