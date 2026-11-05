@@ -249,6 +249,11 @@ class Agreement {
 
       if (isPreceedingFlagLedger(validation.ledger_index)) {
         serverVersion = decodeServerVersion(validation.server_version)
+      }
+
+      // rippled tallies votes from trusted full validations only
+      // (RCLConsensus.cpp:364-366, Validations.h:1063 in 3.4.1).
+      if (isPreceedingFlagLedger(validation.ledger_index) && validation.full) {
         const ballot: Ballot = {
           signing_key,
           ledger_index: Number(validation.ledger_index),
