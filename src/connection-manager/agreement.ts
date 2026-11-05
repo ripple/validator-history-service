@@ -71,19 +71,19 @@ function setDifference<T>(set1: Iterable<T>, set2: Map<T, unknown>): Set<T> {
  * Updates 1 hour, 1 day, and 30 day agreement scores.
  *
  * @param validator_keys - Master Key and Signing Key of the validator.
+ * @param end - End of the windows, the same for every validator in a run.
  * @returns Void.
  */
 async function updateAgreementScores(
   validator_keys: ValidatorKeys,
+  end: Date,
 ): Promise<void> {
-  const end = new Date()
-
-  const days_1 = new Date()
+  const days_1 = new Date(end)
   days_1.setDate(end.getDate() - 1)
   const score1 = await getAgreementScores(validator_keys, days_1, end)
   await update24HourValidatorAgreement(validator_keys, score1)
 
-  const days_30 = new Date()
+  const days_30 = new Date(end)
   days_30.setDate(end.getDate() - 30)
   const score30 = await getAgreementScores(validator_keys, days_30, end)
   await update30DayValidatorAgreement(validator_keys, score30)
@@ -93,14 +93,16 @@ async function updateAgreementScores(
  * Updates agreement for a validator.
  *
  * @param validator_keys - Signing_keys of validator to update agreement for.
+ * @param now - Time of the run, the same for every validator in a run.
  * @returns Void.
  */
 async function updateDailyAgreement(
   validator_keys: ValidatorKeys,
+  now: Date,
 ): Promise<void> {
-  const start = new Date()
+  const start = new Date(now)
   start.setHours(0, 0, 0, 0)
-  const end = new Date()
+  const end = new Date(now)
   end.setHours(23, 59, 59, 999)
 
   const agreement = await getAgreementScores(validator_keys, start, end)
@@ -174,6 +176,9 @@ class Agreement {
    */
   public async calculateAgreement(): Promise<void> {
     log.info('Calculating agreement scores')
+    // One time for the whole run, so every validator is scored over the same
+    // 24 hour, 30 day and daily windows.
+    const now = new Date()
     const promises = []
 
     const agreementChains = chains.calculateChainsFromLedgers()
@@ -195,6 +200,7 @@ class Agreement {
             signing_key,
             ledger_hashes,
             chain.incomplete,
+            now,
           ).catch((err) => {
             log.error(
               `Error calculating agreement for validator ${signing_key}`,
@@ -281,11 +287,13 @@ class Agreement {
    * @param signing_key - Signing key to calculate agreement for.
    * @param ledger_hashes - Ledger hashes seen on this validators chain.
    * @param incomplete - Are the ledgers heard incomplete.
+   * @param now - Time of the run, the same for every validator in a run.
    */
   private async calculateValidatorAgreement(
     signing_key: string,
     ledger_hashes: Set<string>,
     incomplete: boolean,
+    now: Date,
   ): Promise<void> {
     const master_key = await signingToMaster(signing_key)
     const validator_keys = { master_key, signing_key }
@@ -297,7 +305,8 @@ class Agreement {
       incomplete,
     )
 
-    await updateDailyAgreement(validator_keys)
+    await updateAgreementScores(validator_keys, now)
+    await updateDailyAgreement(validator_keys, now)
   }
 
   /**
@@ -330,7 +339,6 @@ class Agreement {
     })
 
     await update1HourValidatorAgreement(validator_keys, agreement)
-    await updateAgreementScores(validator_keys)
   }
 
   /**
