@@ -18,21 +18,47 @@ const CRAWL_INTERVAL = 2 * 60 * 1000
 async function crawl(): Promise<void> {
   const crawlers: Crawler[] = []
   const startCrawl = moment.utc()
-  const promises = []
-  const networks = await getNetworks()
-  for (const entry of networks) {
-    const crawler = new Crawler()
-    crawlers.push(crawler)
-    promises.push(crawler.crawl(entry))
-  }
-  await Promise.all(promises)
+  try {
+    const networks = await getNetworks()
+    const promises = []
+    for (const entry of networks) {
+      const crawler = new Crawler()
+      crawlers.push(crawler)
+      promises.push(crawler.crawl(entry))
+    }
+    // allSettled, not all: a single network's crawl rejecting must not abort
+    // the cycle - the other networks should still be crawled and counted.
+    const results = await Promise.allSettled(promises)
+    const rejected = results.filter(
+      (result): result is PromiseRejectedResult => result.status === 'rejected',
+    )
+    for (const result of rejected) {
+      log.error(`Error crawling network`, result.reason)
+    }
 
-  const duration = moment.utc().diff(startCrawl) / 1000
-  const peers = crawlers.reduce(
-    (size, crawler) => crawler.publicKeysSeen.size + size,
-    0,
-  )
-  log.info(`Crawl took ${duration} seconds, ${peers} peers discovered`)
+    const duration = moment.utc().diff(startCrawl) / 1000
+    const peers = crawlers.reduce(
+      (size, crawler) => crawler.publicKeysSeen.size + size,
+      0,
+    )
+
+    // The "no crawl activity" alert counts the "...peers discovered" summary
+    // line, so only emit it when the cycle actually discovered peers. A cycle
+    // that found none - every network rejected, or they resolved but returned
+    // nothing - is itself "no crawl activity", so log it as an error WITHOUT
+    // the summary phrase rather than a green-looking "0 peers discovered".
+    if (peers > 0) {
+      log.info(`Crawl took ${duration} seconds, ${peers} peers discovered`)
+    } else {
+      log.error(
+        `Crawl cycle discovered 0 peers after ${duration}s (${rejected.length}/${results.length} networks errored)`,
+      )
+    }
+  } catch (err) {
+    // getNetworks() or another cycle-level step failed: nothing was crawled.
+    // Deliberately no "peers discovered" phrase here so the alert still fires.
+    log.error(`Crawl cycle failed before crawling`, err)
+  }
 }
 
 async function start(): Promise<void> {
@@ -42,7 +68,13 @@ async function start(): Promise<void> {
 }
 
 async function main(): Promise<void> {
-  await start()
+  try {
+    await start()
+  } catch (err) {
+    // Don't let a failed first crawl stop the periodic crawls from being
+    // scheduled - the service should keep retrying, not go dark.
+    log.error(`Error during crawler startup`, err)
+  }
 
   setInterval(() => {
     void crawl()
