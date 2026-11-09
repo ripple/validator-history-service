@@ -8,6 +8,7 @@
 
     /* Directories */
     "outDir": "./build",                      /* Redirect output structure to the directory. */
+    "rootDir": ".",                           /* TypeScript 6 requires an explicit rootDir; '.' covers src/ and test/. tsconfig.build.json overrides it to ./src. */
 
     /* Strict Type-Checking Options */
     "strict": true,                           /* Enable all strict type-checking options. */
