@@ -7,7 +7,6 @@ import {
   handleAmendmentVote,
 } from './amendments'
 import handleDailyScores from './daily-report'
-import getNetworkOrAdd from './get-network'
 import handleHealth, { handleMonitoringMetrics } from './health'
 import handleValidatorManifest from './manifests'
 import handleNetworks from './networks'
@@ -24,8 +23,6 @@ api.use('/network/amendment/info/:param', handleAmendmentInfo)
 api.use('/network/amendments/info', handleAmendmentsInfo)
 api.use('/network/amendments/vote/:network', handleAmendmentsVote)
 api.use('/network/amendment/vote/:network/:identifier', handleAmendmentVote)
-
-api.use('/network/get_network/:entryUrl', getNetworkOrAdd)
 
 api.use('/network/topology/nodes/:network', handleNodes)
 api.use('/network/topology/nodes', handleNodes)
