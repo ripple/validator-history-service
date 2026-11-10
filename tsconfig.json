@@ -8,6 +8,7 @@
 
     /* Directories */
     "outDir": "./build",                      /* Redirect output structure to the directory. */
+    "rootDir": ".",                           /* TypeScript 6 requires an explicit rootDir; '.' covers src/ and test/. tsconfig.build.json overrides it to ./src. */
 
     /* Strict Type-Checking Options */
     "strict": true,                           /* Enable all strict type-checking options. */
@@ -20,10 +21,12 @@
 
     /* Module Resolution Options */
     "moduleResolution": "node",               /* Specify module resolution strategy: 'node' (Node.js) or 'classic' (TypeScript pre-1.6). */
+    "ignoreDeprecations": "6.0",              /* TypeScript 6 deprecates moduleResolution 'node'; it is removed in TypeScript 7. */
     "typeRoots": [                            /* List of folders to include type definitions from. */
       "src/shared/types",
       "./node_modules/@types"
     ],
+    "types": ["node", "jest"],                /* TypeScript 6 no longer auto-includes every @types package; list the global ones. */
 
 
     /* Advanced Options */
