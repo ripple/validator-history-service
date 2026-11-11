@@ -71,7 +71,7 @@ describe('connection_health tests', () => {
   })
 
   test('crawls and empty connection_health left join test', async () => {
-    const crawlsData: Node[] = data.crawls_only as Node[]
+    const crawlsData: Node[] = data.crawls_only
 
     await Promise.all(
       crawlsData.map(async (row) =>
@@ -95,12 +95,12 @@ describe('connection_health tests', () => {
   })
 
   test('crawls and connection_health left join test', async () => {
-    const crawlsData: Node[] = data.crawls_and_connections_test.crawls as Node[]
+    const crawlsData: Node[] = data.crawls_and_connections_test.crawls
 
     const connectionHealthData: ConnectionHealth = {
       ...data.crawls_and_connections_test.connection_health,
       status_update_time: new Date(),
-    } as ConnectionHealth
+    }
 
     await Promise.all(
       crawlsData.map(async (row) =>
@@ -132,7 +132,7 @@ describe('connection_health tests', () => {
   })
 
   test('findByPublicKey test', async () => {
-    const crawlsData: Node[] = data.crawls_only as Node[]
+    const crawlsData: Node[] = data.crawls_only
 
     await Promise.all(
       crawlsData.map(async (row) =>
@@ -162,7 +162,7 @@ describe('connection_health tests', () => {
   })
 
   test('findByIp and findByWsUrl test', async () => {
-    const crawlsData: Node[] = data.crawls_only as Node[]
+    const crawlsData: Node[] = data.crawls_only
 
     await Promise.all(
       crawlsData.map(async (row) =>
@@ -202,7 +202,7 @@ describe('connection_health tests', () => {
   })
 
   test('updateConnectionHealthStatus test', async () => {
-    const crawlsData: Node[] = data.crawls_only as Node[]
+    const crawlsData: Node[] = data.crawls_only
 
     await Promise.all(
       crawlsData.map(async (row) =>

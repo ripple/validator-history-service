@@ -99,12 +99,12 @@ export async function handleRevocations(
   let revokedSigningKeys
   for (let numberOfAttempts = 1; numberOfAttempts <= 3; numberOfAttempts++) {
     try {
-      revokedSigningKeys = (await query('manifests')
+      revokedSigningKeys = await query('manifests')
         .where({ master_key: manifest.master_key })
         .andWhere('seq', '<', manifest.seq)
-        .update({ revoked: true }, [
+        .update<string, DatabaseManifest[]>({ revoked: true }, [
           'manifests.signing_key',
-        ])) as DatabaseManifest[]
+        ])
       break
     } catch (err: unknown) {
       // eslint-disable-next-line max-depth -- DB deadlock needs special retry logic
