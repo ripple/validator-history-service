@@ -7,6 +7,7 @@ import net from 'net'
 import axios, { AxiosInstance } from 'axios'
 
 import { Crawl, Node } from '../shared/types'
+import { guardedLookup, isAllowedHost } from '../shared/utils/blocked-address'
 import logger from '../shared/utils/logger'
 
 let fetch: AxiosInstance | undefined
@@ -27,7 +28,11 @@ function getAxiosInstance(): AxiosInstance {
     httpsAgent: new https.Agent({
       rejectUnauthorized: false,
       requestCert: true,
+      lookup: guardedLookup,
     }),
+    // A /crawl endpoint has no reason to redirect, and following one would let
+    // a peer send VHS to any host and port.
+    maxRedirects: 0,
   })
 
   return fetch
@@ -132,6 +137,10 @@ async function crawlNode(
   host: string,
   port: number,
 ): Promise<Crawl | undefined> {
+  if (!isAllowedHost(host)) {
+    log.warn(`Skipping crawl of blocked host ${host}`)
+    return undefined
+  }
   return getAxiosInstance()
     .get<CrawlResponseBody>(buildCrawlUrl(host, port), { timeout: TIMEOUT })
     .then((response) => parseCrawlResponse(response.data))
