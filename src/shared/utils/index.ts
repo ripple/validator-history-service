@@ -1,3 +1,6 @@
+import http from 'http'
+import https from 'https'
+
 import axios, { AxiosRequestConfig } from 'axios'
 import { unixTimeToRippleTime, ManifestResponse } from 'xrpl'
 import { normalizeManifest } from 'xrpl-validator-domains'
@@ -5,11 +8,24 @@ import { normalizeManifest } from 'xrpl-validator-domains'
 import { getNetworks, query } from '../database'
 import { UNL, UNLBlob, UNLV2, UNLValidator } from '../types'
 
+import { guardedLookup, isAllowedHost } from './blocked-address'
 import logger from './logger'
 
 const log = logger({ name: 'utils' })
 const HTTPS_PORT = 51234
 const IPV6_PREFIX = /^::ffff:/u
+// The agents' lookup checks every hop, redirects included, for hostnames that
+// resolve to a blocked address. Node skips lookup for IP literals, so
+// beforeRedirect checks a redirect to one.
+const VALIDATOR_LIST_REQUEST: AxiosRequestConfig = {
+  httpAgent: new http.Agent({ lookup: guardedLookup }),
+  httpsAgent: new https.Agent({ lookup: guardedLookup }),
+  beforeRedirect: (options) => {
+    if (!isAllowedHost(String(options.hostname))) {
+      throw new Error(`Redirect to blocked host ${String(options.hostname)}`)
+    }
+  },
+}
 
 /**
  * Converts an IPv6-mapped IPv4 address to a standard IPv4 address.
@@ -29,7 +45,16 @@ export function getIPv4Address(ip: string): string {
  */
 export async function fetchValidatorList(url: string): Promise<UNLBlob> {
   try {
-    const resp = await axios.get<UNL | UNLV2>(`http://${url}`)
+    // The url comes from the networks table, which a peer's crawl response
+    // can fill, so it is checked like any other outbound host.
+    const { hostname } = new URL(`http://${url}`)
+    if (!isAllowedHost(hostname)) {
+      throw new Error(`Blocked validator list host ${hostname}`)
+    }
+    const resp = await axios.get<UNL | UNLV2>(
+      `http://${url}`,
+      VALIDATOR_LIST_REQUEST,
+    )
     const unl = resp.data
     if ('blob' in unl) {
       return parseBlob(unl.blob)

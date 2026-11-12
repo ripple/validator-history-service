@@ -16,6 +16,11 @@ import {
 } from '../shared/database/connectionHealth'
 import { FeeVote, WsNode } from '../shared/types'
 import { getIPv4Address } from '../shared/utils'
+import {
+  guardedLookup,
+  isAllowedHost,
+  isAllowedWsUrl,
+} from '../shared/utils/blocked-address'
 import logger from '../shared/utils/logger'
 
 import {
@@ -34,6 +39,8 @@ const validationNetworkDb: Map<string, string> = new Map()
 const enableAmendmentLedgerIndexMap: Map<string, number> = new Map()
 const CM_INTERVAL = 60 * 60 * 1000
 const WS_TIMEOUT = 10000
+// guardedLookup stops a hostname that resolves to a blocked address.
+const WS_OPTIONS = { handshakeTimeout: WS_TIMEOUT, lookup: guardedLookup }
 const REPORTING_INTERVAL = 15 * 60 * 1000
 const BACKTRACK_INTERVAL = 30 * 60 * 1000
 const BASE_RETRY_DELAY = 1 * 1000
@@ -112,7 +119,7 @@ async function setHandlers(
 
         setTimeout(async () => {
           // Open a new Websocket connection for the same url
-          const newWS = new WebSocket(ws.url, { handshakeTimeout: WS_TIMEOUT })
+          const newWS = new WebSocket(ws.url, WS_OPTIONS)
 
           await setHandlers(newWS, publicKey, network, retryCount + 1)
         }, delay)
@@ -129,7 +136,8 @@ async function setHandlers(
 }
 
 /**
- * Checks whether a host can be safely interpolated into a WebSocket url.
+ * Checks whether a host can be safely interpolated into a WebSocket url, and
+ * is not an address VHS must never connect to (see {@link isAllowedHost}).
  *
  * IPv6 is rejected quietly since it is expected: the url is built by
  * concatenation, which cannot produce the bracketed form IPv6 requires.
@@ -148,6 +156,15 @@ function isValidWsHost(host: string, node: WsNode): boolean {
   if (!VALID_WS_HOST.test(host)) {
     log.warn(
       `Skipping node with invalid host '${node.ip}' (public_key: ${
+        node.public_key ?? 'unknown'
+      }, network: ${node.networks})`,
+    )
+    return false
+  }
+
+  if (!isAllowedHost(host)) {
+    log.warn(
+      `Skipping node with blocked host '${node.ip}' (public_key: ${
         node.public_key ?? 'unknown'
       }, network: ${node.networks})`,
     )
@@ -179,7 +196,11 @@ async function findConnection(node: WsNode): Promise<void> {
   }
 
   if (node.ws_url) {
-    const ws = new WebSocket(node.ws_url, { handshakeTimeout: WS_TIMEOUT })
+    if (!isAllowedWsUrl(node.ws_url)) {
+      log.warn(`Skipping saved ws_url with blocked host '${node.ws_url}'`)
+      return Promise.resolve()
+    }
+    const ws = new WebSocket(node.ws_url, WS_OPTIONS)
     return setHandlers(ws, node.public_key, node.networks)
   }
 
@@ -187,7 +208,7 @@ async function findConnection(node: WsNode): Promise<void> {
   for (const port of ports) {
     for (const protocol of protocols) {
       const url = `${protocol}${node.ip}:${port}`
-      const ws = new WebSocket(url, { handshakeTimeout: WS_TIMEOUT })
+      const ws = new WebSocket(url, WS_OPTIONS)
       promises.push(setHandlers(ws, node.public_key, node.networks))
     }
   }
