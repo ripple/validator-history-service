@@ -26,6 +26,7 @@ import {
   StreamManifest,
   ValidationRaw,
 } from '../shared/types'
+import { guardedAgent } from '../shared/utils/blocked-address'
 import logger from '../shared/utils/logger'
 
 import agreement from './agreement'
@@ -184,7 +185,9 @@ async function processEnableAmendmentTransaction(
   ledgerIndex: number,
 ): Promise<void> {
   try {
-    const client = new Client(url)
+    // url belongs to an already-checked peer, but connecting resolves its
+    // name again, so the new address must be checked too.
+    const client = new Client(url, { agent: guardedAgent(url) })
     client.apiVersion = RIPPLED_API_V1
     await client.connect()
 

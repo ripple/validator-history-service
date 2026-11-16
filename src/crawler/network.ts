@@ -7,7 +7,11 @@ import net from 'net'
 import axios, { AxiosInstance } from 'axios'
 
 import { Crawl, Node } from '../shared/types'
-import { guardedLookup, isAllowedHost } from '../shared/utils/blocked-address'
+import {
+  guardedLookup,
+  isAllowedHost,
+  parsePort,
+} from '../shared/utils/blocked-address'
 import logger from '../shared/utils/logger'
 
 let fetch: AxiosInstance | undefined
@@ -141,8 +145,16 @@ async function crawlNode(
     log.warn(`Skipping crawl of blocked host ${host}`)
     return undefined
   }
+  // The port comes from the peer too, and is only typed as a number.
+  const safePort = parsePort(port)
+  if (safePort === undefined) {
+    log.warn(`Skipping crawl of ${host} with invalid port ${String(port)}`)
+    return undefined
+  }
   return getAxiosInstance()
-    .get<CrawlResponseBody>(buildCrawlUrl(host, port), { timeout: TIMEOUT })
+    .get<CrawlResponseBody>(buildCrawlUrl(host, safePort), {
+      timeout: TIMEOUT,
+    })
     .then((response) => parseCrawlResponse(response.data))
     .catch((error) => {
       if (error.message.includes('wrong network')) {

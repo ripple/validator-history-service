@@ -1,4 +1,6 @@
 import dns from 'dns'
+import http from 'http'
+import https from 'https'
 import net from 'net'
 
 import logger from './logger'
@@ -64,6 +66,32 @@ export function isAllowedHost(host: string): boolean {
   return HOSTNAME.test(host) && !NUMERIC_LAST_LABEL.test(host)
 }
 
+// A port written as a string of digits, accepted in case a peer sends one.
+const PORT_DIGITS = /^\d{1,5}$/u
+
+/**
+ * Reads a port that came from outside, such as a peer's crawl response. A
+ * value that is not a plain port number could change the host a url points
+ * at (`51235@169.254.169.254` turns the real host into the url's username),
+ * so anything else is rejected.
+ *
+ * @param port - An integer or a string of digits.
+ * @returns The port as an integer in 1–65535, or undefined if it is not one.
+ */
+export function parsePort(port: unknown): number | undefined {
+  const value =
+    typeof port === 'string' && PORT_DIGITS.test(port) ? Number(port) : port
+  if (
+    typeof value === 'number' &&
+    Number.isInteger(value) &&
+    value >= 1 &&
+    value <= 65535
+  ) {
+    return value
+  }
+  return undefined
+}
+
 /**
  * Whether a saved WebSocket url points at an allowed host. Urls in
  * connection_health were saved before hosts were checked, and an IP literal
@@ -125,4 +153,18 @@ export function guardedLookup(
       done(error, '', 0)
     },
   )
+}
+
+/**
+ * An agent that uses {@link guardedLookup}, for clients that take an `agent`
+ * but not a `lookup` option, such as the xrpl.js `Client`.
+ *
+ * @param url - The ws:// or wss:// url the agent will connect to.
+ * @returns An https agent for wss:// urls and an http agent otherwise.
+ */
+export function guardedAgent(url: string): http.Agent {
+  const options = { lookup: guardedLookup }
+  return new URL(url).protocol === 'wss:'
+    ? new https.Agent(options)
+    : new http.Agent(options)
 }

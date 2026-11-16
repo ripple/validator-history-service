@@ -46,6 +46,29 @@ describe('crawlNode', () => {
     },
   )
 
+  // The port comes from the peer's crawl response and goes into the url, so
+  // anything but a plain port number could change the host the request goes
+  // to (`51235@169.254.169.254` makes the real host the url's username).
+  it.each(['51235@169.254.169.254', '51235/x', 'abc', '', 0, 65536, 1.5, -1])(
+    'does not crawl with the invalid port %p',
+    async (port) => {
+      const scope = nock(/.*/u).get(/.*/u).reply(200, crawlBody)
+
+      const crawl = await crawlNode('1.1.1.1', port as unknown as number)
+
+      expect(crawl).toBeUndefined()
+      expect(scope.isDone()).toBe(false)
+    },
+  )
+
+  it('crawls with a port sent as a numeric string', async () => {
+    nock('https://1.1.1.1:51235').get('/crawl').reply(200, crawlBody)
+
+    const crawl = await crawlNode('1.1.1.1', '51235' as unknown as number)
+
+    expect(crawl?.this_node.public_key).toBe(crawlBody.server.pubkey_node)
+  })
+
   it('does not follow a redirect', async () => {
     nock('https://1.1.1.1:51235')
       .get('/crawl')
