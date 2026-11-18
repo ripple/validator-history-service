@@ -153,6 +153,10 @@ class Agreement {
   private readonly validationsByPublicKey: Map<string, Map<string, number>> =
     new Map()
 
+  // Hashes each key sent a full validation for: only these count as agreement,
+  // as rippled scores full validations only (Validations.h:1063 in 3.4.1).
+  private readonly fullByPublicKey: Map<string, Map<string, number>> = new Map()
+
   private reported_at = new Date()
 
   /**
@@ -224,6 +228,8 @@ class Agreement {
 
     const hashes = this.validationsByPublicKey.get(signing_key) ?? new Map()
 
+    this.recordFull(validation)
+
     if (!hashes.has(validation.ledger_hash)) {
       hashes.set(validation.ledger_hash, Date.now())
       this.validationsByPublicKey.set(signing_key, hashes)
@@ -276,6 +282,20 @@ class Agreement {
   }
 
   /**
+   * Records the ledger hash of a full validation.
+   *
+   * @param validation - Validation from subscription stream.
+   */
+  private recordFull(validation: ValidationRaw): void {
+    const hashes = this.fullByPublicKey.get(validation.validation_public_key)
+    if (validation.full && !hashes?.has(validation.ledger_hash)) {
+      const updated = hashes ?? new Map<string, number>()
+      updated.set(validation.ledger_hash, Date.now())
+      this.fullByPublicKey.set(validation.validation_public_key, updated)
+    }
+  }
+
+  /**
    * Promise to calculate agreement for validator.
    *
    * @param signing_key - Signing key to calculate agreement for.
@@ -292,7 +312,7 @@ class Agreement {
 
     await this.calculateHourlyAgreement(
       validator_keys,
-      this.validationsByPublicKey.get(signing_key) ?? new Map(),
+      this.fullByPublicKey.get(signing_key) ?? new Map(),
       ledger_hashes,
       incomplete,
     )
@@ -352,8 +372,8 @@ class Agreement {
       }
     }
 
-    for (const [_key, validations] of this.validationsByPublicKey) {
-      purgeValidations(validations)
+    for (const byKey of [this.validationsByPublicKey, this.fullByPublicKey]) {
+      byKey.forEach(purgeValidations)
     }
   }
 }
