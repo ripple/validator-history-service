@@ -118,6 +118,39 @@ describe('manifest ingest', () => {
     expect(rows[0].master_key).toBe(MASTER)
   })
 
+  // Manifests also arrive from peers' websockets, so their fields can't be
+  // trusted. One whose keys can't even be decoded must not be saved, or it
+  // would relink a real validator's signing key to a made-up master key.
+  test('handleManifest does not save a manifest whose keys cannot be decoded', async () => {
+    const MASTER = 'nHDaeKJcfRzzmx3gGKnrFTQazYi95tdGrdoiCYLinoU9EkJsp4Ho'
+    const SIGNING = 'n9KhXam7XB436XHhzo3aTzEW5NxkKwVDkuy9DwdDC1ja8j8mv3ot'
+    await query('validators').insert({
+      master_key: MASTER,
+      signing_key: SIGNING,
+      revoked: false,
+      chain: 'main',
+      networks: 'main',
+    })
+
+    await handleManifest({
+      master_key: 'nHnotAValidKey',
+      master_signature: 'AB',
+      seq: 2,
+      signature: 'AB',
+      signing_key: SIGNING,
+      domain: 'validator.example',
+    })
+
+    const saved = (await query('manifests').where({
+      signing_key: SIGNING,
+    })) as DatabaseManifest[]
+    const validators = (await query('validators')
+      .select('master_key')
+      .where({ signing_key: SIGNING })) as Array<{ master_key: string | null }>
+    expect(saved).toEqual([])
+    expect(validators).toEqual([{ master_key: MASTER }])
+  })
+
   test('updateUnlManifests', async () => {
     networks.forEach((network) => {
       nock(`http://${network.unls[0]}`).get('/').reply(200, unl1)

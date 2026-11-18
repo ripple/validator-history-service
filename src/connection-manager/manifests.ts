@@ -75,7 +75,7 @@ export async function handleManifest(
   let verification
   try {
     verification = await verifyValidatorDomain(manifest)
-  } catch {
+  } catch (verifyError: unknown) {
     let normalized
     try {
       normalized = normalizeManifest(manifest)
@@ -84,7 +84,7 @@ export async function handleManifest(
       return
     }
     log.warn(
-      `Domain verification failed for manifest (master key): ${normalized.master_key}`,
+      `Domain verification failed for manifest (master key): ${normalized.master_key}: ${String(verifyError)}`,
     )
     const dBManifest: DatabaseManifest = {
       domain_verified: false,

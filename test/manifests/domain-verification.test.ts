@@ -71,6 +71,18 @@ describe('verifyValidatorDomain', () => {
     expect(result.message).toBe('Cannot verify manifest signature')
   })
 
+  it('treats a manifest whose keys cannot be decoded as an invalid signature', async () => {
+    const { manifest } = await signedValidator(DOMAIN)
+
+    const result = await verifyValidatorDomain(
+      { ...manifest, master_key: 'nHnotAValidKey' },
+      LIMITS,
+    )
+
+    expect(result.verified_manifest_signature).toBe(false)
+    expect(result.message).toBe('Cannot verify manifest signature')
+  })
+
   it('does not fetch a toml when the manifest has no domain', async () => {
     const { manifest } = await signedValidator(undefined)
 
@@ -158,6 +170,21 @@ describe('verifyValidatorDomain', () => {
     const result = await verifyValidatorDomain(manifest, LIMITS)
 
     expect(result.verified).toBe(false)
+  })
+
+  it('does not verify when an attestation is not a string', async () => {
+    const { manifest } = await signedValidator(DOMAIN)
+    nock(`https://${DOMAIN}`)
+      .get(TOML_PATH)
+      .reply(
+        200,
+        `[[VALIDATORS]]\npublic_key = "${manifest.master_key}"\nattestation = 123\n`,
+      )
+
+    const result = await verifyValidatorDomain(manifest, LIMITS)
+
+    expect(result.verified).toBe(false)
+    expect(result.message).toBe(`Invalid attestation, cannot verify ${DOMAIN}`)
   })
 
   it.each([404, 500])(

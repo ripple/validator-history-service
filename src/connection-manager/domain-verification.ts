@@ -161,11 +161,12 @@ function hasValidAttestations(
   ).toString('hex')
   const key = Buffer.from(decodeNodePublic(publicKey)).toString('hex')
   return validators.every((validator) => {
-    const attestation = Buffer.from(
-      validator.attestation ?? '',
-      'hex',
-    ).toString('hex')
+    // The toml comes from the domain, so the attestation can be any type.
     try {
+      const attestation = Buffer.from(
+        validator.attestation ?? '',
+        'hex',
+      ).toString('hex')
       return verifyKeypairSignature(message, attestation, key)
     } catch {
       return false
@@ -191,7 +192,16 @@ export default async function verifyValidatorDomain(
 ): Promise<DomainVerification> {
   const normalized = normalizeManifest(manifest)
   const { domain, master_key: publicKey } = normalized
-  const signatureVerified = verifyManifestSignature(normalized)
+  // The check throws, rather than returning false, when a key cannot be
+  // decoded or there is no signature. That is still an invalid signature:
+  // callers save a manifest when verification throws, and one with an
+  // unchecked signature must not be saved.
+  let signatureVerified: boolean
+  try {
+    signatureVerified = verifyManifestSignature(normalized)
+  } catch {
+    signatureVerified = false
+  }
   let verified = false
   let message: string
 
