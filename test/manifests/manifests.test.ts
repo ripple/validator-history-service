@@ -18,6 +18,7 @@ import { DatabaseManifest } from '../../src/shared/types'
 
 import unl1 from './fixtures/unl-response1.json'
 import unl2 from './fixtures/unl-response2.json'
+import signedValidator from './signed-manifest'
 
 const VALIDATOR_URL = networks[0].unls[0]
 
@@ -72,6 +73,19 @@ describe('manifest ingest', () => {
       domain: null,
       domain_verified: false,
     })
+  })
+
+  test('handleManifest saves a manifest with a blocked domain as unverified', async () => {
+    const { manifest } = await signedValidator('169.254.169.254')
+
+    await handleManifest(manifest)
+
+    const saved = (await query('manifests')
+      .select('domain', 'domain_verified')
+      .where({ master_key: manifest.master_key })) as DatabaseManifest[]
+    expect(saved).toEqual([
+      { domain: '169.254.169.254', domain_verified: false },
+    ])
   })
 
   test('handleManifest links the validator master key immediately', async () => {

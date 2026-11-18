@@ -71,6 +71,7 @@
     "nconf": "^0.13.0",
     "pg": "8.22.0",
     "ripple-address-codec": "^5.0.1",
+    "toml": "^3.0.0",
     "ws": "^8.21.1",
     "xrpl": "^5.0.0",
     "xrpl-validator-domains": "0.1.0"
