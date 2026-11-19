@@ -188,7 +188,7 @@ export async function handleNode(req: Request, res: Response): Promise<void> {
     log.error('Error handleNode: ', err)
     res.status(500).send({
       result: 'error',
-      message: `internal error: ${(err as Error).message}`,
+      message: 'internal error',
     })
   }
 }
@@ -221,7 +221,7 @@ export async function handleNodes(req: Request, res: Response): Promise<void> {
     log.error('Error handleNodes: ', err)
     res.status(500).send({
       result: 'error',
-      message: `internal error: ${(err as Error).message}`,
+      message: 'internal error',
     })
   }
 }
@@ -252,7 +252,7 @@ export async function handleTopology(
     log.error('Error handleTopology: ', err)
     res.status(500).send({
       result: 'error',
-      message: `internal error: ${(err as Error).message}`,
+      message: 'internal error',
     })
   }
 }

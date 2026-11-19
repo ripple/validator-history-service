@@ -293,7 +293,7 @@ export async function handleValidator(
     log.error('Error handleValidator: ', err)
     res.status(500).send({
       result: 'error',
-      message: `internal error: ${(err as Error).message}`,
+      message: 'internal error',
     })
   }
 }
@@ -347,7 +347,7 @@ export async function handleValidators(
     log.error('Error handleValidators: ', err)
     res.status(500).send({
       result: 'error',
-      message: `internal error: ${(err as Error).message}`,
+      message: 'internal error',
     })
   }
 }

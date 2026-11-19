@@ -54,7 +54,7 @@ export default async function handleValidatorManifest(
     log.error('Error handleValidatorManifest: ', err)
     res.status(500).send({
       result: 'error',
-      message: `internal error: ${(err as Error).message}`,
+      message: 'internal error',
     })
   }
 }
