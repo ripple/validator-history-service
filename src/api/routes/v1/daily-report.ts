@@ -131,7 +131,7 @@ export default async function handleDailyScores(
     log.error('Error handleDailyScores: ', err)
     res.status(500).send({
       result: 'error',
-      message: `internal error: ${(err as Error).message}`,
+      message: 'internal error',
     })
   }
 }
