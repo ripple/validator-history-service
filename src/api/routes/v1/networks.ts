@@ -29,7 +29,7 @@ export default async function handleNetworks(
     log.error('Error handleNetworks: ', err)
     res.status(500).send({
       result: 'error',
-      message: `internal error: ${(err as Error).message}`,
+      message: 'internal error',
     })
   }
 }
