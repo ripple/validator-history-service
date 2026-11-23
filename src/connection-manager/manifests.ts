@@ -1,7 +1,4 @@
-import {
-  normalizeManifest,
-  verifyValidatorDomain,
-} from 'xrpl-validator-domains'
+import { normalizeManifest } from 'xrpl-validator-domains'
 
 import {
   saveManifest,
@@ -20,6 +17,7 @@ import {
 import { fetchValidatorList, fetchRpcManifest, getLists } from '../shared/utils'
 import logger from '../shared/utils/logger'
 
+import verifyValidatorDomain from './domain-verification'
 import hard_dunl from './fixtures/unl-hard.json'
 
 const log = logger({ name: 'manifests' })
@@ -77,7 +75,7 @@ export async function handleManifest(
   let verification
   try {
     verification = await verifyValidatorDomain(manifest)
-  } catch {
+  } catch (verifyError: unknown) {
     let normalized
     try {
       normalized = normalizeManifest(manifest)
@@ -86,7 +84,7 @@ export async function handleManifest(
       return
     }
     log.warn(
-      `Domain verification failed for manifest (master key): ${normalized.master_key}`,
+      `Domain verification failed for manifest (master key): ${normalized.master_key}: ${String(verifyError)}`,
     )
     const dBManifest: DatabaseManifest = {
       domain_verified: false,
@@ -96,7 +94,7 @@ export async function handleManifest(
     await linkValidatorMasterKey(dBManifest)
     return
   }
-  if (verification.verified_manifest_signature && verification.manifest) {
+  if (verification.verified_manifest_signature) {
     const dBManifest: DatabaseManifest = {
       domain_verified: verification.verified,
       ...verification.manifest,

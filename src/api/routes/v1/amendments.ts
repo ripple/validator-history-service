@@ -396,7 +396,7 @@ export async function handleAmendmentsInfo(
     log.error('Error handleAmendmentsInfo: ', err)
     res.status(500).send({
       result: 'error',
-      message: `internal error: ${(err as Error).message}`,
+      message: 'internal error',
     })
   }
 }
@@ -450,7 +450,7 @@ export async function handleAmendmentInfo(
     log.error('Error handleAmendmentInfo: ', err)
     res.status(500).send({
       result: 'error',
-      message: `internal error: ${(err as Error).message}`,
+      message: 'internal error',
     })
   }
 }
@@ -490,7 +490,7 @@ export async function handleAmendmentsVote(
     log.error('Error handleAmendmentsVote: ', err)
     res.status(500).send({
       result: 'error',
-      message: `internal error: ${(err as Error).message}`,
+      message: 'internal error',
     })
   }
 }
@@ -543,7 +543,7 @@ export async function handleAmendmentVote(
     log.error('Error handleAmendmentVote: ', err)
     res.status(500).send({
       result: 'error',
-      message: `internal error: ${(err as Error).message}`,
+      message: 'internal error',
     })
   }
 }

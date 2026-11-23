@@ -108,7 +108,7 @@ export default async function handleValidatorReport(
     log.error('Error handleValidatorReport: ', err)
     res.status(500).send({
       result: 'error',
-      message: `internal error: ${(err as Error).message}`,
+      message: 'internal error',
     })
   }
 }

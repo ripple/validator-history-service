@@ -24,7 +24,7 @@ export default async function handleHealth(
     log.error('Error handleHealth: ', err)
     res.status(500).send({
       result: 'error',
-      message: `internal error: ${(err as Error).message}`,
+      message: 'internal error',
     })
   }
 }
@@ -72,7 +72,7 @@ export async function handleMonitoringMetrics(
     log.error('Error handleMonitoringMetrics: ', err)
     res.status(500).send({
       result: 'error',
-      message: `internal error: ${(err as Error).message}`,
+      message: 'internal error',
     })
   }
 }
