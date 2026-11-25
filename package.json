@@ -76,6 +76,9 @@
     "xrpl": "^5.0.0",
     "xrpl-validator-domains": "0.1.0"
   },
+  "overrides": {
+    "toml": "^5.0.1"
+  },
   "prettier": "@xrplf/prettier-config",
   "directories": {
     "test": "test"
