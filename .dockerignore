@@ -1,0 +1,60 @@
+# Node modules
+node_modules
+npm-debug.log
+
+# Build output (will be generated in container)
+build
+
+# Git
+.git
+.gitignore
+.gitattributes
+
+# Documentation
+*.md
+CONTRIBUTING.md
+ARCHITECTURE.md
+LICENSE
+
+# IDE and editor files
+.vscode
+.idea
+*.swp
+*.swo
+*~
+.DS_Store
+
+# Test files
+test
+*.test.ts
+*.test.js
+*.spec.ts
+*.spec.js
+jest.config.js
+
+# Environment files
+.env
+.env.local
+.env.*.local
+.env.docker
+
+# CI/CD
+.github
+
+# Linting and formatting
+.eslintrc*
+.prettierrc*
+eslint.config.js
+
+# TypeScript config (copied explicitly in Dockerfile)
+# tsconfig.json
+# tsconfig.build.json
+# tsconfig.eslint.json
+
+# Logs
+logs
+*.log
+
+# Temporary files
+tmp
+temp
